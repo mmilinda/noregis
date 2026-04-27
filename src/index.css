@@ -1,66 +1,41 @@
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
 
-:root {
-  --surface: #f9f9fc;
-  --surface-dim: #dadadc;
-  --surface-bright: #f9f9fc;
-  --surface-container-lowest: #ffffff;
-  --surface-container-low: #f3f3f6;
-  --surface-container: #eeeef0;
-  --surface-container-high: #e8e8ea;
-  --surface-container-highest: #e2e2e5;
-  --on-surface: #1a1c1e;
-  --on-surface-variant: #434653;
-  --inverse-surface: #2f3133;
-  --inverse-on-surface: #f0f0f3;
-  --outline: #737685;
-  --outline-variant: #c3c6d6;
-  --surface-tint: #2156ca;
-  --primary: #00328a;
-  --on-primary: #ffffff;
-  --primary-container: #0047bb;
-  --on-primary-container: #afc1ff;
-  --secondary: #006e2e;
-  --on-secondary: #ffffff;
-  --secondary-container: #93f9a2;
-  --on-secondary-container: #007431;
-  --tertiary: #6a2100;
-  --on-tertiary: #ffffff;
-  --tertiary-container: #913000;
-  --on-tertiary-container: #ffb194;
-  --error: #ba1a1a;
-  --on-error: #ffffff;
-  --error-container: #ffdad6;
-  --on-error-container: #93000a;
-  --background: #f9f9fc;
-  --on-background: #1a1c1e;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans bg-slate-100 text-slate-900 antialiased;
+  }
+  
+  .dark body {
+    @apply bg-[#0D1117] text-slate-100;
+  }
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-blue text-white font-bold rounded-lg hover:bg-blue-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  
+  .card {
+    @apply bg-white border border-slate-200 rounded-lg overflow-hidden dark:bg-[#161B22] dark:border-slate-800;
+  }
 }
 
-body {
-  font-family: 'Lexend', sans-serif;
-  background-color: var(--background);
-  color: var(--on-background);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+/* Custom transitions and scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full hover:bg-slate-400;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-weight: 700;
-}
-
-button {
-  cursor: pointer;
-  border: none;
-  font-family: 'Lexend', sans-serif;
-  transition: opacity 0.2s;
-}
-
-button:active {
-  opacity: 0.8;
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-slate-700 hover:bg-slate-600;
 }
