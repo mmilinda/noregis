@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { AppProvider, useApp } from './context/AppContext';
+import { useState } from 'react';
+import { AppProvider } from './context/AppContext';
+import { useApp } from './context/useAppState';
 import { Layout } from './components/Layout';
 import { Toast } from './components/UI';
 import { Dashboard, Historique } from './pages/Dashboard';
 import { Parametres, ProfilAgent } from './pages/Settings';
+import { Login } from './pages/Login';
 
 /* ============================================
    INNER APP (has access to context)
@@ -11,6 +13,16 @@ import { Parametres, ProfilAgent } from './pages/Settings';
 function AppInner() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { state } = useApp();
+
+  // If not authenticated, show only the Login page
+  if (!state.isAuthenticated) {
+    return (
+      <div className={state.darkMode ? 'dark' : ''}>
+        <Login />
+        <Toast />
+      </div>
+    );
+  }
 
   const pages = {
     dashboard: <Dashboard />,

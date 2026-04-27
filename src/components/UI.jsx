@@ -3,7 +3,7 @@ import {
   X, CheckCircle2, AlertCircle, Info, AlertTriangle, 
   ChevronRight, Loader2, User, Car
 } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useAppState';
 
 /* ============================================
    TOAST NOTIFICATION

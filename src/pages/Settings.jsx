@@ -1,11 +1,11 @@
-import React from 'react';
+import { useRef } from 'react';
 import {
   Moon, Sun, Globe, Database, RefreshCw, WifiOff, Trash2, Bell, Smartphone, Volume2,
   LifeBuoy, HelpCircle, Bug, FileText, ShieldAlert, Info,
   Camera, Building, Phone, Mail, Calendar, BadgeCheck,
   LogOut, Pencil
 } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useAppState';
 import { Card, Toggle, Btn } from '../components/UI';
 
 /* ============================================
@@ -165,7 +165,7 @@ function InfoRow({ icon: Icon, label, value }) {
 export function ProfilAgent() {
   const { state, dispatch, notify } = useApp();
   const { agent } = state;
-  const fileRef = React.useRef(null);
+  const fileRef = useRef(null);
 
   const handlePhoto = (e) => {
     const file = e.target.files[0];

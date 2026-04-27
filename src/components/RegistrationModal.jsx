@@ -6,7 +6,7 @@ import {
 import { FormInput, FormSelect, Btn, Modal } from './UI';
 import { ScanPanel } from './Scanner';
 import { SERVICES, TYPES_PIECE, TYPES_VEHICULE } from '../data/mockData';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useAppState';
 
 /* ============================================
    FORMULAIRE VISITEUR (personne)

@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard, History, Settings, User as UserIcon,
-  Shield, Clock, Menu, X, Plus, Bell, Search,
-  Camera, Car, Users
-} from 'lucide-react';
-import { useApp } from '../context/AppContext';
+  Shield, Clock, Plus, Bell, Search} from 'lucide-react';
+import { useApp } from '../context/useAppState';
 import { RegistrationModal } from './RegistrationModal';
 
 /* ============================================
