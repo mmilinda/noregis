@@ -4,36 +4,31 @@ import {
   Shield, Clock, Plus, Bell, Search} from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { RegistrationModal } from './RegistrationModal';
-
-/* ============================================
-   NAVBAR ITEMS
-============================================ */
-const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Registre',    icon: LayoutDashboard },
-  { id: 'history',   label: 'Historique',  icon: History },
-  { id: 'settings',  label: 'Paramètres',  icon: Settings },
-  { id: 'profile',   label: 'Mon profil',  icon: UserIcon },
-];
+import { TRANSLATIONS } from '../translations';
 
 /* ============================================
    CLOCK
 ============================================ */
 function LiveClock({ light }) {
+  const { state } = useApp();
+  const currentLang = state.settings?.language || 'fr';
   const [time, setTime] = useState(new Date());
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
+  const locale = currentLang === 'ar' ? 'ar-EG' : (currentLang === 'en' ? 'en-US' : 'fr-FR');
+
   return (
     <div className="flex items-center gap-3">
       <Clock size={16} className={light ? 'text-white/40' : 'text-slate-400'} />
       <div className="flex flex-col">
         <span className={`text-[9px] font-black uppercase tracking-widest ${light ? 'text-white/40' : 'text-slate-400'}`}>
-          {time.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+          {time.toLocaleDateString(locale, { day: '2-digit', month: 'short' })}
         </span>
         <span className={`text-sm font-black font-mono leading-none ${light ? 'text-white' : 'text-slate-900 dark:text-slate-100'}`}>
-          {time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          {time.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </span>
       </div>
     </div>
@@ -43,7 +38,7 @@ function LiveClock({ light }) {
 /* ============================================
    DESKTOP SIDEBAR
 ============================================ */
-function Sidebar({ activeTab, onTabChange, onNewEntry }) {
+function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
   const { state } = useApp();
   const { agent, visitors } = state;
   const present = visitors.filter(v => v.statut === 'present').length;
@@ -68,13 +63,13 @@ function Sidebar({ activeTab, onTabChange, onNewEntry }) {
         <LiveClock light />
         <div className="flex items-center gap-3 bg-white/5 p-3 rounded-lg border border-white/5">
           <span className="w-2 h-2 rounded-full bg-brand-green-bright animate-pulse" />
-          <span className="text-xs font-bold text-white/60">{present} présent{present > 1 ? 's' : ''}</span>
+          <span className="text-xs font-bold text-white/60">{present} {present > 1 ? t.present.toLowerCase() : t.present.toLowerCase()}</span>
         </div>
       </div>
 
       {/* Nav */}
       <nav className="p-3 flex-1 flex flex-col gap-1 overflow-y-auto">
-        {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
+        {navItems.map(({ id, label, icon: Icon }) => {
           const active = activeTab === id;
           return (
             <button
@@ -102,7 +97,7 @@ function Sidebar({ activeTab, onTabChange, onNewEntry }) {
           className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-blue-bright to-brand-blue text-white p-3.5 rounded-lg font-black text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
         >
           <Plus size={20} strokeWidth={3} />
-          Nouvelle entrée
+          {t.new_entry}
         </button>
       </div>
 
@@ -126,8 +121,8 @@ function Sidebar({ activeTab, onTabChange, onNewEntry }) {
 /* ============================================
    MOBILE HEADER
 ============================================ */
-function MobileHeader({ activeTab }) {
-  const tabLabel = NAV_ITEMS.find(n => n.id === activeTab)?.label || 'NoRegis';
+function MobileHeader({ activeTab, navItems }) {
+  const tabLabel = navItems.find(n => n.id === activeTab)?.label || 'NoRegis';
 
   return (
     <header className="sticky top-0 z-[100] bg-brand-navy p-4 flex items-center justify-between border-b border-white/5">
@@ -148,7 +143,7 @@ function MobileHeader({ activeTab }) {
 /* ============================================
    MOBILE BOTTOM NAV
 ============================================ */
-function BottomNav({ activeTab, onTabChange, onNewEntry }) {
+function BottomNav({ activeTab, onTabChange, onNewEntry, t }) {
   const { state } = useApp();
   const present = state.visitors.filter(v => v.statut === 'present').length;
 
@@ -156,7 +151,7 @@ function BottomNav({ activeTab, onTabChange, onNewEntry }) {
     <nav className="fixed bottom-0 left-0 right-0 bg-brand-navy border-t border-white/10 flex items-center px-2 pb-safe-area z-[100] h-20">
       <button onClick={() => onTabChange('history')} className="flex-1 flex flex-col items-center gap-1.5 transition-all">
         <History size={24} className={activeTab === 'history' ? 'text-brand-blue-bright' : 'text-white/30'} />
-        <span className={`text-[9px] font-black uppercase ${activeTab === 'history' ? 'text-brand-blue-bright' : 'text-white/30'}`}>Historique</span>
+        <span className={`text-[9px] font-black uppercase ${activeTab === 'history' ? 'text-brand-blue-bright' : 'text-white/30'}`}>{t.history}</span>
       </button>
 
       <button onClick={() => onTabChange('dashboard')} className="flex-1 flex flex-col items-center gap-1.5 transition-all">
@@ -166,7 +161,7 @@ function BottomNav({ activeTab, onTabChange, onNewEntry }) {
             <span className="absolute -top-1.5 -right-2 bg-brand-green-bright text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg">{present}</span>
           )}
         </div>
-        <span className={`text-[9px] font-black uppercase ${activeTab === 'dashboard' ? 'text-brand-blue-bright' : 'text-white/30'}`}>Registre</span>
+        <span className={`text-[9px] font-black uppercase ${activeTab === 'dashboard' ? 'text-brand-blue-bright' : 'text-white/30'}`}>{t.dashboard}</span>
       </button>
 
       {/* FAB */}
@@ -181,12 +176,12 @@ function BottomNav({ activeTab, onTabChange, onNewEntry }) {
 
       <button onClick={() => onTabChange('settings')} className="flex-1 flex flex-col items-center gap-1.5 transition-all">
         <Settings size={24} className={activeTab === 'settings' ? 'text-brand-blue-bright' : 'text-white/30'} />
-        <span className={`text-[9px] font-black uppercase ${activeTab === 'settings' ? 'text-brand-blue-bright' : 'text-white/30'}`}>Params</span>
+        <span className={`text-[9px] font-black uppercase ${activeTab === 'settings' ? 'text-brand-blue-bright' : 'text-white/30'}`}>{t.settings}</span>
       </button>
 
       <button onClick={() => onTabChange('profile')} className="flex-1 flex flex-col items-center gap-1.5 transition-all">
         <UserIcon size={24} className={activeTab === 'profile' ? 'text-brand-blue-bright' : 'text-white/30'} />
-        <span className={`text-[9px] font-black uppercase ${activeTab === 'profile' ? 'text-brand-blue-bright' : 'text-white/30'}`}>Profil</span>
+        <span className={`text-[9px] font-black uppercase ${activeTab === 'profile' ? 'text-brand-blue-bright' : 'text-white/30'}`}>{t.profile}</span>
       </button>
     </nav>
   );
@@ -195,10 +190,10 @@ function BottomNav({ activeTab, onTabChange, onNewEntry }) {
 /* ============================================
    DESKTOP TOP BAR
 ============================================ */
-function DesktopTopBar({ activeTab }) {
+function DesktopTopBar({ activeTab, navItems, t }) {
   const { dispatch, state } = useApp();
   const { searchQuery } = state;
-  const tabLabel = NAV_ITEMS.find(n => n.id === activeTab)?.label || 'NoRegis';
+  const tabLabel = navItems.find(n => n.id === activeTab)?.label || 'NoRegis';
 
   return (
     <header className="h-20 bg-white dark:bg-[#0D1117]/80 backdrop-blur-md border-b border-slate-100 dark:border-white/5 px-8 flex items-center justify-between sticky top-0 z-[90]">
@@ -210,7 +205,7 @@ function DesktopTopBar({ activeTab }) {
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue-bright transition-colors" />
           <input
             type="text"
-            placeholder="Rechercher..."
+            placeholder={t.search}
             value={searchQuery}
             onChange={e => dispatch({ type: 'SET_SEARCH', payload: e.target.value })}
             className="w-full bg-slate-50 dark:bg-white/5 border-2 border-transparent focus:border-brand-blue-bright/20 focus:bg-white dark:focus:bg-slate-800 rounded-lg py-2.5 pl-12 pr-4 text-sm font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"
@@ -237,6 +232,14 @@ export function Layout({ children, activeTab, onTabChange }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [regOpen, setRegOpen] = useState(false);
   const { state } = useApp();
+  const t = TRANSLATIONS[state.settings?.language || 'fr'];
+
+  const navItems = [
+    { id: 'dashboard', label: t.dashboard, icon: LayoutDashboard },
+    { id: 'history',   label: t.history,   icon: History },
+    { id: 'settings',  label: t.settings,  icon: Settings },
+    { id: 'profile',   label: t.profile,   icon: UserIcon },
+  ];
 
   useEffect(() => {
     const h = () => setIsMobile(window.innerWidth < 1024);
@@ -244,19 +247,21 @@ export function Layout({ children, activeTab, onTabChange }) {
     return () => window.removeEventListener('resize', h);
   }, []);
 
+  const isAr = state.settings?.language === 'ar';
+
   return (
-    <div className={`min-h-screen flex ${state.darkMode ? 'dark' : ''} transition-colors duration-300`}>
+    <div className={`min-h-screen flex ${state.darkMode ? 'dark' : ''} transition-colors duration-300`} dir={isAr ? 'rtl' : 'ltr'}>
       {/* Desktop Sidebar */}
       {!isMobile && (
-        <Sidebar activeTab={activeTab} onTabChange={onTabChange} onNewEntry={() => setRegOpen(true)} />
+        <Sidebar activeTab={activeTab} onTabChange={onTabChange} onNewEntry={() => setRegOpen(true)} t={t} navItems={navItems} />
       )}
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-slate-100 dark:bg-[#0D1117]">
         {isMobile ? (
-          <MobileHeader activeTab={activeTab} />
+          <MobileHeader activeTab={activeTab} navItems={navItems} />
         ) : (
-          <DesktopTopBar activeTab={activeTab} />
+          <DesktopTopBar activeTab={activeTab} navItems={navItems} t={t} />
         )}
 
         <main className={`flex-1 overflow-y-auto w-full ${isMobile ? 'pb-24' : ''}`}>
@@ -268,7 +273,7 @@ export function Layout({ children, activeTab, onTabChange }) {
 
       {/* Mobile Nav */}
       {isMobile && (
-        <BottomNav activeTab={activeTab} onTabChange={onTabChange} onNewEntry={() => setRegOpen(true)} />
+        <BottomNav activeTab={activeTab} onTabChange={onTabChange} onNewEntry={() => setRegOpen(true)} t={t} />
       )}
 
       {/* Global Modals */}
@@ -276,3 +281,4 @@ export function Layout({ children, activeTab, onTabChange }) {
     </div>
   );
 }
+

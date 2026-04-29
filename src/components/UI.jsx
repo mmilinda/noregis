@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { TRANSLATIONS } from '../translations';
 import { 
   X, CheckCircle2, AlertCircle, Info, AlertTriangle, 
   ChevronRight, Loader2, User, Car
@@ -214,6 +215,8 @@ export function FormSelect({ label, id, options = [], error, icon: Icon, require
    BADGES
 ============================================ */
 export function StatusBadge({ statut }) {
+  const { state } = useApp();
+  const t = TRANSLATIONS[state.settings?.language || 'fr'];
   const isPresent = statut === 'present';
   return (
     <span className={`
@@ -221,12 +224,14 @@ export function StatusBadge({ statut }) {
       ${isPresent ? 'bg-brand-green-light text-brand-green' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}
     `}>
       <span className={`w-1.5 h-1.5 rounded-full ${isPresent ? 'bg-brand-green animate-pulse' : 'bg-slate-400'}`} />
-      {isPresent ? 'Présent' : 'Sorti'}
+      {isPresent ? t.present : t.exited}
     </span>
   );
 }
 
 export function TypeBadge({ type }) {
+  const { state } = useApp();
+  const t = TRANSLATIONS[state.settings?.language || 'fr'];
   const isVehicule = type === 'vehicule';
   const Icon = isVehicule ? Car : User;
   return (
@@ -235,10 +240,11 @@ export function TypeBadge({ type }) {
       ${isVehicule ? 'bg-brand-blue-light text-brand-blue' : 'bg-brand-amber-light text-brand-amber'}
     `}>
       <Icon size={12} strokeWidth={3} />
-      {isVehicule ? 'Véhicule' : 'Visiteur'}
+      {isVehicule ? t.vehicle : t.person}
     </span>
   );
 }
+
 
 /* ============================================
    STAT CARD
