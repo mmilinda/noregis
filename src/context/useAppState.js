@@ -49,7 +49,7 @@ export function reducer(state, action) {
       const now = new Date();
       const updated = state.visitors.map(v =>
         v.id === action.payload
-          ? { ...v, statut: 'sorti', heureSortie: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) }
+          ? { ...v, statut: 'sorti', heureSortie: now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0') }
           : v
       );
       return { ...state, visitors: updated };
@@ -74,6 +74,8 @@ export function reducer(state, action) {
       return { ...state, notifications: { ...state.notifications, [action.key]: action.value } };
     case 'UPDATE_AGENT':
       return { ...state, agent: { ...state.agent, ...action.payload } };
+    case 'SET_VISITORS':
+      return { ...state, visitors: action.payload };
     case 'LOGIN':
       return { ...state, isAuthenticated: true, agent: action.payload };
     case 'LOGOUT':
