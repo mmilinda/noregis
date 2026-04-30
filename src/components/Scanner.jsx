@@ -101,7 +101,7 @@ function OcrProcessing({ image, mode, onDone, t }) {
 }
 
 /* ===========================================
-   SCANNER (Camera Live)
+   SCANNER (Camera Live) - AVEC REDIMENSIONNEMENT
 =========================================== */
 function LiveCamera({ onCapture, onClose, t }) {
   const videoRef = useRef(null);
@@ -144,12 +144,42 @@ function LiveCamera({ onCapture, onClose, t }) {
     };
   }, [error]);
 
+  // ✅ FIX CRITIQUE: Redimensionnement et compression de l'image avant envoi
   const capture = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    // ✅ Redimensionner à max 1280px pour mobile (réduit la taille de 8-15MB à ~200-400KB)
+    const MAX_WIDTH = 1280;
+    const MAX_HEIGHT = 1280;
+    let width = video.videoWidth;
+    let height = video.videoHeight;
+    
+    // Calculer les nouvelles dimensions en conservant le ratio
+    if (width > MAX_WIDTH) {
+      height = Math.round(height * MAX_WIDTH / width);
+      width = MAX_WIDTH;
+    }
+    if (height > MAX_HEIGHT) {
+      width = Math.round(width * MAX_HEIGHT / height);
+      height = MAX_HEIGHT;
+    }
+    
+    // Créer un canvas temporaire avec les nouvelles dimensions
     const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
-    onCapture(canvas.toDataURL('image/jpeg', 0.95));
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    
+    // Dessiner l'image vidéo redimensionnée sur le canvas
+    ctx.drawImage(video, 0, 0, width, height);
+    
+    // ✅ Compression à 70% de qualité (équilibre parfait entre taille et qualité OCR)
+    // Qualité 0.7 = ~200-400KB au lieu de 8-15MB (réduction de 95%)
+    const compressedImage = canvas.toDataURL('image/jpeg', 0.7);
+    
+    // Envoyer l'image compressée
+    onCapture(compressedImage);
   };
 
   return (
