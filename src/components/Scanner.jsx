@@ -5,6 +5,18 @@ import { useApp } from '../context/useAppState';
 import { TRANSLATIONS } from '../translations';
 
 /* ===========================================
+   HELPER: base64 → File (pour FormData)
+=========================================== */
+function base64ToFile(base64, filename = 'scan.jpg') {
+  const [meta, data] = base64.split(',');
+  const mime = meta.match(/:(.*?);/)[1];
+  const bytes = atob(data);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new File([arr], filename, { type: mime });
+}
+
+/* ===========================================
    OCR PROCESSING ENGINE
 =========================================== */
 function OcrProcessing({ image, mode, onDone, t }) {
@@ -20,37 +32,42 @@ function OcrProcessing({ image, mode, onDone, t }) {
         setProgress(30);
 
         const token = localStorage.getItem('token');
-        // ✅ FIX 1: fallback vers le vrai backend Render + endpoint /api/scan
         const baseUrl = import.meta.env.VITE_API_URL || 'https://noregisbackend.onrender.com';
-        
+
+        // ✅ FIX 1: base64 → FormData (compatible multer)
+        const formData = new FormData();
+        formData.append('file', base64ToFile(image));
+        formData.append('mode', mode);
+
         const response = await fetch(`${baseUrl}/api/scan`, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
+          headers: {
+            // ⚠️ Pas de Content-Type ici, le navigateur le gère automatiquement pour FormData
             'Authorization': token ? `Bearer ${token}` : ''
           },
-          body: JSON.stringify({ image, mode })
+          body: formData,
         });
 
         if (!response.ok) {
           const errorBody = await response.json().catch(() => ({}));
           console.error('Détails erreur Backend Scan:', errorBody);
-          throw new Error(`Erreur Scan: ${errorBody.error || response.statusText}`);
+          throw new Error(`Erreur Scan: ${errorBody.message || response.statusText}`);
         }
-        
+
         setProgress(70);
         const result = await response.json();
 
         if (!isMounted) return;
 
-        if (!result.data) {
+        // ✅ FIX 2: Backend retourne infosExtraites (pas data)
+        if (!result.infosExtraites) {
           throw new Error(t.no_text);
         }
 
         setStatus(t.extracting);
         setProgress(100);
-        
-        onDone(result.data);
+
+        onDone(result.infosExtraites);
 
       } catch (err) {
         console.error('Scan Error:', err);
@@ -86,7 +103,6 @@ function OcrProcessing({ image, mode, onDone, t }) {
 /* ===========================================
    SCANNER (Camera Live)
 =========================================== */
-// ✅ FIX 2: t reçu en prop
 function LiveCamera({ onCapture, onClose, t }) {
   const videoRef = useRef(null);
   const [ready, setReady] = useState(false);
@@ -103,8 +119,8 @@ function LiveCamera({ onCapture, onClose, t }) {
 
     const startCamera = async (facing) => {
       try {
-        const s = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } } 
+        const s = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } }
         });
         localStream = s;
         if (videoRef.current) {
@@ -234,7 +250,6 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
           </div>
         )}
 
-        {/* ✅ FIX 3: t passé en prop à LiveCamera */}
         {phase === 'camera' && (
           <LiveCamera
             onCapture={(img) => { setCapturedImage(img); setPhase('ocr'); }}
@@ -243,7 +258,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
           />
         )}
         {phase === 'ocr' && <OcrProcessing image={capturedImage} mode={mode} onDone={handleOcrDone} t={t} />}
-        
+
         {phase === 'done' && (
           <div className="p-6 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="relative rounded-lg overflow-hidden border-2 border-brand-green-bright">
