@@ -36,7 +36,7 @@ function OcrProcessing({ image, mode, onDone, t }) {
 
         // ✅ FIX 1: base64 → FormData (compatible multer)
         const formData = new FormData();
-        formData.append('file', base64ToFile(image));
+        formData.append('image', base64ToFile(image));
         formData.append('mode', mode);
 
         const response = await fetch(`${baseUrl}/api/scan`, {
