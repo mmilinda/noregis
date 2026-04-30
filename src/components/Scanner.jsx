@@ -20,9 +20,10 @@ function OcrProcessing({ image, mode, onDone, t }) {
         setProgress(30);
 
         const token = localStorage.getItem('token');
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        // ✅ FIX 1: fallback vers le vrai backend Render + endpoint /api/scan
+        const baseUrl = import.meta.env.VITE_API_URL || 'https://noregisbackend.onrender.com';
         
-        const response = await fetch(`${baseUrl}/upload/scan`, {
+        const response = await fetch(`${baseUrl}/api/scan`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -49,7 +50,6 @@ function OcrProcessing({ image, mode, onDone, t }) {
         setStatus(t.extracting);
         setProgress(100);
         
-        // On utilise directement les données extraites par le back
         onDone(result.data);
 
       } catch (err) {
@@ -86,7 +86,8 @@ function OcrProcessing({ image, mode, onDone, t }) {
 /* ===========================================
    SCANNER (Camera Live)
 =========================================== */
-function LiveCamera({ onCapture, onClose }) {
+// ✅ FIX 2: t reçu en prop
+function LiveCamera({ onCapture, onClose, t }) {
   const videoRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(() => {
@@ -113,7 +114,6 @@ function LiveCamera({ onCapture, onClose }) {
       } catch (err) {
         console.error(err);
         if (facing === 'environment') {
-          // Try fallback to user camera if environment fails
           startCamera('user');
         } else {
           setError(`${t.camera_error} : ${err.name === 'NotAllowedError' ? t.permission_denied : t.unavailable}`);
@@ -124,7 +124,7 @@ function LiveCamera({ onCapture, onClose }) {
     startCamera('environment');
 
     return () => {
-      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      if (localStream) localStream.getTracks().forEach(track => track.stop());
     };
   }, [error]);
 
@@ -234,7 +234,14 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
           </div>
         )}
 
-        {phase === 'camera' && <LiveCamera onCapture={(img) => { setCapturedImage(img); setPhase('ocr'); }} onClose={() => setPhase('choose')} />}
+        {/* ✅ FIX 3: t passé en prop à LiveCamera */}
+        {phase === 'camera' && (
+          <LiveCamera
+            onCapture={(img) => { setCapturedImage(img); setPhase('ocr'); }}
+            onClose={() => setPhase('choose')}
+            t={t}
+          />
+        )}
         {phase === 'ocr' && <OcrProcessing image={capturedImage} mode={mode} onDone={handleOcrDone} t={t} />}
         
         {phase === 'done' && (
@@ -264,4 +271,3 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     </div>
   );
 }
-
