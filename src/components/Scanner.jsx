@@ -34,7 +34,6 @@ function OcrProcessing({ image, mode, onDone, t }) {
         const token = localStorage.getItem('token');
         const baseUrl = import.meta.env.VITE_API_URL || 'https://noregisbackend.onrender.com';
 
-        // ✅ FIX 1: base64 → FormData (compatible multer)
         const formData = new FormData();
         formData.append('image', base64ToFile(image));
         formData.append('mode', mode);
@@ -42,7 +41,6 @@ function OcrProcessing({ image, mode, onDone, t }) {
         const response = await fetch(`${baseUrl}/api/scan`, {
           method: 'POST',
           headers: {
-            // ⚠️ Pas de Content-Type ici, le navigateur le gère automatiquement pour FormData
             'Authorization': token ? `Bearer ${token}` : ''
           },
           body: formData,
@@ -59,7 +57,6 @@ function OcrProcessing({ image, mode, onDone, t }) {
 
         if (!isMounted) return;
 
-        // ✅ FIX 2: Backend retourne infosExtraites (pas data)
         if (!result.infosExtraites) {
           throw new Error(t.no_text);
         }
@@ -145,11 +142,22 @@ function LiveCamera({ onCapture, onClose, t }) {
   }, [error]);
 
   const capture = () => {
+    const video = videoRef.current;
+
+    // ✅ Redimensionner à max 1280px pour éviter les images trop lourdes sur mobile
+    const MAX = 1280;
+    let w = video.videoWidth;
+    let h = video.videoHeight;
+    if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+    if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+
     const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
-    onCapture(canvas.toDataURL('image/jpeg', 0.95));
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+
+    // ✅ Qualité 0.7 pour alléger le fichier (suffisant pour l'OCR)
+    onCapture(canvas.toDataURL('image/jpeg', 0.7));
   };
 
   return (
