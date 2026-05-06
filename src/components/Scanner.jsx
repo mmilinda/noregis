@@ -5,6 +5,18 @@ import { useApp } from '../context/useAppState';
 import { TRANSLATIONS } from '../translations';
 
 /* ===========================================
+   HELPER: base64 → File (pour FormData)
+=========================================== */
+function base64ToFile(base64, filename = 'scan.jpg') {
+  const [meta, data] = base64.split(',');
+  const mime = meta.match(/:(.*?);/)[1];
+  const bytes = atob(data);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new File([arr], filename, { type: mime });
+}
+
+/* ===========================================
    OCR PROCESSING ENGINE
 =========================================== */
 function OcrProcessing({ image, mode, onDone, t }) {
@@ -20,37 +32,39 @@ function OcrProcessing({ image, mode, onDone, t }) {
         setProgress(30);
 
         const token = localStorage.getItem('token');
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        
-        const response = await fetch(`${baseUrl}/upload/scan`, {
+        const baseUrl = import.meta.env.VITE_API_URL || 'https://noregisbackend.onrender.com';
+
+        const formData = new FormData();
+        formData.append('image', base64ToFile(image));
+        formData.append('mode', mode);
+
+        const response = await fetch(`${baseUrl}/api/scan`, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
+          headers: {
             'Authorization': token ? `Bearer ${token}` : ''
           },
-          body: JSON.stringify({ image, mode })
+          body: formData,
         });
 
         if (!response.ok) {
           const errorBody = await response.json().catch(() => ({}));
           console.error('Détails erreur Backend Scan:', errorBody);
-          throw new Error(`Erreur Scan: ${errorBody.error || response.statusText}`);
+          throw new Error(`Erreur Scan: ${errorBody.message || response.statusText}`);
         }
-        
+
         setProgress(70);
         const result = await response.json();
 
         if (!isMounted) return;
 
-        if (!result.data) {
+        if (!result.infosExtraites) {
           throw new Error(t.no_text);
         }
 
         setStatus(t.extracting);
         setProgress(100);
-        
-        // On utilise directement les données extraites par le back
-        onDone(result.data);
+
+        onDone(result.infosExtraites);
 
       } catch (err) {
         console.error('Scan Error:', err);
@@ -86,7 +100,7 @@ function OcrProcessing({ image, mode, onDone, t }) {
 /* ===========================================
    SCANNER (Camera Live)
 =========================================== */
-function LiveCamera({ onCapture, onClose }) {
+function LiveCamera({ onCapture, onClose, t }) {
   const videoRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(() => {
@@ -102,8 +116,8 @@ function LiveCamera({ onCapture, onClose }) {
 
     const startCamera = async (facing) => {
       try {
-        const s = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } } 
+        const s = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } }
         });
         localStream = s;
         if (videoRef.current) {
@@ -113,7 +127,6 @@ function LiveCamera({ onCapture, onClose }) {
       } catch (err) {
         console.error(err);
         if (facing === 'environment') {
-          // Try fallback to user camera if environment fails
           startCamera('user');
         } else {
           setError(`${t.camera_error} : ${err.name === 'NotAllowedError' ? t.permission_denied : t.unavailable}`);
@@ -124,16 +137,27 @@ function LiveCamera({ onCapture, onClose }) {
     startCamera('environment');
 
     return () => {
-      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      if (localStream) localStream.getTracks().forEach(track => track.stop());
     };
   }, [error]);
 
   const capture = () => {
+    const video = videoRef.current;
+
+    // ✅ Redimensionner à max 1280px pour éviter les images trop lourdes sur mobile
+    const MAX = 1280;
+    let w = video.videoWidth;
+    let h = video.videoHeight;
+    if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+    if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+
     const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
-    onCapture(canvas.toDataURL('image/jpeg', 0.95));
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+
+    // ✅ Qualité 0.7 pour alléger le fichier (suffisant pour l'OCR)
+    onCapture(canvas.toDataURL('image/jpeg', 0.7));
   };
 
   return (
@@ -234,9 +258,15 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
           </div>
         )}
 
-        {phase === 'camera' && <LiveCamera onCapture={(img) => { setCapturedImage(img); setPhase('ocr'); }} onClose={() => setPhase('choose')} />}
+        {phase === 'camera' && (
+          <LiveCamera
+            onCapture={(img) => { setCapturedImage(img); setPhase('ocr'); }}
+            onClose={() => setPhase('choose')}
+            t={t}
+          />
+        )}
         {phase === 'ocr' && <OcrProcessing image={capturedImage} mode={mode} onDone={handleOcrDone} t={t} />}
-        
+
         {phase === 'done' && (
           <div className="p-6 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="relative rounded-lg overflow-hidden border-2 border-brand-green-bright">
@@ -264,4 +294,3 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     </div>
   );
 }
-
