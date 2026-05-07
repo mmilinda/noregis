@@ -6,7 +6,7 @@ import { TRANSLATIONS } from '../translations';
 
 /* ===========================================
    HELPER: base64 → File (pour FormData)
-=========================================== */
+   =========================================== */
 function base64ToFile(base64, filename = 'scan.jpg') {
   const [meta, data] = base64.split(',');
   const mime = meta.match(/:(.*?);/)[1];
@@ -17,8 +17,8 @@ function base64ToFile(base64, filename = 'scan.jpg') {
 }
 
 /* ===========================================
-   OCR PROCESSING ENGINE
-=========================================== */
+   OCR PROCESSING ENGINE (appel API)
+   =========================================== */
 function OcrProcessing({ image, mode, onDone, t }) {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState(t.google_analysis);
@@ -34,8 +34,11 @@ function OcrProcessing({ image, mode, onDone, t }) {
         const token = localStorage.getItem('token');
         const baseUrl = import.meta.env.VITE_API_URL || 'https://noregisbackend.onrender.com';
 
+        // Conversion base64 → File (important : le backend attend un champ 'image')
+        const imageFile = base64ToFile(image, 'scan.jpg');
+
         const formData = new FormData();
-        formData.append('image', base64ToFile(image));
+        formData.append('image', imageFile);   // 🔥 clé 'image' correspond à upload.single('image')
         formData.append('mode', mode);
 
         const response = await fetch(`${baseUrl}/api/scan`, {
@@ -64,18 +67,14 @@ function OcrProcessing({ image, mode, onDone, t }) {
         setStatus(t.extracting);
         setProgress(100);
 
-        // ✅ Nettoie les données : ne garde que les champs affichables (pas les objets imbriqués)
+        // Nettoie les données : ne garde que les champs primitifs
         const dataBrute = result.infosExtraites;
         const champsAfficheables = {};
-        
         for (const [key, value] of Object.entries(dataBrute)) {
-          // Ne garder que les valeurs primitives (string, number, null)
           if (typeof value !== 'object' || value === null) {
             champsAfficheables[key] = value;
           }
-          // Les objets comme 'confiance' sont ignorés
         }
-        
         onDone(champsAfficheables);
 
       } catch (err) {
@@ -110,8 +109,8 @@ function OcrProcessing({ image, mode, onDone, t }) {
 }
 
 /* ===========================================
-   SCANNER (Camera Live)
-=========================================== */
+   SCANNER (Camera Live) - AMÉLIORÉ
+   =========================================== */
 function LiveCamera({ onCapture, onClose, t }) {
   const videoRef = useRef(null);
   const [ready, setReady] = useState(false);
@@ -155,19 +154,31 @@ function LiveCamera({ onCapture, onClose, t }) {
 
   const capture = () => {
     const video = videoRef.current;
+    if (!video || !video.videoWidth) return;
 
-    const MAX = 1280;
-    let w = video.videoWidth;
-    let h = video.videoHeight;
-    if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
-    if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+    // Dimensions max 1200px pour éviter les fichiers trop lourds
+    const MAX_WIDTH = 1200;
+    let width = video.videoWidth;
+    let height = video.videoHeight;
+
+    if (width > MAX_WIDTH) {
+      height = Math.round((height * MAX_WIDTH) / width);
+      width = MAX_WIDTH;
+    }
+    if (height > MAX_WIDTH) {
+      width = Math.round((width * MAX_WIDTH) / height);
+      height = MAX_WIDTH;
+    }
 
     const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, width, height);
 
-    onCapture(canvas.toDataURL('image/jpeg', 0.7));
+    // Qualité 0.85 (bonne netteté pour l'OCR)
+    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    onCapture(imageDataUrl);
   };
 
   return (
@@ -208,8 +219,8 @@ function LiveCamera({ onCapture, onClose, t }) {
 }
 
 /* ===========================================
-   SCAN PANEL (Main Entry) - CORRIGÉ
-=========================================== */
+   SCAN PANEL (Main Entry)
+   =========================================== */
 export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
   const { state } = useApp();
   const t = TRANSLATIONS[state.settings?.language || 'fr'];
@@ -219,7 +230,6 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
   const fileRef = useRef(null);
 
   const handleOcrDone = (data) => {
-    // data est déjà nettoyé par OcrProcessing (sans les objets imbriqués)
     setOcrData(data);
     setPhase('done');
   };
@@ -232,7 +242,6 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     reader.readAsDataURL(file);
   };
 
-  // ✅ Fonction pour avoir des labels lisibles en français
   const getFieldLabel = (key, t) => {
     const labels = {
       nom: 'Nom',
@@ -297,7 +306,6 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
         
         {phase === 'ocr' && <OcrProcessing image={capturedImage} mode={mode} onDone={handleOcrDone} t={t} />}
 
-        {/* ✅ PARTIE AFFICHAGE DES RÉSULTATS CORRIGÉE */}
         {phase === 'done' && ocrData && (
           <div className="p-6 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="relative rounded-lg overflow-hidden border-2 border-brand-green-bright">
@@ -308,12 +316,8 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
             <div className="bg-brand-green-light/10 dark:bg-brand-green-bright/5 rounded-xl p-4 border border-brand-green-bright/20">
               <p className="text-[9px] font-black text-brand-green-bright uppercase tracking-widest mb-3 flex items-center gap-2">{t.extraction_done}</p>
               <div className="space-y-2">
-                {/* ✅ Affichage sécurisé - on filtre au cas où un objet passerait */}
                 {Object.entries(ocrData)
-                  .filter(([key, value]) => {
-                    // Ne garder que les valeurs qui ne sont pas des objets
-                    return typeof value !== 'object' || value === null;
-                  })
+                  .filter(([key, value]) => typeof value !== 'object' || value === null)
                   .map(([key, value]) => (
                     <div key={key} className="flex justify-between items-center gap-4 pb-2 border-b border-brand-green-bright/5 last:border-0 last:pb-0">
                       <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">
@@ -334,7 +338,6 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
           </div>
         )}
         
-        {/* ✅ Gestion du cas d'erreur */}
         {phase === 'done' && ocrData?.error && (
           <div className="p-6 flex flex-col gap-4 animate-in fade-in duration-500">
             <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border border-red-200 dark:border-red-800/50 text-center">
