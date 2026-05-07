@@ -64,7 +64,19 @@ function OcrProcessing({ image, mode, onDone, t }) {
         setStatus(t.extracting);
         setProgress(100);
 
-        onDone(result.infosExtraites);
+        // ✅ Nettoie les données : ne garde que les champs affichables (pas les objets imbriqués)
+        const dataBrute = result.infosExtraites;
+        const champsAfficheables = {};
+        
+        for (const [key, value] of Object.entries(dataBrute)) {
+          // Ne garder que les valeurs primitives (string, number, null)
+          if (typeof value !== 'object' || value === null) {
+            champsAfficheables[key] = value;
+          }
+          // Les objets comme 'confiance' sont ignorés
+        }
+        
+        onDone(champsAfficheables);
 
       } catch (err) {
         console.error('Scan Error:', err);
@@ -144,7 +156,6 @@ function LiveCamera({ onCapture, onClose, t }) {
   const capture = () => {
     const video = videoRef.current;
 
-    // ✅ Redimensionner à max 1280px pour éviter les images trop lourdes sur mobile
     const MAX = 1280;
     let w = video.videoWidth;
     let h = video.videoHeight;
@@ -156,7 +167,6 @@ function LiveCamera({ onCapture, onClose, t }) {
     canvas.height = h;
     canvas.getContext('2d').drawImage(video, 0, 0, w, h);
 
-    // ✅ Qualité 0.7 pour alléger le fichier (suffisant pour l'OCR)
     onCapture(canvas.toDataURL('image/jpeg', 0.7));
   };
 
@@ -198,7 +208,7 @@ function LiveCamera({ onCapture, onClose, t }) {
 }
 
 /* ===========================================
-   SCAN PANEL (Main Entry)
+   SCAN PANEL (Main Entry) - CORRIGÉ
 =========================================== */
 export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
   const { state } = useApp();
@@ -209,6 +219,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
   const fileRef = useRef(null);
 
   const handleOcrDone = (data) => {
+    // data est déjà nettoyé par OcrProcessing (sans les objets imbriqués)
     setOcrData(data);
     setPhase('done');
   };
@@ -219,6 +230,24 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     const reader = new FileReader();
     reader.onloadend = () => { setCapturedImage(reader.result); setPhase('ocr'); };
     reader.readAsDataURL(file);
+  };
+
+  // ✅ Fonction pour avoir des labels lisibles en français
+  const getFieldLabel = (key, t) => {
+    const labels = {
+      nom: 'Nom',
+      prenom: 'Prénom',
+      numeroPiece: 'N° Pièce',
+      dateNaissance: 'Date de naissance',
+      dateExpiration: 'Date d\'expiration',
+      sexe: 'Sexe',
+      nationalite: 'Nationalité',
+      typePiece: 'Type de pièce',
+      paysEmission: 'Pays d\'émission',
+      adresse: 'Adresse',
+      mrz: 'MRZ',
+    };
+    return labels[key] || key;
   };
 
   const isAr = state.settings?.language === 'ar';
@@ -265,28 +294,53 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
             t={t}
           />
         )}
+        
         {phase === 'ocr' && <OcrProcessing image={capturedImage} mode={mode} onDone={handleOcrDone} t={t} />}
 
-        {phase === 'done' && (
+        {/* ✅ PARTIE AFFICHAGE DES RÉSULTATS CORRIGÉE */}
+        {phase === 'done' && ocrData && (
           <div className="p-6 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="relative rounded-lg overflow-hidden border-2 border-brand-green-bright">
               <img src={capturedImage} alt="Capture" className="w-full h-32 object-cover" />
               <div className="absolute top-2 right-2 bg-brand-green-bright text-white px-2 py-1 rounded text-[9px] font-black uppercase tracking-tighter">{t.capture_valid}</div>
             </div>
+            
             <div className="bg-brand-green-light/10 dark:bg-brand-green-bright/5 rounded-xl p-4 border border-brand-green-bright/20">
               <p className="text-[9px] font-black text-brand-green-bright uppercase tracking-widest mb-3 flex items-center gap-2">{t.extraction_done}</p>
               <div className="space-y-2">
-                {Object.entries(ocrData).map(([k, v]) => (
-                  <div key={k} className="flex justify-between items-center gap-4 pb-2 border-b border-brand-green-bright/5 last:border-0 last:pb-0">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">{k}</span>
-                    <span className={`text-xs font-black text-slate-900 dark:text-white ${isAr ? 'text-left' : 'text-right'}`}>{v || '—'}</span>
-                  </div>
-                ))}
+                {/* ✅ Affichage sécurisé - on filtre au cas où un objet passerait */}
+                {Object.entries(ocrData)
+                  .filter(([key, value]) => {
+                    // Ne garder que les valeurs qui ne sont pas des objets
+                    return typeof value !== 'object' || value === null;
+                  })
+                  .map(([key, value]) => (
+                    <div key={key} className="flex justify-between items-center gap-4 pb-2 border-b border-brand-green-bright/5 last:border-0 last:pb-0">
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">
+                        {getFieldLabel(key, t)}
+                      </span>
+                      <span className={`text-xs font-black text-slate-900 dark:text-white ${isAr ? 'text-left' : 'text-right'}`}>
+                        {value || '—'}
+                      </span>
+                    </div>
+                  ))}
               </div>
             </div>
+            
             <div className="flex gap-3">
               <Btn variant="secondary" icon={RotateCcw} onClick={() => setPhase('choose')} fullWidth>{t.restart}</Btn>
               <Btn variant="success" icon={CheckCircle2} onClick={() => onDataExtracted(ocrData, capturedImage)} fullWidth>{t.validate_data}</Btn>
+            </div>
+          </div>
+        )}
+        
+        {/* ✅ Gestion du cas d'erreur */}
+        {phase === 'done' && ocrData?.error && (
+          <div className="p-6 flex flex-col gap-4 animate-in fade-in duration-500">
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border border-red-200 dark:border-red-800/50 text-center">
+              <WifiOff size={32} className="text-red-500 mx-auto mb-3" />
+              <p className="text-sm font-bold text-red-600 dark:text-red-400">{ocrData.error}</p>
+              <Btn variant="secondary" icon={RotateCcw} onClick={() => setPhase('choose')} className="mt-4">{t.restart}</Btn>
             </div>
           </div>
         )}
