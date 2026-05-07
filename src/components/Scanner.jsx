@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, X, RotateCcw, CheckCircle2, Loader2, Car, WifiOff } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Camera, Upload, X, RotateCcw, CheckCircle2, Loader2, Car, WifiOff, Zap, ZapOff } from 'lucide-react';
 import { Btn } from './UI';
 import { useApp } from '../context/useAppState';
 import { TRANSLATIONS } from '../translations';
@@ -40,30 +40,22 @@ function OcrProcessing({ image, mode, onDone, t }) {
 
         const response = await fetch(`${baseUrl}/api/scan`, {
           method: 'POST',
-          headers: {
-            'Authorization': token ? `Bearer ${token}` : ''
-          },
+          headers: { 'Authorization': token ? `Bearer ${token}` : '' },
           body: formData,
         });
 
         if (!response.ok) {
           const errorBody = await response.json().catch(() => ({}));
-          console.error('Détails erreur Backend Scan:', errorBody);
           throw new Error(`Erreur Scan: ${errorBody.message || response.statusText}`);
         }
 
         setProgress(70);
         const result = await response.json();
-
         if (!isMounted) return;
-
-        if (!result.infosExtraites) {
-          throw new Error(t.no_text);
-        }
+        if (!result.infosExtraites) throw new Error(t.no_text);
 
         setStatus(t.extracting);
         setProgress(100);
-
         onDone(result.infosExtraites);
 
       } catch (err) {
@@ -101,31 +93,41 @@ function OcrProcessing({ image, mode, onDone, t }) {
    SCANNER (Camera Live)
 =========================================== */
 function LiveCamera({ onCapture, onClose, t }) {
-  const videoRef = useRef(null);
-  const [ready, setReady] = useState(false);
-  const [error, setError] = useState(() => {
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+  const videoRef  = useRef(null);
+  const streamRef = useRef(null);
+
+  const [ready,     setReady]     = useState(false);
+  const [flashOn,   setFlashOn]   = useState(false);
+  const [flashAvail, setFlashAvail] = useState(false);
+  const [error,     setError]     = useState(() => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
       return t.camera_unsupported;
     }
     return null;
   });
 
+  // ── Démarre la caméra ──────────────────────────────────────────────────────
   useEffect(() => {
-    let localStream = null;
     if (error) return;
 
     const startCamera = async (facing) => {
       try {
         const s = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } }
+          video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
         });
-        localStream = s;
+        streamRef.current = s;
+
         if (videoRef.current) {
           videoRef.current.srcObject = s;
           setReady(true);
         }
+
+        // Vérifie si la torche est disponible sur cette piste vidéo
+        const track = s.getVideoTracks()[0];
+        const caps  = track?.getCapabilities?.();
+        if (caps?.torch) setFlashAvail(true);
+
       } catch (err) {
-        console.error(err);
         if (facing === 'environment') {
           startCamera('user');
         } else {
@@ -137,14 +139,31 @@ function LiveCamera({ onCapture, onClose, t }) {
     startCamera('environment');
 
     return () => {
-      if (localStream) localStream.getTracks().forEach(track => track.stop());
+      // Éteint la torche et libère le flux à la destruction
+      const track = streamRef.current?.getVideoTracks()[0];
+      if (track) {
+        track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+        streamRef.current.getTracks().forEach(t => t.stop());
+      }
     };
-  }, [error]);
+  }, [error, t]);
 
-  const capture = () => {
+  // ── Bascule flash ──────────────────────────────────────────────────────────
+  const toggleFlash = useCallback(async () => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    const next = !flashOn;
+    try {
+      await track.applyConstraints({ advanced: [{ torch: next }] });
+      setFlashOn(next);
+    } catch (err) {
+      console.warn('Impossible d\'activer la torche :', err);
+    }
+  }, [flashOn]);
+
+  // ── Capture ────────────────────────────────────────────────────────────────
+  const capture = useCallback(() => {
     const video = videoRef.current;
-
-    // ✅ Redimensionner à max 1280px pour éviter les images trop lourdes sur mobile
     const MAX = 1280;
     let w = video.videoWidth;
     let h = video.videoHeight;
@@ -152,31 +171,56 @@ function LiveCamera({ onCapture, onClose, t }) {
     if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
 
     const canvas = document.createElement('canvas');
-    canvas.width = w;
+    canvas.width  = w;
     canvas.height = h;
     canvas.getContext('2d').drawImage(video, 0, 0, w, h);
 
-    // ✅ Qualité 0.7 pour alléger le fichier (suffisant pour l'OCR)
+    // Éteint la torche avant de fermer
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track && flashOn) {
+      track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+    }
+
     onCapture(canvas.toDataURL('image/jpeg', 0.7));
-  };
+  }, [flashOn, onCapture]);
+
+  // ── Fermeture propre ───────────────────────────────────────────────────────
+  const handleClose = useCallback(() => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track && flashOn) {
+      track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+    }
+    onClose();
+  }, [flashOn, onClose]);
 
   return (
     <div className="flex flex-col h-full bg-black">
+
+      {/* ── Zone vidéo ── */}
       <div className="flex-1 relative overflow-hidden">
+
         {!ready && !error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-slate-400">
             <Loader2 size={40} className="animate-spin text-brand-blue-bright" />
             <span className="text-[10px] font-black uppercase tracking-widest">...</span>
           </div>
         )}
+
         {error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8 text-center bg-slate-900">
             <WifiOff size={40} className="text-brand-red-bright" />
             <p className="text-sm font-black text-white uppercase tracking-tight leading-tight">{error}</p>
-            <button onClick={onClose} className="mt-4 px-6 py-2 bg-white/10 text-white rounded-lg text-[10px] font-black uppercase">{t.close}</button>
+            <button onClick={handleClose} className="mt-4 px-6 py-2 bg-white/10 text-white rounded-lg text-[10px] font-black uppercase">{t.close}</button>
           </div>
         )}
-        <video ref={videoRef} autoPlay playsInline muted className={`w-full h-full object-cover ${ready ? 'opacity-100' : 'opacity-0'}`} />
+
+        <video
+          ref={videoRef}
+          autoPlay playsInline muted
+          className={`w-full h-full object-cover ${ready ? 'opacity-100' : 'opacity-0'}`}
+        />
+
+        {/* Cadre de visée */}
         <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
           <div className="relative w-full aspect-[1.6] max-w-sm border-2 border-white/20 rounded-2xl">
             <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-brand-blue-bright rounded-tl-xl" />
@@ -185,13 +229,62 @@ function LiveCamera({ onCapture, onClose, t }) {
             <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-brand-blue-bright rounded-br-xl" />
           </div>
         </div>
+
+        {/* Bouton flash — coin supérieur droit, visible seulement si dispo */}
+        {flashAvail && ready && (
+          <button
+            onClick={toggleFlash}
+            className={`
+              absolute top-4 right-4 z-10
+              w-11 h-11 rounded-full flex items-center justify-center
+              transition-all duration-200 active:scale-90
+              ${flashOn
+                ? 'bg-yellow-400 text-slate-900 shadow-[0_0_16px_4px_rgba(250,204,21,0.5)]'
+                : 'bg-white/10 text-white backdrop-blur-sm border border-white/20'
+              }
+            `}
+            aria-label={flashOn ? 'Éteindre le flash' : 'Allumer le flash'}
+          >
+            {flashOn ? <Zap size={20} fill="currentColor" /> : <ZapOff size={20} />}
+          </button>
+        )}
       </div>
+
+      {/* ── Barre de contrôles ── */}
       <div className="p-8 bg-slate-900 flex items-center justify-center gap-10">
-        <button onClick={onClose} className="w-12 h-12 rounded-full bg-white/10 text-white flex items-center justify-center"><X size={24} /></button>
-        <button onClick={capture} disabled={!ready} className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-95 transition-transform">
+        <button
+          onClick={handleClose}
+          className="w-12 h-12 rounded-full bg-white/10 text-white flex items-center justify-center"
+        >
+          <X size={24} />
+        </button>
+
+        <button
+          onClick={capture}
+          disabled={!ready}
+          className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-95 transition-transform disabled:opacity-40"
+        >
           <div className="w-14 h-14 rounded-full bg-white" />
         </button>
-        <div className="w-12 h-12" />
+
+        {/* Bouton flash alternatif dans la barre (affiché si non dispo en overlay) */}
+        {!flashAvail ? (
+          <div className="w-12 h-12" />
+        ) : (
+          <button
+            onClick={toggleFlash}
+            className={`
+              w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90
+              ${flashOn
+                ? 'bg-yellow-400 text-slate-900 shadow-[0_0_12px_2px_rgba(250,204,21,0.4)]'
+                : 'bg-white/10 text-white'
+              }
+            `}
+            aria-label={flashOn ? 'Éteindre le flash' : 'Allumer le flash'}
+          >
+            {flashOn ? <Zap size={20} fill="currentColor" /> : <ZapOff size={20} />}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -208,11 +301,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
   const [ocrData, setOcrData] = useState(null);
   const fileRef = useRef(null);
 
-  const handleOcrDone = (data) => {
-    setOcrData(data);
-    setPhase('done');
-  };
-
+  const handleOcrDone  = (data) => { setOcrData(data); setPhase('done'); };
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -224,7 +313,10 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
   const isAr = state.settings?.language === 'ar';
 
   return (
-    <div className="flex flex-col h-full min-h-[520px] bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800" dir={isAr ? 'rtl' : 'ltr'}>
+    <div
+      className="flex flex-col h-full min-h-[520px] bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800"
+      dir={isAr ? 'rtl' : 'ltr'}
+    >
       <div className="p-4 border-b border-slate-50 dark:border-slate-800 flex items-center gap-4 bg-slate-50/50 dark:bg-slate-900/50">
         <div className="w-10 h-10 rounded-lg bg-brand-blue-light text-brand-blue-bright flex items-center justify-center">
           {mode === 'vehicule' ? <Car size={20} /> : <Camera size={20} />}
@@ -265,6 +357,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
             t={t}
           />
         )}
+
         {phase === 'ocr' && <OcrProcessing image={capturedImage} mode={mode} onDone={handleOcrDone} t={t} />}
 
         {phase === 'done' && (
