@@ -34,11 +34,10 @@ function OcrProcessing({ image, mode, onDone, t }) {
         const token = localStorage.getItem('token');
         const baseUrl = import.meta.env.VITE_API_URL || 'https://noregisbackend.onrender.com';
 
-        // Conversion base64 → File (important : le backend attend un champ 'image')
         const imageFile = base64ToFile(image, 'scan.jpg');
 
         const formData = new FormData();
-        formData.append('image', imageFile);   // 🔥 clé 'image' correspond à upload.single('image')
+        formData.append('image', imageFile);
         formData.append('mode', mode);
 
         const response = await fetch(`${baseUrl}/api/scan`, {
@@ -67,7 +66,6 @@ function OcrProcessing({ image, mode, onDone, t }) {
         setStatus(t.extracting);
         setProgress(100);
 
-        // Nettoie les données : ne garde que les champs primitifs
         const dataBrute = result.infosExtraites;
         const champsAfficheables = {};
         for (const [key, value] of Object.entries(dataBrute)) {
@@ -109,7 +107,7 @@ function OcrProcessing({ image, mode, onDone, t }) {
 }
 
 /* ===========================================
-   SCANNER (Camera Live) - AMÉLIORÉ
+   SCANNER (Camera Live) - AVEC FLASH AUTO
    =========================================== */
 function LiveCamera({ onCapture, onClose, t }) {
   const videoRef = useRef(null);
@@ -134,6 +132,17 @@ function LiveCamera({ onCapture, onClose, t }) {
         if (videoRef.current) {
           videoRef.current.srcObject = s;
           setReady(true);
+
+          // 🔦 Tentative d'activation automatique du flash (torche)
+          const videoTrack = s.getVideoTracks()[0];
+          if (videoTrack) {
+            const capabilities = videoTrack.getCapabilities?.();
+            if (capabilities && capabilities.torch === true) {
+              await videoTrack.applyConstraints({ advanced: [{ torch: true }] }).catch(e => console.warn("Flash non activable", e));
+            } else {
+              console.log("💡 Flash non supporté par cette caméra");
+            }
+          }
         }
       } catch (err) {
         console.error(err);
@@ -156,7 +165,6 @@ function LiveCamera({ onCapture, onClose, t }) {
     const video = videoRef.current;
     if (!video || !video.videoWidth) return;
 
-    // Dimensions max 1200px pour éviter les fichiers trop lourds
     const MAX_WIDTH = 1200;
     let width = video.videoWidth;
     let height = video.videoHeight;
@@ -176,7 +184,6 @@ function LiveCamera({ onCapture, onClose, t }) {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, width, height);
 
-    // Qualité 0.85 (bonne netteté pour l'OCR)
     const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
     onCapture(imageDataUrl);
   };
