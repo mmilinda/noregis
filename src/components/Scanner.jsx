@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, Upload, X, RotateCcw, CheckCircle2, Loader2, Car, WifiOff, Zap, ZapOff } from 'lucide-react';
+import { Camera, Upload, X, RotateCcw, CheckCircle2, Car, WifiOff, Zap, ZapOff } from 'lucide-react';
 import { Btn } from './UI';
 import { useApp } from '../context/useAppState';
 import { TRANSLATIONS } from '../translations';
@@ -17,10 +17,9 @@ function base64ToFile(base64, filename = 'scan.jpg') {
 }
 
 /* ===========================================
-   OCR PROCESSING ENGINE
+   OCR PROCESSING ENGINE – sans loader
 =========================================== */
 function OcrProcessing({ image, mode, onDone, t }) {
-  const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState(t.google_analysis);
 
   useEffect(() => {
@@ -29,7 +28,6 @@ function OcrProcessing({ image, mode, onDone, t }) {
     const runBackendOCR = async () => {
       try {
         setStatus(t.google_analysis);
-        setProgress(30);
 
         const token = localStorage.getItem('token');
         const baseUrl = import.meta.env.VITE_API_URL || 'https://noregisbackend.onrender.com';
@@ -49,13 +47,11 @@ function OcrProcessing({ image, mode, onDone, t }) {
           throw new Error(`Erreur Scan: ${errorBody.message || response.statusText}`);
         }
 
-        setProgress(70);
         const result = await response.json();
         if (!isMounted) return;
         if (!result.infosExtraites) throw new Error(t.no_text);
 
         setStatus(t.extracting);
-        setProgress(100);
         onDone(result.infosExtraites);
 
       } catch (err) {
@@ -69,22 +65,9 @@ function OcrProcessing({ image, mode, onDone, t }) {
   }, [image, mode, onDone, t]);
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-8 p-8 text-center bg-slate-50/50 dark:bg-slate-900/50">
-      <div className="relative">
-        <img src={image} alt="doc" className="w-52 h-32 object-cover rounded-xl border-2 border-brand-blue-bright/30 blur-[1px] opacity-40 shadow-2xl" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 shadow-xl flex items-center justify-center">
-            <Loader2 size={28} className="animate-spin text-brand-blue-bright" />
-          </div>
-        </div>
-      </div>
-      <div className="space-y-3">
-        <p className="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">{t.analysis}</p>
-        <div className="w-48 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mx-auto">
-          <div className="h-full bg-brand-blue-bright transition-all duration-300" style={{ width: `${progress}%` }} />
-        </div>
-        <p className="text-[10px] font-black text-brand-blue-bright uppercase animate-pulse tracking-widest">{status}</p>
-      </div>
+    <div className="flex flex-col items-center justify-center h-full gap-6 p-6 text-center bg-slate-50/50 dark:bg-slate-900/50">
+      <img src={image} alt="doc" className="w-52 h-32 object-cover rounded-xl border border-slate-200 dark:border-slate-700 shadow-md" />
+      <p className="text-xs font-medium text-slate-600 dark:text-slate-300">{status}</p>
     </div>
   );
 }
@@ -110,7 +93,6 @@ function LiveCamera({ onCapture, onClose, t }) {
   useEffect(() => {
     if (error) return;
 
-    // Verrouille l'orientation en portrait sur mobile
     try {
       screen.orientation?.lock?.('portrait').catch(() => {});
     } catch (_) {}
@@ -131,19 +113,15 @@ function LiveCamera({ onCapture, onClose, t }) {
           setReady(true);
         }
 
-        // Vérifie si la torche est disponible
         const track = s.getVideoTracks()[0];
         const caps  = track?.getCapabilities?.();
 
         if (caps?.torch) {
           setFlashAvail(true);
-          // ✅ Active le flash automatiquement
           try {
             await track.applyConstraints({ advanced: [{ torch: true }] });
             setFlashOn(true);
-          } catch (_) {
-            console.warn('Flash auto non activé');
-          }
+          } catch (_) {}
         }
 
       } catch (err) {
@@ -158,18 +136,15 @@ function LiveCamera({ onCapture, onClose, t }) {
     startCamera('environment');
 
     return () => {
-      // Éteint la torche et libère le flux
       const track = streamRef.current?.getVideoTracks()[0];
       if (track) {
         track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
         streamRef.current.getTracks().forEach(tr => tr.stop());
       }
-      // Libère le verrou d'orientation
       try { screen.orientation?.unlock?.(); } catch (_) {}
     };
   }, [error, t]);
 
-  // ── Bascule flash ──────────────────────────────────────────────────────────
   const toggleFlash = useCallback(async () => {
     const track = streamRef.current?.getVideoTracks()[0];
     if (!track) return;
@@ -182,7 +157,6 @@ function LiveCamera({ onCapture, onClose, t }) {
     }
   }, [flashOn]);
 
-  // ── Capture ────────────────────────────────────────────────────────────────
   const capture = useCallback(() => {
     const video = videoRef.current;
     const MAX = 1280;
@@ -196,7 +170,6 @@ function LiveCamera({ onCapture, onClose, t }) {
     canvas.height = h;
     canvas.getContext('2d').drawImage(video, 0, 0, w, h);
 
-    // Éteint la torche avant de fermer
     const track = streamRef.current?.getVideoTracks()[0];
     if (track && flashOn) {
       track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
@@ -205,7 +178,6 @@ function LiveCamera({ onCapture, onClose, t }) {
     onCapture(canvas.toDataURL('image/jpeg', 0.7));
   }, [flashOn, onCapture]);
 
-  // ── Fermeture propre ───────────────────────────────────────────────────────
   const handleClose = useCallback(() => {
     const track = streamRef.current?.getVideoTracks()[0];
     if (track && flashOn) {
@@ -215,10 +187,8 @@ function LiveCamera({ onCapture, onClose, t }) {
   }, [flashOn, onClose]);
 
   return (
-    // ✅ Plein écran mobile : fixed + inset-0 + z-50
     <div className="fixed inset-0 z-50 flex flex-col bg-black">
 
-      {/* ── Zone vidéo (occupe tout l'espace disponible) ── */}
       <div className="flex-1 relative overflow-hidden">
 
         {!ready && !error && (
@@ -247,21 +217,18 @@ function LiveCamera({ onCapture, onClose, t }) {
           className={`absolute inset-0 w-full h-full object-cover ${ready ? 'opacity-100' : 'opacity-0'}`}
         />
 
-        {/* Cadre de visée centré */}
         <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
           <div className="relative w-full aspect-[1.6] max-w-sm border-2 border-white/20 rounded-2xl">
             <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-brand-blue-bright rounded-tl-xl" />
             <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-brand-blue-bright rounded-tr-xl" />
             <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-brand-blue-bright rounded-bl-xl" />
             <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-brand-blue-bright rounded-br-xl" />
-            {/* Label guide */}
             <p className="absolute -bottom-7 left-0 right-0 text-center text-[9px] font-black text-white/60 uppercase tracking-widest">
               {t.id_card}
             </p>
           </div>
         </div>
 
-        {/* Bouton flash — coin supérieur droit */}
         {flashAvail && ready && (
           <button
             onClick={toggleFlash}
@@ -280,7 +247,6 @@ function LiveCamera({ onCapture, onClose, t }) {
           </button>
         )}
 
-        {/* Bouton fermer — coin supérieur gauche */}
         <button
           onClick={handleClose}
           className="absolute top-4 left-4 z-20 w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center active:scale-90 transition-transform"
@@ -289,15 +255,12 @@ function LiveCamera({ onCapture, onClose, t }) {
         </button>
       </div>
 
-      {/* ── Barre de contrôles (bas) ── */}
       <div
         className="pb-safe flex items-center justify-center gap-10 py-8 bg-gradient-to-t from-black/90 to-transparent"
         style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
       >
-        {/* Placeholder gauche pour équilibrer le bouton flash à droite */}
         <div className="w-12 h-12" />
 
-        {/* Bouton capture */}
         <button
           onClick={capture}
           disabled={!ready}
@@ -306,7 +269,6 @@ function LiveCamera({ onCapture, onClose, t }) {
           <div className="w-14 h-14 rounded-full bg-white" />
         </button>
 
-        {/* Bouton flash dans la barre (dupliqué pour UX mobile) */}
         {flashAvail ? (
           <button
             onClick={toggleFlash}
@@ -407,7 +369,6 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
           </div>
         )}
 
-        {/* ✅ LiveCamera monte en plein écran (fixed inset-0) — pas besoin de wrapper ici */}
         {phase === 'camera' && (
           <LiveCamera
             onCapture={(img) => { setCapturedImage(img); setPhase('ocr'); }}
