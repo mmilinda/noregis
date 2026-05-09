@@ -90,30 +90,39 @@ function OcrProcessing({ image, mode, onDone, t }) {
 }
 
 /* ===========================================
-   SCANNER (Camera Live)
+   SCANNER (Camera Live) — PLEIN ÉCRAN MOBILE
 =========================================== */
 function LiveCamera({ onCapture, onClose, t }) {
-  const videoRef  = useRef(null);
-  const streamRef = useRef(null);
+  const videoRef   = useRef(null);
+  const streamRef  = useRef(null);
 
-  const [ready,     setReady]     = useState(false);
-  const [flashOn,   setFlashOn]   = useState(false);
+  const [ready,      setReady]      = useState(false);
+  const [flashOn,    setFlashOn]    = useState(false);
   const [flashAvail, setFlashAvail] = useState(false);
-  const [error,     setError]     = useState(() => {
+  const [error,      setError]      = useState(() => {
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
       return t.camera_unsupported;
     }
     return null;
   });
 
-  // ── Démarre la caméra ──────────────────────────────────────────────────────
+  // ── Démarre la caméra + active le flash automatiquement ───────────────────
   useEffect(() => {
     if (error) return;
+
+    // Verrouille l'orientation en portrait sur mobile
+    try {
+      screen.orientation?.lock?.('portrait').catch(() => {});
+    } catch (_) {}
 
     const startCamera = async (facing) => {
       try {
         const s = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: {
+            facingMode: facing,
+            width:  { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
         });
         streamRef.current = s;
 
@@ -122,10 +131,20 @@ function LiveCamera({ onCapture, onClose, t }) {
           setReady(true);
         }
 
-        // Vérifie si la torche est disponible sur cette piste vidéo
+        // Vérifie si la torche est disponible
         const track = s.getVideoTracks()[0];
         const caps  = track?.getCapabilities?.();
-        if (caps?.torch) setFlashAvail(true);
+
+        if (caps?.torch) {
+          setFlashAvail(true);
+          // ✅ Active le flash automatiquement
+          try {
+            await track.applyConstraints({ advanced: [{ torch: true }] });
+            setFlashOn(true);
+          } catch (_) {
+            console.warn('Flash auto non activé');
+          }
+        }
 
       } catch (err) {
         if (facing === 'environment') {
@@ -139,12 +158,14 @@ function LiveCamera({ onCapture, onClose, t }) {
     startCamera('environment');
 
     return () => {
-      // Éteint la torche et libère le flux à la destruction
+      // Éteint la torche et libère le flux
       const track = streamRef.current?.getVideoTracks()[0];
       if (track) {
         track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
-        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current.getTracks().forEach(tr => tr.stop());
       }
+      // Libère le verrou d'orientation
+      try { screen.orientation?.unlock?.(); } catch (_) {}
     };
   }, [error, t]);
 
@@ -157,7 +178,7 @@ function LiveCamera({ onCapture, onClose, t }) {
       await track.applyConstraints({ advanced: [{ torch: next }] });
       setFlashOn(next);
     } catch (err) {
-      console.warn('Impossible d\'activer la torche :', err);
+      console.warn('Flash toggle error:', err);
     }
   }, [flashOn]);
 
@@ -194,48 +215,58 @@ function LiveCamera({ onCapture, onClose, t }) {
   }, [flashOn, onClose]);
 
   return (
-    <div className="flex flex-col h-full bg-black">
+    // ✅ Plein écran mobile : fixed + inset-0 + z-50
+    <div className="fixed inset-0 z-50 flex flex-col bg-black">
 
-      {/* ── Zone vidéo ── */}
+      {/* ── Zone vidéo (occupe tout l'espace disponible) ── */}
       <div className="flex-1 relative overflow-hidden">
 
         {!ready && !error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-slate-400">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-slate-400 z-10">
             <Loader2 size={40} className="animate-spin text-brand-blue-bright" />
             <span className="text-[10px] font-black uppercase tracking-widest">...</span>
           </div>
         )}
 
         {error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8 text-center bg-slate-900">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8 text-center bg-slate-900 z-10">
             <WifiOff size={40} className="text-brand-red-bright" />
             <p className="text-sm font-black text-white uppercase tracking-tight leading-tight">{error}</p>
-            <button onClick={handleClose} className="mt-4 px-6 py-2 bg-white/10 text-white rounded-lg text-[10px] font-black uppercase">{t.close}</button>
+            <button
+              onClick={handleClose}
+              className="mt-4 px-6 py-2 bg-white/10 text-white rounded-lg text-[10px] font-black uppercase"
+            >
+              {t.close}
+            </button>
           </div>
         )}
 
         <video
           ref={videoRef}
           autoPlay playsInline muted
-          className={`w-full h-full object-cover ${ready ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute inset-0 w-full h-full object-cover ${ready ? 'opacity-100' : 'opacity-0'}`}
         />
 
-        {/* Cadre de visée */}
+        {/* Cadre de visée centré */}
         <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
           <div className="relative w-full aspect-[1.6] max-w-sm border-2 border-white/20 rounded-2xl">
             <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-brand-blue-bright rounded-tl-xl" />
             <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-brand-blue-bright rounded-tr-xl" />
             <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-brand-blue-bright rounded-bl-xl" />
             <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-brand-blue-bright rounded-br-xl" />
+            {/* Label guide */}
+            <p className="absolute -bottom-7 left-0 right-0 text-center text-[9px] font-black text-white/60 uppercase tracking-widest">
+              {t.id_card}
+            </p>
           </div>
         </div>
 
-        {/* Bouton flash — coin supérieur droit, visible seulement si dispo */}
+        {/* Bouton flash — coin supérieur droit */}
         {flashAvail && ready && (
           <button
             onClick={toggleFlash}
             className={`
-              absolute top-4 right-4 z-10
+              absolute top-4 right-4 z-20
               w-11 h-11 rounded-full flex items-center justify-center
               transition-all duration-200 active:scale-90
               ${flashOn
@@ -248,17 +279,25 @@ function LiveCamera({ onCapture, onClose, t }) {
             {flashOn ? <Zap size={20} fill="currentColor" /> : <ZapOff size={20} />}
           </button>
         )}
-      </div>
 
-      {/* ── Barre de contrôles ── */}
-      <div className="p-8 bg-slate-900 flex items-center justify-center gap-10">
+        {/* Bouton fermer — coin supérieur gauche */}
         <button
           onClick={handleClose}
-          className="w-12 h-12 rounded-full bg-white/10 text-white flex items-center justify-center"
+          className="absolute top-4 left-4 z-20 w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center active:scale-90 transition-transform"
         >
-          <X size={24} />
+          <X size={22} />
         </button>
+      </div>
 
+      {/* ── Barre de contrôles (bas) ── */}
+      <div
+        className="pb-safe flex items-center justify-center gap-10 py-8 bg-gradient-to-t from-black/90 to-transparent"
+        style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
+      >
+        {/* Placeholder gauche pour équilibrer le bouton flash à droite */}
+        <div className="w-12 h-12" />
+
+        {/* Bouton capture */}
         <button
           onClick={capture}
           disabled={!ready}
@@ -267,10 +306,8 @@ function LiveCamera({ onCapture, onClose, t }) {
           <div className="w-14 h-14 rounded-full bg-white" />
         </button>
 
-        {/* Bouton flash alternatif dans la barre (affiché si non dispo en overlay) */}
-        {!flashAvail ? (
-          <div className="w-12 h-12" />
-        ) : (
+        {/* Bouton flash dans la barre (dupliqué pour UX mobile) */}
+        {flashAvail ? (
           <button
             onClick={toggleFlash}
             className={`
@@ -284,6 +321,8 @@ function LiveCamera({ onCapture, onClose, t }) {
           >
             {flashOn ? <Zap size={20} fill="currentColor" /> : <ZapOff size={20} />}
           </button>
+        ) : (
+          <div className="w-12 h-12" />
         )}
       </div>
     </div>
@@ -301,7 +340,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
   const [ocrData, setOcrData] = useState(null);
   const fileRef = useRef(null);
 
-  const handleOcrDone  = (data) => { setOcrData(data); setPhase('done'); };
+  const handleOcrDone   = (data) => { setOcrData(data); setPhase('done'); };
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -323,33 +362,52 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
         </div>
         <div>
           <h2 className="text-base font-black text-slate-900 dark:text-white leading-none">{t.scanning}</h2>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter mt-1.5">{mode === 'vehicule' ? t.license_plate : t.id_card}</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter mt-1.5">
+            {mode === 'vehicule' ? t.license_plate : t.id_card}
+          </p>
         </div>
       </div>
 
       <div className="flex-1 overflow-hidden">
+
         {phase === 'choose' && (
           <div className="p-8 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-300">
             <p className="text-center text-slate-500 text-[11px] font-extrabold uppercase tracking-widest mb-2">{t.scan_method}</p>
-            <button onClick={() => setPhase('camera')} className="group flex items-center gap-4 p-4 rounded-xl border-2 border-brand-blue-bright/10 bg-brand-blue-light/10 hover:border-brand-blue-bright/30 transition-all text-left">
-              <div className="w-10 h-10 rounded-lg bg-brand-blue-bright text-white flex items-center justify-center shrink-0"><Camera size={20} /></div>
+            <button
+              onClick={() => setPhase('camera')}
+              className="group flex items-center gap-4 p-4 rounded-xl border-2 border-brand-blue-bright/10 bg-brand-blue-light/10 hover:border-brand-blue-bright/30 transition-all text-left"
+            >
+              <div className="w-10 h-10 rounded-lg bg-brand-blue-bright text-white flex items-center justify-center shrink-0">
+                <Camera size={20} />
+              </div>
               <div className="flex-1">
                 <p className="font-black text-sm text-slate-900 dark:text-white">{t.live_camera}</p>
                 <p className="text-[9px] font-bold text-brand-blue-bright uppercase tracking-tighter mt-1">{t.scan_id_desc}</p>
               </div>
             </button>
-            <button onClick={() => fileRef.current?.click()} className="group flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 dark:border-slate-800 hover:border-slate-300 transition-all text-left">
-              <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center shrink-0"><Upload size={20} /></div>
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="group flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 dark:border-slate-800 hover:border-slate-300 transition-all text-left"
+            >
+              <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center shrink-0">
+                <Upload size={20} />
+              </div>
               <div className="flex-1">
                 <p className="font-black text-sm text-slate-900 dark:text-white">{t.import_file}</p>
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter mt-1">{t.scan_id_desc}</p>
               </div>
             </button>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFileUpload} />
-            <button onClick={onClose} className="mt-6 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest active:scale-95 transition-all">{t.cancel}</button>
+            <button
+              onClick={onClose}
+              className="mt-6 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest active:scale-95 transition-all"
+            >
+              {t.cancel}
+            </button>
           </div>
         )}
 
+        {/* ✅ LiveCamera monte en plein écran (fixed inset-0) — pas besoin de wrapper ici */}
         {phase === 'camera' && (
           <LiveCamera
             onCapture={(img) => { setCapturedImage(img); setPhase('ocr'); }}
@@ -358,21 +416,29 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
           />
         )}
 
-        {phase === 'ocr' && <OcrProcessing image={capturedImage} mode={mode} onDone={handleOcrDone} t={t} />}
+        {phase === 'ocr' && (
+          <OcrProcessing image={capturedImage} mode={mode} onDone={handleOcrDone} t={t} />
+        )}
 
         {phase === 'done' && (
           <div className="p-6 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="relative rounded-lg overflow-hidden border-2 border-brand-green-bright">
               <img src={capturedImage} alt="Capture" className="w-full h-32 object-cover" />
-              <div className="absolute top-2 right-2 bg-brand-green-bright text-white px-2 py-1 rounded text-[9px] font-black uppercase tracking-tighter">{t.capture_valid}</div>
+              <div className="absolute top-2 right-2 bg-brand-green-bright text-white px-2 py-1 rounded text-[9px] font-black uppercase tracking-tighter">
+                {t.capture_valid}
+              </div>
             </div>
             <div className="bg-brand-green-light/10 dark:bg-brand-green-bright/5 rounded-xl p-4 border border-brand-green-bright/20">
-              <p className="text-[9px] font-black text-brand-green-bright uppercase tracking-widest mb-3 flex items-center gap-2">{t.extraction_done}</p>
+              <p className="text-[9px] font-black text-brand-green-bright uppercase tracking-widest mb-3 flex items-center gap-2">
+                {t.extraction_done}
+              </p>
               <div className="space-y-2">
                 {Object.entries(ocrData).map(([k, v]) => (
                   <div key={k} className="flex justify-between items-center gap-4 pb-2 border-b border-brand-green-bright/5 last:border-0 last:pb-0">
                     <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">{k}</span>
-                    <span className={`text-xs font-black text-slate-900 dark:text-white ${isAr ? 'text-left' : 'text-right'}`}>{v || '—'}</span>
+                    <span className={`text-xs font-black text-slate-900 dark:text-white ${isAr ? 'text-left' : 'text-right'}`}>
+                      {v || '—'}
+                    </span>
                   </div>
                 ))}
               </div>
