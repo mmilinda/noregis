@@ -2,7 +2,8 @@ import { useState } from 'react';
 import {
   User, Car, CreditCard, Building, 
   Clock, Calendar, Camera, CheckCircle2, 
-  ChevronRight} from 'lucide-react';
+  ChevronRight
+} from 'lucide-react';
 import { FormInput, FormSelect, Btn, Modal } from './UI';
 import { ScanPanel } from './Scanner';
 import { SERVICES, TYPES_PIECE, TYPES_VEHICULE } from '../data/mockData';
@@ -10,6 +11,23 @@ import { useApp } from '../context/useAppState';
 import { visitorService } from '../services/visitorService';
 import { visitService } from '../services/visitService';
 import { TRANSLATIONS } from '../translations';
+
+// ========== NORMALISATION DES TYPES DE PIÈCE ==========
+const normalizeTypePiece = (value) => {
+  const mapping = {
+    'Carte Nationale d\'Identité': 'CNI',
+    "Carte Nationale d'Identité": 'CNI',
+    'Carte Nationale d’Identité': 'CNI',
+    'CNI': 'CNI',
+    'Passeport': 'PASSEPORT',
+    'PASSEPORT': 'PASSEPORT',
+    'Permis de conduire': 'PERMIS',
+    'PERMIS': 'PERMIS',
+    'Carte de séjour': 'CARTE_SEJOUR',
+    'CARTE_SEJOUR': 'CARTE_SEJOUR',
+  };
+  return mapping[value] || 'CNI'; // fallback sûr
+};
 
 /* ============================================
    FORMULAIRE VISITEUR (personne)
@@ -50,7 +68,10 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (validate()) onSubmit({ ...form, type: 'person', statut: 'present', heureSortie: null, photo: docImage });
+    if (validate()) {
+      // On laisse le typePiece brut (libellé), la normalisation se fera dans RegistrationModal
+      onSubmit({ ...form, type: 'person', statut: 'present', heureSortie: null, photo: docImage });
+    }
   };
 
   const handleScanData = (data, img) => {
@@ -63,6 +84,8 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
       dateNaissance: data.dateNaissance || prev.dateNaissance,
       profession: data.profession || prev.profession,
       adresse: data.adresse || prev.adresse,
+      // Si l'OCR renvoie un typePiece, on le normalise pour afficher le libellé correspondant dans le select
+      typePiece: data.typePiece ? normalizeTypePiece(data.typePiece) : prev.typePiece,
     }));
     setScanOpen(false);
   };
@@ -70,7 +93,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   return (
     <>
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        {/* Scan quick button */}
+        {/* Scan button */}
         <div className="bg-gradient-to-r from-brand-blue-light/20 to-brand-green-light/20 dark:from-brand-blue-bright/10 dark:to-brand-green-bright/10 border-2 border-brand-blue-bright/20 rounded-xl p-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {docImage
@@ -173,6 +196,7 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     couleur: initial.couleur || '',
     typeVehicule: initial.typeVehicule || '',
     personneVisitee: initial.personneVisitee || '',
+    service: initial.service || '',
     heureEntree: now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0'),
     date: now.toLocaleDateString(t.locale || 'fr-FR'),
     ...initial,
@@ -202,7 +226,7 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel, loading, t }) {
         heureSortie: null,
         nom: form.nom,
         prenom: form.prenom,
-        typePiece: t.id_types.carte_grise,
+        typePiece: 'CNI', // valeur enum valide (au lieu d'un libellé)
         personneVisitee: form.personneVisitee,
         service: form.service,
         heureEntree: form.heureEntree,
@@ -347,11 +371,14 @@ export function RegistrationModal({ isOpen, onClose }) {
   const handleSubmit = async (data) => {
     setLoading(true);
     try {
+      // Normalisation du typePiece avant envoi
+      const normalizedTypePiece = normalizeTypePiece(data.typePiece);
+      
       const visitorResponse = await visitorService.create({
         nom: data.nom,
         prenom: data.prenom,
         numeroPiece: data.numeroPiece,
-        typePiece: data.typePiece,
+        typePiece: normalizedTypePiece,   // ← VALEUR NORMALISÉE (ex: "CNI")
         dateNaissance: data.dateNaissance
       });
 
@@ -436,4 +463,3 @@ export function RegistrationModal({ isOpen, onClose }) {
     </Modal>
   );
 }
-
