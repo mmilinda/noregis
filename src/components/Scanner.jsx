@@ -3,7 +3,6 @@ import { Camera, Upload, X, RotateCcw, CheckCircle2, Loader2, Car, WifiOff, Zap,
 import { Btn } from './UI';
 import { useApp } from '../context/useAppState';
 import { TRANSLATIONS } from '../translations';
-import { scanService } from '../services/scanService';
 
 /* ===========================================
    HELPER: base64 → File (pour FormData)
@@ -30,26 +29,36 @@ function preparerImageOCR(base64) {
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
 
+      // ── 1. Dessin de l'image originale ──────────────────────────────────
       ctx.drawImage(img, 0, 0);
 
-      // Niveaux de gris + contraste
+      // ── 2. Niveaux de gris + contraste ──────────────────────────────────
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
-      const facteurContraste = 1.5;
+      const facteurContraste = 1.5; // 1 = neutre, >1 = plus de contraste
 
       for (let i = 0; i < data.length; i += 4) {
+        // Luminance perceptuelle (niveaux de gris)
         const gris = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        // Contraste : ((gris - 128) * facteur) + 128
         const contraste = Math.min(255, Math.max(0, (gris - 128) * facteurContraste + 128));
         data[i] = data[i + 1] = data[i + 2] = contraste;
+        // data[i + 3] = alpha, inchangé
       }
       ctx.putImageData(imageData, 0, 0);
 
-      // Sharpen (convolution 3×3)
+      // ── 3. Filtre de netteté (sharpen) via convolution 3×3 ──────────────
       const src = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const dst = ctx.createImageData(canvas.width, canvas.height);
       const s = src.data, d = dst.data;
       const w = canvas.width, h = canvas.height;
-      const kernel = [0, -1, 0, -1, 5, -1, 0, -1, 0];
+
+      // Kernel sharpen
+      const kernel = [
+         0, -1,  0,
+        -1,  5, -1,
+         0, -1,  0,
+      ];
 
       for (let y = 1; y < h - 1; y++) {
         for (let x = 1; x < w - 1; x++) {
@@ -58,7 +67,7 @@ function preparerImageOCR(base64) {
             for (let kx = -1; kx <= 1; kx++) {
               const idx = ((y + ky) * w + (x + kx)) * 4;
               const k   = kernel[(ky + 1) * 3 + (kx + 1)];
-              r += s[idx] * k;
+              r += s[idx]     * k;
               g += s[idx + 1] * k;
               b += s[idx + 2] * k;
             }
@@ -72,6 +81,7 @@ function preparerImageOCR(base64) {
       }
       ctx.putImageData(dst, 0, 0);
 
+      // ── 4. Export en JPEG haute qualité ──────────────────────────────────
       resolve(canvas.toDataURL('image/jpeg', 0.95));
     };
     img.src = base64;
@@ -87,20 +97,35 @@ function OcrProcessing({ image, mode, onDone, t }) {
 
     const runBackendOCR = async () => {
       try {
-        // Prétraitement image
+        // ✅ Prétraitement avant envoi
         const imagePreparee = await preparerImageOCR(image);
-        const imageFile = base64ToFile(imagePreparee);
 
-        // ✅ Appel via Axios (scanService)
-        const result = await scanService.scanID(imageFile);
+        const token = localStorage.getItem('token');
+        const baseUrl = import.meta.env.VITE_API_URL || 'https://noregisbackend.onrender.com';
 
+        const formData = new FormData();
+        formData.append('image', base64ToFile(imagePreparee));
+        formData.append('mode', mode);
+
+        const response = await fetch(`${baseUrl}/api/scan`, {
+          method: 'POST',
+          headers: { 'Authorization': token ? `Bearer ${token}` : '' },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => ({}));
+          throw new Error(`Erreur Scan: ${errorBody.message || response.statusText}`);
+        }
+
+        const result = await response.json();
         if (!isMounted) return;
         if (!result.infosExtraites) throw new Error(t.no_text);
 
         onDone(result.infosExtraites);
 
       } catch (err) {
-        console.error('Scan Error:', err.message);
+        console.error('Scan Error:', err);
         onDone({ error: t.cloud_fail });
       }
     };
@@ -123,8 +148,8 @@ function OcrProcessing({ image, mode, onDone, t }) {
    SCANNER (Camera Live) — PLEIN ÉCRAN MOBILE
 =========================================== */
 function LiveCamera({ onCapture, onClose, t }) {
-  const videoRef  = useRef(null);
-  const streamRef = useRef(null);
+  const videoRef   = useRef(null);
+  const streamRef  = useRef(null);
 
   const [ready,      setReady]      = useState(false);
   const [flashOn,    setFlashOn]    = useState(false);
@@ -139,25 +164,39 @@ function LiveCamera({ onCapture, onClose, t }) {
   useEffect(() => {
     if (error) return;
 
-    try { screen.orientation?.lock?.('portrait').catch(() => {}); } catch (_) {}
+    try {
+      screen.orientation?.lock?.('portrait').catch(() => {});
+    } catch (_) {}
 
     const startCamera = async (facing) => {
       try {
         const s = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
+          video: {
+            facingMode: facing,
+            width:  { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
         });
         streamRef.current = s;
-        if (videoRef.current) { videoRef.current.srcObject = s; setReady(true); }
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          setReady(true);
+        }
 
         const track = s.getVideoTracks()[0];
         const caps  = track?.getCapabilities?.();
+
         if (caps?.torch) {
           setFlashAvail(true);
           try {
             await track.applyConstraints({ advanced: [{ torch: true }] });
             setFlashOn(true);
-          } catch (_) { console.warn('Flash auto non activé'); }
+          } catch (_) {
+            console.warn('Flash auto non activé');
+          }
         }
+
       } catch (err) {
         if (facing === 'environment') {
           startCamera('user');
@@ -186,38 +225,47 @@ function LiveCamera({ onCapture, onClose, t }) {
     try {
       await track.applyConstraints({ advanced: [{ torch: next }] });
       setFlashOn(next);
-    } catch (err) { console.warn('Flash toggle error:', err); }
+    } catch (err) {
+      console.warn('Flash toggle error:', err);
+    }
   }, [flashOn]);
 
   const capture = useCallback(() => {
     const video = videoRef.current;
     const MAX = 1280;
-    let w = video.videoWidth, h = video.videoHeight;
+    let w = video.videoWidth;
+    let h = video.videoHeight;
     if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
     if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
 
     const canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
+    canvas.width  = w;
+    canvas.height = h;
     canvas.getContext('2d').drawImage(video, 0, 0, w, h);
 
     const track = streamRef.current?.getVideoTracks()[0];
-    if (track && flashOn) track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+    if (track && flashOn) {
+      track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+    }
 
     onCapture(canvas.toDataURL('image/jpeg', 0.95));
   }, [flashOn, onCapture]);
 
   const handleClose = useCallback(() => {
     const track = streamRef.current?.getVideoTracks()[0];
-    if (track && flashOn) track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+    if (track && flashOn) {
+      track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+    }
     onClose();
   }, [flashOn, onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black">
+
       <div className="flex-1 relative overflow-hidden">
 
         {!ready && !error && (
-          <div className="absolute inset-0 flex items-center justify-center z-10">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-slate-400 z-10">
             <Loader2 size={40} className="animate-spin text-brand-blue-bright" />
           </div>
         )}
@@ -226,14 +274,18 @@ function LiveCamera({ onCapture, onClose, t }) {
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8 text-center bg-slate-900 z-10">
             <WifiOff size={40} className="text-brand-red-bright" />
             <p className="text-sm font-black text-white uppercase tracking-tight leading-tight">{error}</p>
-            <button onClick={handleClose} className="mt-4 px-6 py-2 bg-white/10 text-white rounded-lg text-[10px] font-black uppercase">
+            <button
+              onClick={handleClose}
+              className="mt-4 px-6 py-2 bg-white/10 text-white rounded-lg text-[10px] font-black uppercase"
+            >
               {t.close}
             </button>
           </div>
         )}
 
         <video
-          ref={videoRef} autoPlay playsInline muted
+          ref={videoRef}
+          autoPlay playsInline muted
           className={`absolute inset-0 w-full h-full object-cover ${ready ? 'opacity-100' : 'opacity-0'}`}
         />
 
@@ -250,21 +302,23 @@ function LiveCamera({ onCapture, onClose, t }) {
           </div>
         </div>
 
-        {/* Flash overlay */}
         {flashAvail && ready && (
           <button
             onClick={toggleFlash}
-            className={`absolute top-4 right-4 z-20 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 ${
-              flashOn
+            className={`
+              absolute top-4 right-4 z-20
+              w-11 h-11 rounded-full flex items-center justify-center
+              transition-all duration-200 active:scale-90
+              ${flashOn
                 ? 'bg-yellow-400 text-slate-900 shadow-[0_0_16px_4px_rgba(250,204,21,0.5)]'
                 : 'bg-white/10 text-white backdrop-blur-sm border border-white/20'
-            }`}
+              }
+            `}
           >
             {flashOn ? <Zap size={20} fill="currentColor" /> : <ZapOff size={20} />}
           </button>
         )}
 
-        {/* Fermer */}
         <button
           onClick={handleClose}
           className="absolute top-4 left-4 z-20 w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center active:scale-90 transition-transform"
@@ -291,11 +345,13 @@ function LiveCamera({ onCapture, onClose, t }) {
         {flashAvail ? (
           <button
             onClick={toggleFlash}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 ${
-              flashOn
+            className={`
+              w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90
+              ${flashOn
                 ? 'bg-yellow-400 text-slate-900 shadow-[0_0_12px_2px_rgba(250,204,21,0.4)]'
                 : 'bg-white/10 text-white'
-            }`}
+              }
+            `}
           >
             {flashOn ? <Zap size={20} fill="currentColor" /> : <ZapOff size={20} />}
           </button>

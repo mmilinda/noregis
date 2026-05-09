@@ -1,24 +1,55 @@
-import axios from 'axios';
+const BASE_URL = 'https://noregisbackend.onrender.com';
 
-const api = axios.create({
-  baseURL: 'https://noregisbackend.onrender.com',
-  headers: { 'Content-Type': 'application/json' },
-});
+const api = {
+  get: async (endpoint) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'API Error');
+    }
+    return response.json();
+  },
+  
+  post: async (endpoint, data) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'API Error');
+    }
+    return response.json();
+  },
 
-// Injecte le token automatiquement
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
-// Gestion centralisée des erreurs
-api.interceptors.response.use(
-  (response) => response.data,
-  (error) => {
-    const message = error.response?.data?.message || error.message || 'API Error';
-    return Promise.reject(new Error(message));
-  }
-);
+  put: async (endpoint, data) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'API Error');
+    }
+    return response.json();
+  },
+};
 
 export default api;
+
