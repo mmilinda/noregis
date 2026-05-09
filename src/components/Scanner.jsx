@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, Upload, X, RotateCcw, CheckCircle2, Car, WifiOff, Zap, ZapOff } from 'lucide-react';
+import { Camera, Upload, X, RotateCcw, CheckCircle2, Loader2, Car, WifiOff, Zap, ZapOff } from 'lucide-react';
 import { Btn } from './UI';
 import { useApp } from '../context/useAppState';
 import { TRANSLATIONS } from '../translations';
@@ -17,18 +17,14 @@ function base64ToFile(base64, filename = 'scan.jpg') {
 }
 
 /* ===========================================
-   OCR PROCESSING ENGINE – sans loader
+   OCR PROCESSING ENGINE
 =========================================== */
 function OcrProcessing({ image, mode, onDone, t }) {
-  const [status, setStatus] = useState(t.google_analysis);
-
   useEffect(() => {
     let isMounted = true;
 
     const runBackendOCR = async () => {
       try {
-        setStatus(t.google_analysis);
-
         const token = localStorage.getItem('token');
         const baseUrl = import.meta.env.VITE_API_URL || 'https://noregisbackend.onrender.com';
 
@@ -51,7 +47,6 @@ function OcrProcessing({ image, mode, onDone, t }) {
         if (!isMounted) return;
         if (!result.infosExtraites) throw new Error(t.no_text);
 
-        setStatus(t.extracting);
         onDone(result.infosExtraites);
 
       } catch (err) {
@@ -65,9 +60,11 @@ function OcrProcessing({ image, mode, onDone, t }) {
   }, [image, mode, onDone, t]);
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-6 p-6 text-center bg-slate-50/50 dark:bg-slate-900/50">
-      <img src={image} alt="doc" className="w-52 h-32 object-cover rounded-xl border border-slate-200 dark:border-slate-700 shadow-md" />
-      <p className="text-xs font-medium text-slate-600 dark:text-slate-300">{status}</p>
+    <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+      <Loader2 size={36} className="animate-spin text-brand-blue-bright" />
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">
+        {t.analysis}
+      </p>
     </div>
   );
 }
@@ -89,7 +86,6 @@ function LiveCamera({ onCapture, onClose, t }) {
     return null;
   });
 
-  // ── Démarre la caméra + active le flash automatiquement ───────────────────
   useEffect(() => {
     if (error) return;
 
@@ -121,7 +117,9 @@ function LiveCamera({ onCapture, onClose, t }) {
           try {
             await track.applyConstraints({ advanced: [{ torch: true }] });
             setFlashOn(true);
-          } catch (_) {}
+          } catch (_) {
+            console.warn('Flash auto non activé');
+          }
         }
 
       } catch (err) {
@@ -194,7 +192,6 @@ function LiveCamera({ onCapture, onClose, t }) {
         {!ready && !error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-slate-400 z-10">
             <Loader2 size={40} className="animate-spin text-brand-blue-bright" />
-            <span className="text-[10px] font-black uppercase tracking-widest">...</span>
           </div>
         )}
 
@@ -217,6 +214,7 @@ function LiveCamera({ onCapture, onClose, t }) {
           className={`absolute inset-0 w-full h-full object-cover ${ready ? 'opacity-100' : 'opacity-0'}`}
         />
 
+        {/* Cadre de visée */}
         <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
           <div className="relative w-full aspect-[1.6] max-w-sm border-2 border-white/20 rounded-2xl">
             <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-brand-blue-bright rounded-tl-xl" />
@@ -229,6 +227,7 @@ function LiveCamera({ onCapture, onClose, t }) {
           </div>
         </div>
 
+        {/* Bouton flash — coin supérieur droit */}
         {flashAvail && ready && (
           <button
             onClick={toggleFlash}
@@ -241,12 +240,12 @@ function LiveCamera({ onCapture, onClose, t }) {
                 : 'bg-white/10 text-white backdrop-blur-sm border border-white/20'
               }
             `}
-            aria-label={flashOn ? 'Éteindre le flash' : 'Allumer le flash'}
           >
             {flashOn ? <Zap size={20} fill="currentColor" /> : <ZapOff size={20} />}
           </button>
         )}
 
+        {/* Bouton fermer — coin supérieur gauche */}
         <button
           onClick={handleClose}
           className="absolute top-4 left-4 z-20 w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center active:scale-90 transition-transform"
@@ -255,8 +254,9 @@ function LiveCamera({ onCapture, onClose, t }) {
         </button>
       </div>
 
+      {/* Barre de contrôles */}
       <div
-        className="pb-safe flex items-center justify-center gap-10 py-8 bg-gradient-to-t from-black/90 to-transparent"
+        className="flex items-center justify-center gap-10 py-8 bg-gradient-to-t from-black/90 to-transparent"
         style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
       >
         <div className="w-12 h-12" />
@@ -279,7 +279,6 @@ function LiveCamera({ onCapture, onClose, t }) {
                 : 'bg-white/10 text-white'
               }
             `}
-            aria-label={flashOn ? 'Éteindre le flash' : 'Allumer le flash'}
           >
             {flashOn ? <Zap size={20} fill="currentColor" /> : <ZapOff size={20} />}
           </button>
@@ -390,7 +389,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
               </div>
             </div>
             <div className="bg-brand-green-light/10 dark:bg-brand-green-bright/5 rounded-xl p-4 border border-brand-green-bright/20">
-              <p className="text-[9px] font-black text-brand-green-bright uppercase tracking-widest mb-3 flex items-center gap-2">
+              <p className="text-[9px] font-black text-brand-green-bright uppercase tracking-widest mb-3">
                 {t.extraction_done}
               </p>
               <div className="space-y-2">
