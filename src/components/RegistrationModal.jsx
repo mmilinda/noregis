@@ -1,19 +1,24 @@
 import { useState } from 'react';
 import {
-  User, Car, CreditCard, Building, 
-  Clock, Calendar, Camera, CheckCircle2, 
+  User, Car, CreditCard, Building,
+  Clock, Calendar, Camera, CheckCircle2,
   ChevronRight
 } from 'lucide-react';
 import { FormInput, FormSelect, Btn, Modal } from './UI';
 import { ScanPanel } from './Scanner';
-import { SERVICES, TYPES_PIECE, TYPES_VEHICULE } from '../data/mockData';
+import { SERVICES } from '../data/mockData';
 import { useApp } from '../context/useAppState';
 import { visitorService } from '../services/visitorService';
 import { visitService } from '../services/visitService';
 import { TRANSLATIONS } from '../translations';
 
-// ========== NORMALISATION DES TYPES DE PIÈCE ==========
+// ========== NORMALISATION DES TYPES DE PIÈCE (CORRIGÉE) ==========
 const normalizeTypePiece = (value) => {
+  if (!value) return 'CNI';
+
+  // Gère les valeurs tronquées (ex: "Carte Nationale d'")
+  if (value.includes('Carte Nationale')) return 'CNI';
+
   const mapping = {
     'Carte Nationale d\'Identité': 'CNI',
     "Carte Nationale d'Identité": 'CNI',
@@ -69,7 +74,6 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
-      // On laisse le typePiece brut (libellé), la normalisation se fera dans RegistrationModal
       onSubmit({ ...form, type: 'person', statut: 'present', heureSortie: null, photo: docImage });
     }
   };
@@ -84,7 +88,6 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
       dateNaissance: data.dateNaissance || prev.dateNaissance,
       profession: data.profession || prev.profession,
       adresse: data.adresse || prev.adresse,
-      // Si l'OCR renvoie un typePiece, on le normalise pour afficher le libellé correspondant dans le select
       typePiece: data.typePiece ? normalizeTypePiece(data.typePiece) : prev.typePiece,
     }));
     setScanOpen(false);
@@ -106,7 +109,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
                 {docImage ? t.scan_id_done : t.scan_quick}
               </p>
               <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter leading-none mt-1">
-                {docImage ? t.scan_id_desc : t.scan_id_desc}
+                {t.scan_id_desc}
               </p>
             </div>
           </div>
@@ -126,15 +129,15 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <FormInput label={t.id_number} id="numeroPiece" required value={form.numeroPiece} onChange={set('numeroPiece')} error={errors.numeroPiece} placeholder={t.number_placeholder} />
-            <FormSelect 
-              label={t.id_type} 
-              id="typePiece" 
-              required 
-              value={form.typePiece} 
-              onChange={set('typePiece')} 
-              options={Object.values(t.id_types)} 
-              placeholder={t.choose} 
-              error={errors.typePiece} 
+            <FormSelect
+              label={t.id_type}
+              id="typePiece"
+              required
+              value={form.typePiece}
+              onChange={set('typePiece')}
+              options={Object.values(t.id_types)}
+              placeholder={t.choose}
+              error={errors.typePiece}
             />
           </div>
           <FormInput label={t.birth_date} id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
@@ -226,7 +229,7 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel, loading, t }) {
         heureSortie: null,
         nom: form.nom,
         prenom: form.prenom,
-        typePiece: 'CNI', // valeur enum valide (au lieu d'un libellé)
+        typePiece: 'CNI', // valeur enum valide
         personneVisitee: form.personneVisitee,
         service: form.service,
         heureEntree: form.heureEntree,
@@ -294,15 +297,15 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel, loading, t }) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <FormInput label={t.color} id="couleur" value={form.couleur} onChange={set('couleur')} placeholder="Gris..." />
-              <FormSelect 
-                label={t.id_type} 
-                id="typeVehicule" 
-                required 
-                value={form.typeVehicule} 
-                onChange={set('typeVehicule')} 
-                options={Object.values(t.vehicle_types)} 
-                placeholder={t.choose} 
-                error={errors.typeVehicule} 
+              <FormSelect
+                label={t.id_type}
+                id="typeVehicule"
+                required
+                value={form.typeVehicule}
+                onChange={set('typeVehicule')}
+                options={Object.values(t.vehicle_types)}
+                placeholder={t.choose}
+                error={errors.typeVehicule}
               />
             </div>
           </div>
@@ -359,7 +362,7 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel, loading, t }) {
 }
 
 /* ============================================
-   COMPOSANT PRINCIPAL – RegistrationModal
+   COMPOSANT PRINCIPAL – RegistrationModal (CORRIGÉ)
 ============================================ */
 export function RegistrationModal({ isOpen, onClose }) {
   const { state, dispatch, notify } = useApp();
@@ -371,18 +374,27 @@ export function RegistrationModal({ isOpen, onClose }) {
   const handleSubmit = async (data) => {
     setLoading(true);
     try {
-      // Normalisation du typePiece avant envoi
       const normalizedTypePiece = normalizeTypePiece(data.typePiece);
-      
+      console.log('📝 Type pièce normalisé :', normalizedTypePiece);
+
       const visitorResponse = await visitorService.create({
         nom: data.nom,
         prenom: data.prenom,
         numeroPiece: data.numeroPiece,
-        typePiece: normalizedTypePiece,   // ← VALEUR NORMALISÉE (ex: "CNI")
+        typePiece: normalizedTypePiece,
         dateNaissance: data.dateNaissance
       });
 
-      const visitorId = visitorResponse.visiteur?.id || visitorResponse.id;
+      console.log('✅ Réponse backend (create) :', visitorResponse);
+
+      // CORRECTION : utilisation de _id au lieu de id
+      const visitorId = visitorResponse.visiteur?._id || visitorResponse._id || visitorResponse.id;
+
+      console.log('🔑 ID du visiteur extrait :', visitorId);
+
+      if (!visitorId) {
+        throw new Error('Impossible de récupérer l\'identifiant du visiteur');
+      }
 
       await visitService.recordEntry({
         visiteurId: visitorId,
@@ -396,6 +408,7 @@ export function RegistrationModal({ isOpen, onClose }) {
       setMode(null);
       onClose();
     } catch (err) {
+      console.error('❌ Erreur dans handleSubmit :', err);
       notify('error', `${t.error_prefix}: ${err.message}`);
     } finally {
       setLoading(false);
@@ -426,7 +439,7 @@ export function RegistrationModal({ isOpen, onClose }) {
               {t.choose_type}
             </p>
           </div>
-          
+
           <button
             onClick={() => setMode('person')}
             className="group relative p-4 rounded-xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-brand-blue-bright/30 hover:bg-brand-blue-light/5 dark:hover:bg-brand-blue-bright/5 transition-all duration-300 flex items-center gap-4 text-left shadow-sm active:scale-[0.98]"
