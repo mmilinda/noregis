@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import { createContext, useContext } from 'react';
 import { MOCK_VISITORS, AGENT_PROFILE } from '../data/mockData';
 
 // ============================================================
-// Contexte & State Management
+//  App Context & State Management Core
 // ============================================================
 
 export const AppContext = createContext(null);
@@ -10,11 +10,10 @@ export const AppContext = createContext(null);
 export const initialState = {
   activeTab: 'dashboard',
   darkMode: false,
-  visitors: MOCK_VISITORS,        // données mock (optionnel)
-  visits: [],                     // ← NOUVEAU : vraies visites avec heures
+  visitors: MOCK_VISITORS,
   currentVisitor: null,
-  notification: null,             // { type: 'success'|'error'|'info', message }
-  scanMode: null,                 // null | 'person' | 'vehicule'
+  notification: null, // { type: 'success'|'error'|'info', message: string }
+  scanMode: null,     // null | 'person' | 'vehicule'
   isAuthenticated: false,
   agent: AGENT_PROFILE,
   searchQuery: '',
@@ -38,11 +37,6 @@ export const initialState = {
 
 export function reducer(state, action) {
   switch (action.type) {
-    // ========== NOUVEAU : Gestion des visites réelles ==========
-    case 'SET_VISITS':
-      return { ...state, visits: action.payload };
-
-    // ========== Gestion existante (compatible mocks) ==========
     case 'SET_TAB':
       return { ...state, activeTab: action.payload };
     case 'TOGGLE_DARK':
@@ -91,25 +85,6 @@ export function reducer(state, action) {
   }
 }
 
-// ============================================================
-// Fournisseur du contexte avec notification helper
-// ============================================================
-export function AppProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
-
-  const notify = useCallback((type, message, duration = 3500) => {
-    dispatch({ type: 'SET_NOTIFICATION', payload: { type, message } });
-    setTimeout(() => dispatch({ type: 'CLEAR_NOTIFICATION' }), duration);
-  }, []);
-
-  const value = { state, dispatch, notify };
-
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
-}
-
-// ============================================================
-// Hook personnalisé
-// ============================================================
 export function useApp() {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error('useApp must be used inside AppProvider');
