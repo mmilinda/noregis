@@ -26,6 +26,7 @@ export function Login() {
       dispatch({ 
         type: 'LOGIN', 
         payload: { 
+          user: data.user,
           prenom: data.user?.prenom || 'Admin', 
           nom: data.user?.nom || 'User', 
           role: data.user?.role || 'Agent', 

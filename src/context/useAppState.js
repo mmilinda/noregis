@@ -7,15 +7,27 @@ import { MOCK_VISITORS, AGENT_PROFILE } from '../data/mockData';
 
 export const AppContext = createContext(null);
 
+const storedToken = localStorage.getItem('token');
+const storedUser = localStorage.getItem('user');
+let parsedUser = null;
+try {
+  if (storedUser) parsedUser = JSON.parse(storedUser);
+} catch (e) {
+  console.error("Erreur parsing user", e);
+}
+
 export const initialState = {
   activeTab: 'dashboard',
   darkMode: false,
-  visitors: MOCK_VISITORS,
+  visitors: [], // Commence vide, chargé via Dashboard
   currentVisitor: null,
-  notification: null, // { type: 'success'|'error'|'info', message: string }
-  scanMode: null,     // null | 'person' | 'vehicule'
-  isAuthenticated: false,
-  agent: AGENT_PROFILE,
+  notification: null, 
+  scanMode: null,     
+  isAuthenticated: !!storedToken,
+  agent: parsedUser ? {
+    ...parsedUser,
+    initials: (parsedUser.prenom?.[0] || 'A') + (parsedUser.nom?.[0] || 'U')
+  } : AGENT_PROFILE,
   searchQuery: '',
   filterStatus: 'all',
   filterDate: new Date().toLocaleDateString('fr-FR'),
@@ -82,8 +94,13 @@ export function reducer(state, action) {
     case 'SET_VISITORS':
       return { ...state, visitors: action.payload };
     case 'LOGIN':
+      if (action.payload.user) {
+        localStorage.setItem('user', JSON.stringify(action.payload.user));
+      }
       return { ...state, isAuthenticated: true, agent: action.payload };
     case 'LOGOUT':
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       return { ...state, isAuthenticated: false, agent: null };
     default:
       return state;
