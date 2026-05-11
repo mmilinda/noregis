@@ -42,14 +42,19 @@ export function reducer(state, action) {
     case 'TOGGLE_DARK':
       return { ...state, darkMode: !state.darkMode };
     case 'ADD_VISITOR': {
-      const visitor = { ...action.payload, id: `VIS-2026-${String(state.visitors.length + 1).padStart(3, '0')}` };
+      const now = new Date();
+      const visitor = { 
+        ...action.payload, 
+        id: `VIS-${now.getFullYear()}-${Date.now().toString().slice(-6)}` 
+      };
       return { ...state, visitors: [visitor, ...state.visitors], currentVisitor: visitor };
     }
     case 'CHECKOUT_VISITOR': {
       const now = new Date();
+      const checkoutTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
       const updated = state.visitors.map(v =>
         v.id === action.payload
-          ? { ...v, statut: 'sorti', heureSortie: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) }
+          ? { ...v, statut: 'sorti', heureSortie: checkoutTime }
           : v
       );
       return { ...state, visitors: updated };

@@ -51,6 +51,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel }) {
   };
 
   const handleScanData = (data, img) => {
+    const scanTime = new Date();
     setDocImage(img);
     setForm(prev => ({
       ...prev,
@@ -60,6 +61,8 @@ function PersonForm({ initial = {}, onSubmit, onCancel }) {
       dateNaissance: data.dateNaissance || prev.dateNaissance,
       profession: data.profession || prev.profession,
       adresse: data.adresse || prev.adresse,
+      heureEntree: scanTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      date: scanTime.toLocaleDateString('fr-FR'),
     }));
     setScanOpen(false);
   };
@@ -183,16 +186,12 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel }) {
     e.preventDefault();
     if (validate()) {
       onSubmit({
+        ...form,
         type: 'vehicule',
         statut: 'present',
         heureSortie: null,
-        nom: form.nom,
-        prenom: form.prenom,
         typePiece: 'Carte Grise',
-        personneVisitee: form.personneVisitee,
-        service: form.service,
-        heureEntree: form.heureEntree,
-        date: form.date,
+        numeroPiece: form.immatriculation,
         vehicule: {
           immatriculation: form.immatriculation,
           marque: form.marque,
@@ -206,6 +205,7 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel }) {
   };
 
   const handleScanData = (data, img) => {
+    const scanTime = new Date();
     setDocImage(img);
     setForm(prev => ({
       ...prev,
@@ -216,6 +216,8 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel }) {
       typeVehicule: data.typeVehicule || prev.typeVehicule,
       nom: data.nom || prev.nom,
       prenom: data.prenom || prev.prenom,
+      heureEntree: scanTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      date: scanTime.toLocaleDateString('fr-FR'),
     }));
     setScanOpen(false);
   };
