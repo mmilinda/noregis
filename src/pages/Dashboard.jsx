@@ -73,7 +73,7 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
               : `${visitor.nom || visitor.visiteur?.nom || ''} ${visitor.prenom || visitor.visiteur?.prenom || ''}`}
           </p>
           <div className="flex gap-2 mt-2 flex-wrap">
-            <StatusBadge statut={visitor.statut} />
+            <StatusBadge statut={visitor.statut} heureSortie={visitor.heureSortie} />
             <TypeBadge type={visitor.type || (visitor.vehicule ? 'vehicule' : 'person')} />
           </div>
         </div>
@@ -119,7 +119,7 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
 
       {(() => {
         const s = String(visitor.statut || '').toLowerCase();
-        const isPresent = s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site';
+        const isPresent = (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!visitor.heureSortie && s !== 'sorti' && s !== 'sortis');
         return isPresent && (
           <Btn variant="warning" icon={LogOut} onClick={() => { onCheckout(visitor.id || visitor._id); onClose(); }} fullWidth size="lg">
             {t.mark_exit}
@@ -186,15 +186,19 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
                 <td className="px-4 py-2.5"><TypeBadge type={v.type} /></td>
                 <td className="px-4 py-2.5">
                   <p className="font-bold text-xs text-slate-900 dark:text-slate-100">
-                    {v.type === 'vehicule' ? (v.vehicule?.immatriculation || v.numeroPiece) : `${v.nom || v.visiteur?.nom || ''} ${v.prenom || v.visiteur?.prenom || ''}`}
+                    {v.type === 'vehicule' 
+                      ? (v.vehicule?.immatriculation || v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece) 
+                      : `${v.nom || v.visiteur?.nom || v.visitor?.nom || ''} ${v.prenom || v.visiteur?.prenom || v.visitor?.prenom || ''}`.trim() || '—'}
                   </p>
-                  {v.type === 'vehicule' && <p className="text-[10px] text-slate-500 font-medium">{v.vehicule?.marque} {v.vehicule?.modele}</p>}
+                  {v.type === 'vehicule' && <p className="text-[10px] text-slate-500 font-medium">{v.vehicule?.marque || v.visitor?.marque || v.visiteur?.marque} {v.vehicule?.modele || v.visitor?.modele || v.visiteur?.modele}</p>}
                 </td>
                 <td className="px-4 py-2.5">
                   <p className="text-[10px] font-bold font-mono text-slate-600 dark:text-slate-400">
-                    {v.numeroPiece || v.visiteur?.numeroPiece || v.vehicule?.immatriculation || '—'}
+                    {v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || v.vehicule?.immatriculation || '—'}
                   </p>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{v.typePiece || v.visiteur?.typePiece}</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                    {v.typePiece || v.visiteur?.typePiece || v.visitor?.typePiece || (v.vehicule ? 'CARTE GRISE' : 'CNI')}
+                  </p>
                 </td>
                 <td className="px-4 py-2.5">
                   <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200">{v.personneVisitee || v.hote || v.visitedPerson || '—'}</p>
@@ -202,17 +206,17 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
                 </td>
                 <td className="px-4 py-2.5 text-[10px] font-bold font-mono">
                   {v.heureEntree || formatBackendTime(v.createdAt)}
-                  {(v.heureSortie || (v.statut === 'sorti' && v.updatedAt)) && (
+                  {(v.heureSortie || (String(v.statut).toLowerCase() === 'sorti' && v.updatedAt)) && (
                     <p className="text-[9px] text-slate-400 mt-0.5">→ {v.heureSortie || formatBackendTime(v.updatedAt)}</p>
                   )}
                 </td>
-                <td className="px-4 py-2.5"><StatusBadge statut={v.statut} /></td>
+                <td className="px-4 py-2.5"><StatusBadge statut={v.statut} heureSortie={v.heureSortie} /></td>
                 <td className="px-5 py-4">
                   <div className="flex gap-1 justify-end">
                     <Btn variant="ghost" size="sm" icon={Eye} onClick={() => onView(v)} className="rounded-full w-8 h-8 !p-0" />
                     {(() => {
                       const s = String(v.statut || '').toLowerCase();
-                      const isPresent = s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site';
+                      const isPresent = (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!v.heureSortie && s !== 'sorti' && s !== 'sortis');
                       return isPresent && (
                         <button 
                           onClick={() => onCheckout(v.id || v._id)}
@@ -242,20 +246,22 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
           </div>
           <div className="flex-1 min-w-0 py-0.5">
             <p className="font-black text-xs text-slate-900 dark:text-slate-100 truncate tracking-tight">
-              {v.type === 'vehicule' ? v.vehicule?.immatriculation : `${v.nom} ${v.prenom}`}
+              {v.type === 'vehicule' 
+                ? (v.vehicule?.immatriculation || v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece) 
+                : `${v.nom || v.visiteur?.nom || v.visitor?.nom || ''} ${v.prenom || v.visiteur?.prenom || v.visitor?.prenom || ''}`.trim() || '—'}
             </p>
             <p className="text-[10px] text-slate-500 font-bold truncate mt-0.5">
-              <span className="text-slate-400">{t.to} :</span> {v.personneVisitee}
+              <span className="text-slate-400">{t.to} :</span> {v.personneVisitee || v.hote || v.visitedPerson || '—'}
             </p>
             <p className="text-[9px] text-slate-400 font-medium mt-0.5">
-              {t.entry_time} : {v.heureEntree} {v.heureSortie && ` • ${t.exit_time} : ${v.heureSortie}`}
+              {t.entry_time} : {v.heureEntree || formatBackendTime(v.createdAt)} {(v.heureSortie || (String(v.statut).toLowerCase() === 'sorti' && v.updatedAt)) && ` • ${t.exit_time} : ${v.heureSortie || formatBackendTime(v.updatedAt)}`}
             </p>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0 pt-0.5">
-            <StatusBadge statut={v.statut} />
+            <StatusBadge statut={v.statut} heureSortie={v.heureSortie} />
             {(() => {
               const s = String(v.statut || '').toLowerCase();
-              const isPresent = s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site';
+              const isPresent = (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!v.heureSortie && s !== 'sorti' && s !== 'sortis');
               return isPresent && (
                 <button 
                   onClick={e => { e.stopPropagation(); onCheckout(v.id || v._id); }}
@@ -322,7 +328,7 @@ export function Dashboard({ isMobile }) {
   const total = visitors.length;
   const present = visitors.filter(v => {
     const s = String(v.statut || '').toLowerCase();
-    return s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site';
+    return (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!v.heureSortie && s !== 'sorti' && s !== 'sortis');
   }).length;
   const sortis = visitors.filter(v => {
     const s = String(v.statut || '').toLowerCase();

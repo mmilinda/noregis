@@ -214,11 +214,12 @@ export function FormSelect({ label, id, options = [], error, icon: Icon, require
 /* ============================================
    BADGES
 ============================================ */
-export function StatusBadge({ statut }) {
+export function StatusBadge({ statut, heureSortie }) {
   const { state } = useApp();
   const t = TRANSLATIONS[state.settings?.language || 'fr'];
   const s = String(statut || '').toLowerCase();
-  const isPresent = s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site';
+  // Est présent si le statut l'indique OU s'il n'y a pas d'heure de sortie
+  const isPresent = (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!heureSortie && s !== 'sorti' && s !== 'sortis');
   
   return (
     <span className={`
