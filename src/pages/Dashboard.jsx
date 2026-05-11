@@ -117,11 +117,15 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
         {visitor.heureSortie && <Row label={t.exit_time} value={visitor.heureSortie || formatBackendTime(visitor.updatedAt)} />}
       </div>
 
-      {visitor.statut === 'present' && (
-        <Btn variant="warning" icon={LogOut} onClick={() => { onCheckout(visitor.id); onClose(); }} fullWidth size="lg">
-          {t.mark_exit}
-        </Btn>
-      )}
+      {(() => {
+        const s = String(visitor.statut || '').toLowerCase();
+        const isPresent = s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site';
+        return isPresent && (
+          <Btn variant="warning" icon={LogOut} onClick={() => { onCheckout(visitor.id || visitor._id); onClose(); }} fullWidth size="lg">
+            {t.mark_exit}
+          </Btn>
+        );
+      })()}
     </div>
   );
 }
@@ -206,14 +210,18 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
                 <td className="px-5 py-4">
                   <div className="flex gap-1 justify-end">
                     <Btn variant="ghost" size="sm" icon={Eye} onClick={() => onView(v)} className="rounded-full w-8 h-8 !p-0" />
-                    {v.statut === 'present' && (
-                      <button 
-                        onClick={() => onCheckout(v.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-amber-bright text-white border border-brand-amber-bright rounded-lg text-[10px] font-black uppercase hover:bg-amber-600 transition-all active:scale-95"
-                      >
-                        <LogOut size={12} /> {t.exited}
-                      </button>
-                    )}
+                    {(() => {
+                      const s = String(v.statut || '').toLowerCase();
+                      const isPresent = s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site';
+                      return isPresent && (
+                        <button 
+                          onClick={() => onCheckout(v.id || v._id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-amber-bright text-white border border-brand-amber-bright rounded-lg text-[10px] font-black uppercase hover:bg-amber-600 transition-all active:scale-95"
+                        >
+                          <LogOut size={12} /> {t.exited}
+                        </button>
+                      );
+                    })()}
                   </div>
                 </td>
               </tr>
@@ -245,14 +253,18 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0 pt-0.5">
             <StatusBadge statut={v.statut} />
-            {v.statut === 'present' && (
-              <button 
-                onClick={e => { e.stopPropagation(); onCheckout(v.id); }}
-                className="px-2 py-1 bg-brand-amber-bright text-white border border-brand-amber-bright rounded-md text-[9px] font-black uppercase flex items-center justify-center gap-1 active:scale-90 transition-all"
-              >
-                <LogOut size={10} /> {t.exited}
-              </button>
-            )}
+            {(() => {
+              const s = String(v.statut || '').toLowerCase();
+              const isPresent = s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site';
+              return isPresent && (
+                <button 
+                  onClick={e => { e.stopPropagation(); onCheckout(v.id || v._id); }}
+                  className="px-2 py-1 bg-brand-amber-bright text-white border border-brand-amber-bright rounded-md text-[9px] font-black uppercase flex items-center justify-center gap-1 active:scale-90 transition-all"
+                >
+                  <LogOut size={10} /> {t.exited}
+                </button>
+              );
+            })()}
           </div>
         </div>
       ))}
@@ -308,9 +320,15 @@ export function Dashboard({ isMobile }) {
 
   // Stats
   const total = visitors.length;
-  const present = visitors.filter(v => v.statut === 'present').length;
-  const sortis = visitors.filter(v => v.statut === 'sorti').length;
-  const vehicules = visitors.filter(v => v.type === 'vehicule').length;
+  const present = visitors.filter(v => {
+    const s = String(v.statut || '').toLowerCase();
+    return s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site';
+  }).length;
+  const sortis = visitors.filter(v => {
+    const s = String(v.statut || '').toLowerCase();
+    return s === 'sorti' || s === 'sortis' || s === 'exited' || s === 'terminé';
+  }).length;
+  const vehicules = visitors.filter(v => (v.type || (v.vehicule ? 'vehicule' : 'person')) === 'vehicule').length;
 
   // Filter
   const filtered = visitors.filter(v => {

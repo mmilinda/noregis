@@ -217,7 +217,9 @@ export function FormSelect({ label, id, options = [], error, icon: Icon, require
 export function StatusBadge({ statut }) {
   const { state } = useApp();
   const t = TRANSLATIONS[state.settings?.language || 'fr'];
-  const isPresent = statut === 'present';
+  const s = String(statut || '').toLowerCase();
+  const isPresent = s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site';
+  
   return (
     <span className={`
       inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest
