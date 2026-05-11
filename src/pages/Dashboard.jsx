@@ -324,17 +324,21 @@ export function Dashboard({ isMobile }) {
     return () => { ignore = true; };
   }, [dispatch, notify, t]);
 
-  // Stats
-  const total = visitors.length;
-  const present = visitors.filter(v => {
-    const s = String(v.statut || '').toLowerCase();
-    return (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!v.heureSortie && s !== 'sorti' && s !== 'sortis');
-  }).length;
-  const sortis = visitors.filter(v => {
-    const s = String(v.statut || '').toLowerCase();
-    return s === 'sorti' || s === 'sortis' || s === 'exited' || s === 'terminé';
-  }).length;
-  const vehicules = visitors.filter(v => (v.type || (v.vehicule ? 'vehicule' : 'person')) === 'vehicule').length;
+  // Stats memoized for performance and reactivity
+  const stats = React.useMemo(() => {
+    const total = visitors.length;
+    const present = visitors.filter(v => {
+      const s = String(v.statut || '').toLowerCase();
+      return (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!v.heureSortie && s !== 'sorti' && s !== 'sortis');
+    }).length;
+    const sortis = visitors.filter(v => {
+      const s = String(v.statut || '').toLowerCase();
+      return s === 'sorti' || s === 'sortis' || s === 'exited' || s === 'terminé' || v.heureSortie;
+    }).length;
+    const vehicules = visitors.filter(v => (v.type || (v.vehicule ? 'vehicule' : 'person')) === 'vehicule').length;
+    
+    return { total, present, sortis, vehicules };
+  }, [visitors]);
 
   // Filter
   const filtered = visitors.filter(v => {
@@ -374,10 +378,10 @@ export function Dashboard({ isMobile }) {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-        <StatCard label={t.total_visitors} value={total} icon={Users} color="#3B82F6" bg="#EFF6FF" />
-        <StatCard label={t.on_site} value={present} icon={UserCheck} color="#10B981" bg="#D1FAE5" />
-        <StatCard label={t.total_exits} value={sortis} icon={UserX} color="#6B7280" bg="#F1F5F9" />
-        <StatCard label={t.vehicle} value={vehicules} icon={Car} color="#F59E0B" bg="#FEF3C7" />
+        <StatCard label={t.total_visitors} value={stats.total} icon={Users} color="#3B82F6" bg="#EFF6FF" />
+        <StatCard label={t.on_site} value={stats.present} icon={UserCheck} color="#10B981" bg="#D1FAE5" />
+        <StatCard label={t.total_exits} value={stats.sortis} icon={UserX} color="#6B7280" bg="#F1F5F9" />
+        <StatCard label={t.vehicle} value={stats.vehicules} icon={Car} color="#F59E0B" bg="#FEF3C7" />
       </div>
 
       {/* Main Registry Table Card */}
@@ -476,9 +480,14 @@ export function Historique({ isMobile }) {
     return v.date === new Date(dateFilter).toLocaleDateString(settings?.language === 'ar' ? 'ar-EG' : (settings?.language === 'en' ? 'en-US' : 'fr-FR'));
   });
 
-  const handleCheckout = (id) => {
-    dispatch({ type: 'CHECKOUT_VISITOR', payload: id });
-    notify('info', t.exit_recorded);
+  const handleCheckout = async (id) => {
+    try {
+      await visitService.recordExit(id);
+      dispatch({ type: 'CHECKOUT_VISITOR', payload: id });
+      notify('info', t.exit_recorded);
+    } catch (err) {
+      notify('error', (t.error_prefix || 'Erreur') + ': ' + err.message);
+    }
   };
 
   return (

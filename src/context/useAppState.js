@@ -65,7 +65,7 @@ export function reducer(state, action) {
       const now = new Date();
       const checkoutTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
       const updated = state.visitors.map(v =>
-        v.id === action.payload
+        (v.id === action.payload || v._id === action.payload)
           ? { ...v, statut: 'sorti', heureSortie: checkoutTime }
           : v
       );
