@@ -8,6 +8,7 @@ import { useApp } from '../context/useAppState';
 import { StatCard, Card, CardHeader, StatusBadge, TypeBadge, Btn, EmptyState, Modal } from '../components/UI';
 import { RegistrationModal } from '../components/RegistrationModal';
 import { visitorService } from '../services/visitorService';
+import { visitService } from '../services/visitService';
 import { TRANSLATIONS } from '../translations';
 
 
@@ -44,16 +45,18 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-black text-lg text-slate-900 dark:text-white truncate">
-            {isVehicule ? visitor.vehicule?.immatriculation : `${visitor.nom} ${visitor.prenom}`}
+            {isVehicule 
+              ? (visitor.vehicule?.immatriculation || visitor.numeroPiece) 
+              : `${visitor.nom || visitor.visiteur?.nom || ''} ${visitor.prenom || visitor.visiteur?.prenom || ''}`}
           </p>
           <div className="flex gap-2 mt-2 flex-wrap">
             <StatusBadge statut={visitor.statut} />
-            <TypeBadge type={visitor.type} />
+            <TypeBadge type={visitor.type || (visitor.vehicule ? 'vehicule' : 'person')} />
           </div>
         </div>
         <div className="text-right hidden sm:block">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.id_passage}</p>
-          <p className="text-sm font-black font-mono text-slate-900 dark:text-white">{visitor.id}</p>
+          <p className="text-sm font-black font-mono text-slate-900 dark:text-white">{visitor.id || visitor._id}</p>
         </div>
       </div>
 
@@ -76,10 +79,10 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
           </>
         ) : (
           <>
-            <Row label={t.fullname} value={`${visitor.nom} ${visitor.prenom}`} />
-            <Row label={t.id_number} value={visitor.numeroPiece} mono />
-            <Row label={t.id_type} value={visitor.typePiece} />
-            {visitor.dateNaissance && <Row label={t.birth_date} value={visitor.dateNaissance} />}
+            <Row label={t.fullname} value={`${visitor.nom || visitor.visiteur?.nom || ''} ${visitor.prenom || visitor.visiteur?.prenom || ''}`} />
+            <Row label={t.id_number} value={visitor.numeroPiece || visitor.visiteur?.numeroPiece} mono />
+            <Row label={t.id_type} value={visitor.typePiece || visitor.visiteur?.typePiece} />
+            {(visitor.dateNaissance || visitor.visiteur?.dateNaissance) && <Row label={t.birth_date} value={visitor.dateNaissance || visitor.visiteur?.dateNaissance} />}
           </>
         )}
         <Row label={t.host_name} value={visitor.personneVisitee} />
@@ -154,13 +157,15 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
                 <td className="px-4 py-2.5"><TypeBadge type={v.type} /></td>
                 <td className="px-4 py-2.5">
                   <p className="font-bold text-xs text-slate-900 dark:text-slate-100">
-                    {v.type === 'vehicule' ? v.vehicule?.immatriculation : `${v.nom} ${v.prenom}`}
+                    {v.type === 'vehicule' ? (v.vehicule?.immatriculation || v.numeroPiece) : `${v.nom || v.visiteur?.nom || ''} ${v.prenom || v.visiteur?.prenom || ''}`}
                   </p>
                   {v.type === 'vehicule' && <p className="text-[10px] text-slate-500 font-medium">{v.vehicule?.marque} {v.vehicule?.modele}</p>}
                 </td>
                 <td className="px-4 py-2.5">
-                  <p className="text-[10px] font-bold font-mono text-slate-600 dark:text-slate-400">{v.numeroPiece || v.vehicule?.immatriculation || '—'}</p>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{v.typePiece}</p>
+                  <p className="text-[10px] font-bold font-mono text-slate-600 dark:text-slate-400">
+                    {v.numeroPiece || v.visiteur?.numeroPiece || v.vehicule?.immatriculation || '—'}
+                  </p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{v.typePiece || v.visiteur?.typePiece}</p>
                 </td>
                 <td className="px-4 py-2.5">
                   <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200">{v.personneVisitee}</p>
@@ -244,8 +249,8 @@ export function Dashboard({ isMobile }) {
   const fetchVisitors = useCallback(async (isRefresh = false) => {
     if (isRefresh) setLoading(true);
     try {
-      const data = await visitorService.getAll();
-      dispatch({ type: 'SET_VISITORS', payload: data.visiteurs || [] });
+      const data = await visitService.getAll();
+      dispatch({ type: 'SET_VISITORS', payload: data.visites || [] });
       if (isRefresh) notify('info', t.refresh_ok);
     } catch (err) {
       notify('error', err.message || t.api_error);
@@ -259,9 +264,9 @@ export function Dashboard({ isMobile }) {
 
     const loadData = async () => {
       try {
-        const data = await visitorService.getAll();
+        const data = await visitService.getAll();
         if (!ignore) {
-          dispatch({ type: 'SET_VISITORS', payload: data.visiteurs || [] });
+          dispatch({ type: 'SET_VISITORS', payload: data.visites || [] });
         }
       } catch {
         if (!ignore) notify('error', t.load_error);
@@ -290,10 +295,16 @@ export function Dashboard({ isMobile }) {
     return matchSearch && matchStatus && matchType;
   });
 
-  const handleCheckout = (id) => {
-    dispatch({ type: 'CHECKOUT_VISITOR', payload: id });
-    notify('info', t.exit_recorded);
+  const handleCheckout = async (id) => {
+    try {
+      await visitService.recordExit(id);
+      dispatch({ type: 'CHECKOUT_VISITOR', payload: id });
+      notify('info', t.exit_recorded);
+    } catch (err) {
+      notify('error', (t.error_prefix || 'Erreur') + ': ' + err.message);
+    }
   };
+
 
   return (
     <div className="p-3 lg:p-6 w-full max-w-7xl mx-auto flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500" dir={settings?.language === 'ar' ? 'rtl' : 'ltr'}>
