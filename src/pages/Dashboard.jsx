@@ -477,8 +477,42 @@ export function Historique({ isMobile }) {
 
   const all = state.visitors.filter(v => {
     if (!dateFilter) return true;
-    return v.date === new Date(dateFilter).toLocaleDateString(settings?.language === 'ar' ? 'ar-EG' : (settings?.language === 'en' ? 'en-US' : 'fr-FR'));
+    
+    const filterDateStr = new Date(dateFilter).toLocaleDateString('fr-FR');
+    const visitorDate = v.date || (v.createdAt ? new Date(v.createdAt).toLocaleDateString('fr-FR') : '');
+    
+    return visitorDate === filterDateStr;
   });
+
+  const handleExport = () => {
+    if (all.length === 0) return notify('warning', t.no_results);
+    
+    // Header
+    const headers = ["Nom", "Prenom", "Piece", "Type", "Hote", "Service", "Entree", "Sortie", "Statut"];
+    const rows = all.map(v => [
+      v.nom || v.visiteur?.nom || '',
+      v.prenom || v.visiteur?.prenom || '',
+      v.numeroPiece || v.visiteur?.numeroPiece || '',
+      v.type || 'personne',
+      v.personneVisitee || v.hote || '',
+      v.service || v.departement || '',
+      v.heureEntree || (v.createdAt ? new Date(v.createdAt).toLocaleTimeString() : ''),
+      v.heureSortie || (v.updatedAt && v.statut === 'sorti' ? new Date(v.updatedAt).toLocaleTimeString() : ''),
+      v.statut
+    ]);
+
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `historique_noregis_${dateFilter || 'complet'}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    notify('success', 'Exportation réussie');
+  };
 
   const handleCheckout = async (id) => {
     try {
@@ -508,7 +542,7 @@ export function Historique({ isMobile }) {
             />
           </div>
           {dateFilter && <Btn variant="ghost" size="sm" onClick={() => setDateFilter('')} className="text-[10px] font-black uppercase">{t.reset}</Btn>}
-          <Btn variant="secondary" size="sm" icon={Download} className="text-[10px] font-black uppercase">{t.export}</Btn>
+          <Btn variant="secondary" size="sm" icon={Download} onClick={handleExport} className="text-[10px] font-black uppercase">{t.export}</Btn>
         </div>
       </div>
 
