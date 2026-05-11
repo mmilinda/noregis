@@ -150,8 +150,8 @@ export function FormInput({ label, id, error, icon: Icon, required, ...props }) 
         <input
           id={id}
           className={`
-            w-full bg-slate-50 dark:bg-slate-900 border-2 rounded-lg py-2 px-3.5 text-xs font-black outline-none transition-all
-            ${Icon ? 'pl-9' : ''}
+            w-full bg-slate-50 dark:bg-slate-900 border-2 rounded-lg py-3 px-3.5 text-base md:text-xs font-black outline-none transition-all
+            ${Icon ? 'pl-10' : ''}
             ${error ? 'border-brand-red bg-red-50 dark:bg-red-900/10' : 'border-slate-200 dark:border-slate-800 focus:border-brand-blue-bright focus:bg-white dark:focus:bg-slate-800'}
             text-slate-900 dark:text-slate-100 placeholder:text-slate-400 placeholder:font-normal
           `}
@@ -180,8 +180,8 @@ export function FormSelect({ label, id, options = [], error, icon: Icon, require
         <select
           id={id}
           className={`
-            w-full bg-white dark:bg-slate-900 border-2 rounded-lg py-2 px-3.5 pr-9 text-xs font-black outline-none transition-all appearance-none cursor-pointer
-            ${Icon ? 'pl-9' : ''}
+            w-full bg-white dark:bg-slate-900 border-2 rounded-lg py-3 px-3.5 pr-9 text-base md:text-xs font-black outline-none transition-all appearance-none cursor-pointer
+            ${Icon ? 'pl-10' : ''}
             ${error ? 'border-brand-red bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700 focus:border-brand-blue-bright'}
             text-black dark:text-white
           `}
@@ -303,19 +303,19 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[1000] flex flex-col items-center justify-end sm:justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
       <div className={`
-        relative w-full ${sizes[size]} bg-white dark:bg-[#161B22] rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[95vh] overflow-hidden
-        animate-in zoom-in-95 fade-in duration-300
+        relative w-full ${sizes[size]} bg-white dark:bg-[#161B22] rounded-t-2xl sm:rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[92vh] sm:max-h-[95vh] overflow-hidden
+        animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 fade-in duration-300
       `}>
         <div className="flex items-center justify-between p-5 pb-3 border-b border-slate-50 dark:border-slate-800">
           <h2 className="text-lg font-black text-slate-900 dark:text-white">{title}</h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors">
-            <X size={18} className="text-slate-400" />
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors">
+            <X size={20} className="text-slate-400" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-5 scroll-smooth">
+        <div className="flex-1 overflow-y-auto p-5 pb-10 sm:pb-5 scroll-smooth">
           {children}
         </div>
       </div>

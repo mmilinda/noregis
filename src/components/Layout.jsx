@@ -39,7 +39,7 @@ function LiveClock({ light }) {
    DESKTOP SIDEBAR
 ============================================ */
 function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const { agent, visitors } = state;
   const present = visitors.filter(v => v.statut === 'present').length;
 
