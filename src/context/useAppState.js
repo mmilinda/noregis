@@ -79,6 +79,8 @@ export function reducer(state, action) {
       return { ...state, notifications: { ...state.notifications, [action.key]: action.value } };
     case 'UPDATE_AGENT':
       return { ...state, agent: { ...state.agent, ...action.payload } };
+    case 'SET_VISITORS':
+      return { ...state, visitors: action.payload };
     case 'LOGIN':
       return { ...state, isAuthenticated: true, agent: action.payload };
     case 'LOGOUT':

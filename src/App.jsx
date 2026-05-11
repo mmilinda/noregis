@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppProvider } from './context/AppContext';
 import { useApp } from './context/useAppState';
 import { Layout } from './components/Layout';
@@ -14,15 +14,24 @@ function AppInner() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { state } = useApp();
 
+  // Sync font size and dark mode to <html> element
+  useEffect(() => {
+    const html = document.documentElement;
+    html.className = '';
+    if (state.darkMode) html.classList.add('dark');
+    if (state.settings?.fontSize) html.classList.add(`font-${state.settings.fontSize}`);
+  }, [state.darkMode, state.settings?.fontSize]);
+
   // If not authenticated, show only the Login page
   if (!state.isAuthenticated) {
     return (
-      <div className={state.darkMode ? 'dark' : ''}>
+      <>
         <Login />
         <Toast />
-      </div>
+      </>
     );
   }
+
 
   const pages = {
     dashboard: <Dashboard />,

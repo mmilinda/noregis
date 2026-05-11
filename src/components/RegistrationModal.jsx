@@ -1,17 +1,43 @@
 import { useState } from 'react';
 import {
-  User, Car, CreditCard, Building, 
-  Clock, Calendar, Camera, CheckCircle2, 
-  ChevronRight} from 'lucide-react';
+  User, Car, CreditCard, Building,
+  Clock, Calendar, Camera, CheckCircle2,
+  ChevronRight
+} from 'lucide-react';
 import { FormInput, FormSelect, Btn, Modal } from './UI';
 import { ScanPanel } from './Scanner';
-import { SERVICES, TYPES_PIECE, TYPES_VEHICULE } from '../data/mockData';
+import { SERVICES } from '../data/mockData';
 import { useApp } from '../context/useAppState';
+import { visitorService } from '../services/visitorService';
+import { visitService } from '../services/visitService';
+import { TRANSLATIONS } from '../translations';
+
+// ========== NORMALISATION DES TYPES DE PIÈCE (CORRIGÉE) ==========
+const normalizeTypePiece = (value) => {
+  if (!value) return 'CNI';
+
+  // Gère les valeurs tronquées (ex: "Carte Nationale d'")
+  if (value.includes('Carte Nationale')) return 'CNI';
+
+  const mapping = {
+    'Carte Nationale d\'Identité': 'CNI',
+    "Carte Nationale d'Identité": 'CNI',
+    'Carte Nationale d’Identité': 'CNI',
+    'CNI': 'CNI',
+    'Passeport': 'PASSEPORT',
+    'PASSEPORT': 'PASSEPORT',
+    'Permis de conduire': 'PERMIS',
+    'PERMIS': 'PERMIS',
+    'Carte de séjour': 'CARTE_SEJOUR',
+    'CARTE_SEJOUR': 'CARTE_SEJOUR',
+  };
+  return mapping[value] || 'CNI'; // fallback sûr
+};
 
 /* ============================================
    FORMULAIRE VISITEUR (personne)
 ============================================ */
-function PersonForm({ initial = {}, onSubmit, onCancel }) {
+function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   const now = new Date();
   const [form, setForm] = useState({
     nom: initial.nom || '',
@@ -21,10 +47,10 @@ function PersonForm({ initial = {}, onSubmit, onCancel }) {
     dateNaissance: initial.dateNaissance || '',
     personneVisitee: initial.personneVisitee || '',
     service: initial.service || '',
+    motif: initial.motif || '',
     profession: initial.profession || '',
-    adresse: initial.adresse || '',
-    heureEntree: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-    date: now.toLocaleDateString('fr-FR'),
+    heureEntree: now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0'),
+    date: now.toLocaleDateString(t.locale || 'fr-FR'),
     ...initial,
   });
   const [errors, setErrors] = useState({});
@@ -35,19 +61,21 @@ function PersonForm({ initial = {}, onSubmit, onCancel }) {
 
   const validate = () => {
     const e = {};
-    if (!form.nom.trim()) e.nom = 'Champ obligatoire';
-    if (!form.prenom.trim()) e.prenom = 'Champ obligatoire';
-    if (!form.numeroPiece.trim()) e.numeroPiece = 'Champ obligatoire';
-    if (!form.typePiece) e.typePiece = 'Sélectionnez un type';
-    if (!form.personneVisitee.trim()) e.personneVisitee = 'Champ obligatoire';
-    if (!form.service) e.service = 'Sélectionnez un service';
+    if (!form.nom.trim()) e.nom = t.required_field;
+    if (!form.prenom.trim()) e.prenom = t.required_field;
+    if (!form.numeroPiece.trim()) e.numeroPiece = t.required_field;
+    if (!form.typePiece) e.typePiece = t.select_type;
+    if (!form.personneVisitee.trim()) e.personneVisitee = t.required_field;
+    if (!form.service) e.service = t.select_service;
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (validate()) onSubmit({ ...form, type: 'person', statut: 'present', heureSortie: null, photo: docImage });
+    if (validate()) {
+      onSubmit({ ...form, type: 'person', statut: 'present', heureSortie: null, photo: docImage });
+    }
   };
 
   const handleScanData = (data, img) => {
@@ -63,6 +91,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel }) {
       adresse: data.adresse || prev.adresse,
       heureEntree: scanTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
       date: scanTime.toLocaleDateString('fr-FR'),
+      typePiece: data.typePiece ? normalizeTypePiece(data.typePiece) : prev.typePiece,
     }));
     setScanOpen(false);
   };
@@ -70,7 +99,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel }) {
   return (
     <>
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        {/* Scan quick button */}
+        {/* Scan button */}
         <div className="bg-gradient-to-r from-brand-blue-light/20 to-brand-green-light/20 dark:from-brand-blue-bright/10 dark:to-brand-green-bright/10 border-2 border-brand-blue-bright/20 rounded-xl p-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {docImage
@@ -80,42 +109,54 @@ function PersonForm({ initial = {}, onSubmit, onCancel }) {
             <div>
               <p className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 {docImage ? <CheckCircle2 size={16} className="text-brand-green-bright" /> : <Camera size={16} className="text-brand-blue-bright" />}
-                {docImage ? 'Pièce d\'identité scannée' : 'Scan rapide'}
+                {docImage ? t.scan_id_done : t.scan_quick}
               </p>
               <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter leading-none mt-1">
-                {docImage ? 'Champs remplis par OCR' : 'Remplissage auto via caméra'}
+                {t.scan_id_desc}
               </p>
             </div>
           </div>
           <Btn variant="primary" size="sm" icon={Camera} onClick={() => setScanOpen(true)} type="button">
-            {docImage ? 'Rescanner' : 'Scanner'}
+            {docImage ? t.rescan_btn : t.scan_btn}
           </Btn>
         </div>
 
         {/* Données OCR */}
         <div className="space-y-4">
           <p className="text-[10px] font-black text-slate-400 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
-            <CreditCard size={14} /> Document d'identité
+            <CreditCard size={14} /> {t.id_doc}
           </p>
           <div className="grid grid-cols-2 gap-4">
-            <FormInput label="Nom" id="nom" required value={form.nom} onChange={set('nom')} error={errors.nom} placeholder="NOM" />
-            <FormInput label="Prénom" id="prenom" required value={form.prenom} onChange={set('prenom')} error={errors.prenom} placeholder="Prénom" />
+            <FormInput label={t.name} id="nom" required value={form.nom} onChange={set('nom')} error={errors.nom} placeholder="NOM" />
+            <FormInput label={t.firstname} id="prenom" required value={form.prenom} onChange={set('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <FormInput label="N° de pièce" id="numeroPiece" required value={form.numeroPiece} onChange={set('numeroPiece')} error={errors.numeroPiece} placeholder="Numéro..." />
-            <FormSelect label="Type de pièce" id="typePiece" required value={form.typePiece} onChange={set('typePiece')} options={TYPES_PIECE} placeholder="Choisir..." error={errors.typePiece} />
+            <FormInput label={t.id_number} id="numeroPiece" required value={form.numeroPiece} onChange={set('numeroPiece')} error={errors.numeroPiece} placeholder={t.number_placeholder} />
+            <FormSelect
+              label={t.id_type}
+              id="typePiece"
+              required
+              value={form.typePiece}
+              onChange={set('typePiece')}
+              options={Object.values(t.id_types)}
+              placeholder={t.choose}
+              error={errors.typePiece}
+            />
           </div>
-          <FormInput label="Date de naissance" id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
+          <FormInput label={t.birth_date} id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
         </div>
 
         {/* Détails visite */}
         <div className="space-y-4">
           <p className="text-[10px] font-black text-slate-400 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
-            <Building size={14} /> Destination
+            <Building size={14} /> {t.destination}
           </p>
           <div className="flex flex-col gap-4">
-            <FormInput label="Personne visitée" id="personneVisitee" required value={form.personneVisitee} onChange={set('personneVisitee')} error={errors.personneVisitee} icon={User} placeholder="Nom de l'hôte" />
-            <FormSelect label="Service / Département" id="service" required value={form.service} onChange={set('service')} options={SERVICES} placeholder="Sélectionner..." error={errors.service} icon={Building} />
+            <FormInput label={t.host_name} id="personneVisitee" required value={form.personneVisitee} onChange={set('personneVisitee')} error={errors.personneVisitee} icon={User} placeholder={t.host_placeholder} />
+            <div className="grid grid-cols-2 gap-4">
+              <FormSelect label={t.service_dept} id="service" required value={form.service} onChange={set('service')} options={SERVICES} placeholder={t.select} error={errors.service} icon={Building} />
+              <FormInput label={t.visit_reason} id="motif" required value={form.motif} onChange={set('motif')} placeholder={t.reason_placeholder} />
+            </div>
           </div>
         </div>
 
@@ -133,12 +174,12 @@ function PersonForm({ initial = {}, onSubmit, onCancel }) {
         </div>
 
         <div className="flex gap-3 pt-2">
-          <Btn variant="secondary" onClick={onCancel} fullWidth className="!rounded-lg">Annuler</Btn>
-          <Btn variant="success" type="submit" icon={CheckCircle2} fullWidth className="!rounded-lg">Valider l'entrée</Btn>
+          <Btn variant="secondary" onClick={onCancel} fullWidth className="!rounded-lg">{t.cancel}</Btn>
+          <Btn variant="success" type="submit" icon={CheckCircle2} fullWidth className="!rounded-lg" loading={loading}>{t.validate_entry}</Btn>
         </div>
       </form>
 
-      <Modal isOpen={scanOpen} onClose={() => setScanOpen(false)} title="Scan – Pièce d'identité" size="md">
+      <Modal isOpen={scanOpen} onClose={() => setScanOpen(false)} title={`${t.scan_btn} – ${t.id_card}`} size="md">
         <div className="h-[560px]">
           <ScanPanel mode="person" onDataExtracted={handleScanData} onClose={() => setScanOpen(false)} />
         </div>
@@ -150,7 +191,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel }) {
 /* ============================================
    FORMULAIRE VÉHICULE
 ============================================ */
-function VehiculeForm({ initial = {}, onSubmit, onCancel }) {
+function VehiculeForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   const now = new Date();
   const [form, setForm] = useState({
     nom: initial.nom || '',
@@ -162,8 +203,8 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel }) {
     typeVehicule: initial.typeVehicule || '',
     personneVisitee: initial.personneVisitee || '',
     service: initial.service || '',
-    heureEntree: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-    date: now.toLocaleDateString('fr-FR'),
+    heureEntree: now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0'),
+    date: now.toLocaleDateString(t.locale || 'fr-FR'),
     ...initial,
   });
   const [errors, setErrors] = useState({});
@@ -174,10 +215,10 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel }) {
 
   const validate = () => {
     const e = {};
-    if (!form.immatriculation.trim()) e.immatriculation = 'Champ obligatoire';
-    if (!form.typeVehicule) e.typeVehicule = 'Sélectionnez un type';
-    if (!form.personneVisitee.trim()) e.personneVisitee = 'Champ obligatoire';
-    if (!form.service) e.service = 'Sélectionnez un service';
+    if (!form.immatriculation.trim()) e.immatriculation = t.required_field;
+    if (!form.typeVehicule) e.typeVehicule = t.select_type;
+    if (!form.personneVisitee.trim()) e.personneVisitee = t.required_field;
+    if (!form.service) e.service = t.select_service;
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -235,30 +276,39 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel }) {
             <div>
               <p className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 {docImage ? <CheckCircle2 size={16} className="text-brand-green-bright" /> : <Camera size={16} className="text-brand-green-bright" />}
-                {docImage ? 'Carte grise scannée' : 'Scan rapide'}
+                {docImage ? t.license_plate : t.scan_quick}
               </p>
-              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter leading-none mt-1">Extraction auto d'immatriculation</p>
+              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter leading-none mt-1">{t.scan_id_desc}</p>
             </div>
           </div>
           <Btn variant="success" size="sm" icon={Camera} onClick={() => setScanOpen(true)} type="button">
-            {docImage ? 'Rescanner' : 'Scanner'}
+            {docImage ? t.rescan_btn : t.scan_btn}
           </Btn>
         </div>
 
         {/* Infos véhicule */}
         <div className="space-y-4">
           <p className="text-[10px] font-black text-slate-400 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
-            <Car size={14} /> Véhicule
+            <Car size={14} /> {t.vehicle_info}
           </p>
           <div className="flex flex-col gap-4">
-            <FormInput label="Plaque d'immatriculation" id="immatriculation" required value={form.immatriculation} onChange={set('immatriculation')} error={errors.immatriculation} placeholder="Ex: 1234 AB 01" className="uppercase font-mono" />
+            <FormInput label={t.plate_number} id="immatriculation" required value={form.immatriculation} onChange={set('immatriculation')} error={errors.immatriculation} placeholder="Ex: 1234 AB 01" className="uppercase font-mono" />
             <div className="grid grid-cols-2 gap-4">
-              <FormInput label="Marque" id="marque" value={form.marque} onChange={set('marque')} placeholder="Toyota..." />
-              <FormInput label="Modèle" id="modele" value={form.modele} onChange={set('modele')} placeholder="Hilux..." />
+              <FormInput label={t.brand} id="marque" value={form.marque} onChange={set('marque')} placeholder="Toyota..." />
+              <FormInput label={t.model} id="modele" value={form.modele} onChange={set('modele')} placeholder="Hilux..." />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <FormInput label="Couleur" id="couleur" value={form.couleur} onChange={set('couleur')} placeholder="Gris..." />
-              <FormSelect label="Type" id="typeVehicule" required value={form.typeVehicule} onChange={set('typeVehicule')} options={TYPES_VEHICULE} placeholder="Choisir..." error={errors.typeVehicule} />
+              <FormInput label={t.color} id="couleur" value={form.couleur} onChange={set('couleur')} placeholder="Gris..." />
+              <FormSelect
+                label={t.id_type}
+                id="typeVehicule"
+                required
+                value={form.typeVehicule}
+                onChange={set('typeVehicule')}
+                options={Object.values(t.vehicle_types)}
+                placeholder={t.choose}
+                error={errors.typeVehicule}
+              />
             </div>
           </div>
         </div>
@@ -266,22 +316,22 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel }) {
         {/* Conducteur */}
         <div className="space-y-4">
           <p className="text-[10px] font-black text-slate-400 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
-            <User size={14} /> Conducteur
+            <User size={14} /> {t.driver}
           </p>
           <div className="grid grid-cols-2 gap-4">
-            <FormInput label="Nom" id="nomConducteur" value={form.nom} onChange={set('nom')} placeholder="Conducteur" />
-            <FormInput label="Prénom" id="prenomConducteur" value={form.prenom} onChange={set('prenom')} placeholder="Prénom" />
+            <FormInput label={t.name} id="nomConducteur" value={form.nom} onChange={set('nom')} placeholder={t.driver} />
+            <FormInput label={t.firstname} id="prenomConducteur" value={form.prenom} onChange={set('prenom')} placeholder={t.firstname_placeholder} />
           </div>
         </div>
 
         {/* Détails visite */}
         <div className="space-y-4">
           <p className="text-[10px] font-black text-slate-400 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
-            <Building size={14} /> Destination
+            <Building size={14} /> {t.destination}
           </p>
           <div className="flex flex-col gap-4">
-            <FormInput label="Personne / Bureau" id="personneVisiteeCar" required value={form.personneVisitee} onChange={set('personneVisitee')} error={errors.personneVisitee} icon={User} placeholder="Destination finale" />
-            <FormSelect label="Service" id="serviceCar" required value={form.service} onChange={set('service')} options={SERVICES} placeholder="Sélectionner..." error={errors.service} icon={Building} />
+            <FormInput label={t.host_name} id="personneVisiteeCar" required value={form.personneVisitee} onChange={set('personneVisitee')} error={errors.personneVisitee} icon={User} placeholder={t.host_placeholder} />
+            <FormSelect label={t.service_dept} id="serviceCar" required value={form.service} onChange={set('service')} options={SERVICES} placeholder={t.select} error={errors.service} icon={Building} />
           </div>
         </div>
 
@@ -299,12 +349,12 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel }) {
         </div>
 
         <div className="flex gap-3 pt-2">
-          <Btn variant="secondary" onClick={onCancel} fullWidth className="!rounded-lg">Annuler</Btn>
-          <Btn variant="success" type="submit" icon={CheckCircle2} fullWidth className="!rounded-lg">Valider l'entrée</Btn>
+          <Btn variant="secondary" onClick={onCancel} fullWidth className="!rounded-lg">{t.cancel}</Btn>
+          <Btn variant="success" type="submit" icon={CheckCircle2} fullWidth className="!rounded-lg" loading={loading}>{t.validate_entry}</Btn>
         </div>
       </form>
 
-      <Modal isOpen={scanOpen} onClose={() => setScanOpen(false)} title="Scan – Carte grise" size="md">
+      <Modal isOpen={scanOpen} onClose={() => setScanOpen(false)} title={`${t.scan_btn} – ${t.license_plate}`} size="md">
         <div className="h-[560px]">
           <ScanPanel mode="vehicule" onDataExtracted={handleScanData} onClose={() => setScanOpen(false)} />
         </div>
@@ -314,17 +364,57 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel }) {
 }
 
 /* ============================================
-   COMPOSANT PRINCIPAL – RegistrationModal
+   COMPOSANT PRINCIPAL – RegistrationModal (CORRIGÉ)
 ============================================ */
 export function RegistrationModal({ isOpen, onClose }) {
-  const { dispatch, notify } = useApp();
+  const { state, dispatch, notify } = useApp();
+  const { settings } = state;
+  const t = TRANSLATIONS[settings?.language || 'fr'];
   const [mode, setMode] = useState(null); // null | 'person' | 'vehicule'
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (data) => {
-    dispatch({ type: 'ADD_VISITOR', payload: data });
-    notify('success', `${data.type === 'vehicule' ? 'Véhicule' : 'Visiteur'} enregistré avec succès !`);
-    setMode(null);
-    onClose();
+  const handleSubmit = async (data) => {
+    setLoading(true);
+    try {
+      const normalizedTypePiece = normalizeTypePiece(data.typePiece);
+      console.log('📝 Type pièce normalisé :', normalizedTypePiece);
+
+      const visitorResponse = await visitorService.create({
+        nom: data.nom,
+        prenom: data.prenom,
+        numeroPiece: data.numeroPiece,
+        typePiece: normalizedTypePiece,
+        dateNaissance: data.dateNaissance
+      });
+
+      console.log('✅ Réponse backend (create) :', visitorResponse);
+
+      // CORRECTION : utilisation de _id au lieu de id
+      const visitorId = visitorResponse.visiteur?._id || visitorResponse._id || visitorResponse.id;
+
+      console.log('🔑 ID du visiteur extrait :', visitorId);
+
+      if (!visitorId) {
+        throw new Error('Impossible de récupérer l\'identifiant du visiteur');
+      }
+
+      await visitService.recordEntry({
+        visiteurId: visitorId,
+        personneVisitee: data.personneVisitee,
+        service: data.service,
+        motif: data.motif || t.standard_visit
+      });
+
+      notify('success', t.welcome);
+      dispatch({ type: 'ADD_VISITOR', payload: { ...data, id: visitorId } });
+      setMode(null);
+      onClose();
+    } catch (err) {
+      console.error('❌ Erreur dans handleSubmit :', err);
+      notify('error', `${t.error_prefix}: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClose = () => {
@@ -337,21 +427,21 @@ export function RegistrationModal({ isOpen, onClose }) {
       isOpen={isOpen}
       onClose={handleClose}
       title={
-        mode === 'person' ? 'Enregistrer un visiteur' :
-        mode === 'vehicule' ? 'Enregistrer un véhicule' :
-        'Nouvelle entrée'
+        mode === 'person' ? t.person_entry :
+        mode === 'vehicule' ? t.vehicle_entry :
+        t.new_entry_title
       }
       size="md"
     >
       {!mode ? (
-        <div className="flex flex-col gap-3 py-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex flex-col gap-3 py-2 animate-in fade-in slide-in-from-bottom-4 duration-500" dir={settings?.language === 'ar' ? 'rtl' : 'ltr'}>
           <div className="text-center mb-2">
-            <h3 className="text-base font-black text-slate-900 dark:text-white">Nouvelle entrée</h3>
+            <h3 className="text-base font-black text-slate-900 dark:text-white">{t.new_entry_title}</h3>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
-              Quel type d'entrée souhaitez-vous enregistrer ?
+              {t.choose_type}
             </p>
           </div>
-          
+
           <button
             onClick={() => setMode('person')}
             className="group relative p-4 rounded-xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-brand-blue-bright/30 hover:bg-brand-blue-light/5 dark:hover:bg-brand-blue-bright/5 transition-all duration-300 flex items-center gap-4 text-left shadow-sm active:scale-[0.98]"
@@ -360,10 +450,10 @@ export function RegistrationModal({ isOpen, onClose }) {
               <User size={24} />
             </div>
             <div className="flex-1">
-              <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">Personne physique</h4>
-              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter mt-1 opacity-70 group-hover:opacity-100">CNI, PASSEPORT, PERMIS...</p>
+              <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">{t.person_physical}</h4>
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter mt-1 opacity-70 group-hover:opacity-100">{t.person_desc}</p>
             </div>
-            <ChevronRight className="text-slate-300 group-hover:text-brand-blue-bright group-hover:translate-x-1 transition-all" size={16} />
+            <ChevronRight className={`text-slate-300 group-hover:text-brand-blue-bright transition-all ${settings?.language === 'ar' ? 'rotate-180 group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} size={16} />
           </button>
 
           <button
@@ -374,16 +464,16 @@ export function RegistrationModal({ isOpen, onClose }) {
               <Car size={24} />
             </div>
             <div className="flex-1">
-              <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">Véhicule</h4>
-              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter mt-1 opacity-70 group-hover:opacity-100">CARTE GRISE, IMMATRICULATION...</p>
+              <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">{t.vehicle_info}</h4>
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter mt-1 opacity-70 group-hover:opacity-100">{t.vehicle_desc}</p>
             </div>
-            <ChevronRight className="text-slate-300 group-hover:text-brand-green-bright group-hover:translate-x-1 transition-all" size={16} />
+            <ChevronRight className={`text-slate-300 group-hover:text-brand-green-bright transition-all ${settings?.language === 'ar' ? 'rotate-180 group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} size={16} />
           </button>
         </div>
       ) : mode === 'person' ? (
-        <PersonForm onSubmit={handleSubmit} onCancel={() => setMode(null)} />
+        <PersonForm onSubmit={handleSubmit} onCancel={() => setMode(null)} loading={loading} t={t} />
       ) : (
-        <VehiculeForm onSubmit={handleSubmit} onCancel={() => setMode(null)} />
+        <VehiculeForm onSubmit={handleSubmit} onCancel={() => setMode(null)} loading={loading} t={t} />
       )}
     </Modal>
   );

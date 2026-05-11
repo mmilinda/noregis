@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Users, User, Car, UserCheck, UserX, Clock, Plus, LogOut,
   Eye, Search, Download, RefreshCw, Calendar,
@@ -7,6 +7,9 @@ import {
 import { useApp } from '../context/useAppState';
 import { StatCard, Card, CardHeader, StatusBadge, TypeBadge, Btn, EmptyState, Modal } from '../components/UI';
 import { RegistrationModal } from '../components/RegistrationModal';
+import { visitorService } from '../services/visitorService';
+import { TRANSLATIONS } from '../translations';
+
 
 /* ============================================
    VISITOR DETAIL MODAL
@@ -21,6 +24,8 @@ const Row = ({ label, value, mono }) => (
 );
 
 function VisitorDetail({ visitor, onClose, onCheckout }) {
+  const { state } = useApp();
+  const t = TRANSLATIONS[state.settings?.language || 'fr'];
   if (!visitor) return null;
   const isVehicule = visitor.type === 'vehicule';
 
@@ -47,7 +52,7 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
           </div>
         </div>
         <div className="text-right hidden sm:block">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID Passage</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.id_passage}</p>
           <p className="text-sm font-black font-mono text-slate-900 dark:text-white">{visitor.id}</p>
         </div>
       </div>
@@ -55,7 +60,7 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
       {/* Photo if present */}
       {visitor.photo && (
         <div className="rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800">
-          <img src={visitor.photo} alt="Document scanné" className="w-full h-40 object-cover" />
+          <img src={visitor.photo} alt={t.scanned_doc} className="w-full h-40 object-cover" />
         </div>
       )}
 
@@ -63,30 +68,30 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
       <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-2 px-5">
         {isVehicule ? (
           <>
-            <Row label="Immatriculation" value={visitor.vehicule?.immatriculation} mono />
-            <Row label="Marque / Modèle" value={`${visitor.vehicule?.marque || ''} ${visitor.vehicule?.modele || ''}`.trim()} />
-            <Row label="Couleur" value={visitor.vehicule?.couleur} />
-            <Row label="Type" value={visitor.vehicule?.typeVehicule} />
-            {visitor.nom && <Row label="Conducteur" value={`${visitor.nom} ${visitor.prenom}`} />}
+            <Row label={t.license_plate} value={visitor.vehicule?.immatriculation} mono />
+            <Row label={t.brand_model} value={`${visitor.vehicule?.marque || ''} ${visitor.vehicule?.modele || ''}`.trim()} />
+            <Row label={t.color} value={visitor.vehicule?.couleur} />
+            <Row label={t.id_type} value={visitor.vehicule?.typeVehicule} />
+            {visitor.nom && <Row label={t.driver} value={`${visitor.nom} ${visitor.prenom}`} />}
           </>
         ) : (
           <>
-            <Row label="Nom complet" value={`${visitor.nom} ${visitor.prenom}`} />
-            <Row label="N° de pièce" value={visitor.numeroPiece} mono />
-            <Row label="Type de pièce" value={visitor.typePiece} />
-            {visitor.dateNaissance && <Row label="Date de naissance" value={visitor.dateNaissance} />}
+            <Row label={t.fullname} value={`${visitor.nom} ${visitor.prenom}`} />
+            <Row label={t.id_number} value={visitor.numeroPiece} mono />
+            <Row label={t.id_type} value={visitor.typePiece} />
+            {visitor.dateNaissance && <Row label={t.birth_date} value={visitor.dateNaissance} />}
           </>
         )}
-        <Row label="Personne visitée" value={visitor.personneVisitee} />
-        <Row label="Service" value={visitor.service} />
-        <Row label="Date" value={visitor.date} />
-        <Row label="Heure d'entrée" value={visitor.heureEntree} />
-        {visitor.heureSortie && <Row label="Heure de sortie" value={visitor.heureSortie} />}
+        <Row label={t.host_name} value={visitor.personneVisitee} />
+        <Row label={t.service} value={visitor.service} />
+        <Row label={t.date} value={visitor.date} />
+        <Row label={t.entry_time} value={visitor.heureEntree} />
+        {visitor.heureSortie && <Row label={t.exit_time} value={visitor.heureSortie} />}
       </div>
 
       {visitor.statut === 'present' && (
         <Btn variant="warning" icon={LogOut} onClick={() => { onCheckout(visitor.id); onClose(); }} fullWidth size="lg">
-          Marquer la sortie
+          {t.mark_exit}
         </Btn>
       )}
     </div>
@@ -112,6 +117,8 @@ const Th = ({ label, col, sortBy, sortDir, onSort }) => (
 );
 
 function VisitorTable({ visitors, onView, onCheckout, compact }) {
+  const { state } = useApp();
+  const t = TRANSLATIONS[state.settings?.language || 'fr'];
   const [sortBy, setSortBy] = useState('heureEntree');
   const [sortDir, setSortDir] = useState('desc');
 
@@ -132,12 +139,12 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-slate-50 dark:border-slate-800">
-              <Th label="Type" col="type" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-              <Th label="Visiteur / Véhicule" col="nom" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-              <Th label="Document / Plaque" col="numeroPiece" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-              <Th label="Destination" col="personneVisitee" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-              <Th label="Heure" col="heureEntree" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-              <Th label="Statut" col="statut" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+              <Th label={t.type} col="type" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+              <Th label={`${t.person} / ${t.vehicle}`} col="nom" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+              <Th label={`${t.id_card} / ${t.plate_number}`} col="numeroPiece" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+              <Th label={t.destination} col="personneVisitee" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+              <Th label={t.time} col="heureEntree" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+              <Th label={t.status} col="statut" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
               <th className="px-5 py-4" />
             </tr>
           </thead>
@@ -172,7 +179,7 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
                         onClick={() => onCheckout(v.id)}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-amber-bright text-white border border-brand-amber-bright rounded-lg text-[10px] font-black uppercase hover:bg-amber-600 transition-all active:scale-95"
                       >
-                        <LogOut size={12} /> Sortie
+                        <LogOut size={12} /> {t.exited}
                       </button>
                     )}
                   </div>
@@ -198,10 +205,10 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
               {v.type === 'vehicule' ? v.vehicule?.immatriculation : `${v.nom} ${v.prenom}`}
             </p>
             <p className="text-[10px] text-slate-500 font-bold truncate mt-0.5">
-              <span className="text-slate-400">À :</span> {v.personneVisitee}
+              <span className="text-slate-400">{t.to} :</span> {v.personneVisitee}
             </p>
             <p className="text-[9px] text-slate-400 font-medium mt-0.5">
-              Entrée : {v.heureEntree} {v.heureSortie && ` • Sortie : ${v.heureSortie}`}
+              {t.entry_time} : {v.heureEntree} {v.heureSortie && ` • ${t.exit_time} : ${v.heureSortie}`}
             </p>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0 pt-0.5">
@@ -211,7 +218,7 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
                 onClick={e => { e.stopPropagation(); onCheckout(v.id); }}
                 className="px-2 py-1 bg-brand-amber-bright text-white border border-brand-amber-bright rounded-md text-[9px] font-black uppercase flex items-center justify-center gap-1 active:scale-90 transition-all"
               >
-                <LogOut size={10} /> Sortie
+                <LogOut size={10} /> {t.exited}
               </button>
             )}
           </div>
@@ -221,15 +228,51 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
   );
 }
 
+
 /* ============================================
    PAGE DASHBOARD
 ============================================ */
 export function Dashboard({ isMobile }) {
   const { state, dispatch, notify } = useApp();
-  const { visitors, searchQuery, filterStatus } = state;
+  const { visitors, searchQuery, filterStatus, settings } = state;
+  const t = TRANSLATIONS[settings?.language || 'fr'];
   const [regOpen, setRegOpen] = useState(false);
   const [detailVisitor, setDetailVisitor] = useState(null);
   const [filterType, setFilterType] = useState('all');
+  const [loading, setLoading] = useState(true); // Initialisé à true pour éviter le setState synchrone dans useEffect
+
+  const fetchVisitors = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setLoading(true);
+    try {
+      const data = await visitorService.getAll();
+      dispatch({ type: 'SET_VISITORS', payload: data.visiteurs || [] });
+      if (isRefresh) notify('info', t.refresh_ok);
+    } catch (err) {
+      notify('error', err.message || t.api_error);
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch, notify, t]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadData = async () => {
+      try {
+        const data = await visitorService.getAll();
+        if (!ignore) {
+          dispatch({ type: 'SET_VISITORS', payload: data.visiteurs || [] });
+        }
+      } catch {
+        if (!ignore) notify('error', t.load_error);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    };
+
+    loadData();
+    return () => { ignore = true; };
+  }, [dispatch, notify, t]);
 
   // Stats
   const total = visitors.length;
@@ -249,40 +292,41 @@ export function Dashboard({ isMobile }) {
 
   const handleCheckout = (id) => {
     dispatch({ type: 'CHECKOUT_VISITOR', payload: id });
-    notify('info', 'Sortie enregistrée');
+    notify('info', t.exit_recorded);
   };
 
   return (
-    <div className="p-3 lg:p-6 w-full max-w-7xl mx-auto flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="p-3 lg:p-6 w-full max-w-7xl mx-auto flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500" dir={settings?.language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Title bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Registre du jour</h1>
+          <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white tracking-tight">{t.dashboard}</h1>
           <p className="text-xs text-slate-500 font-bold mt-1">
-            {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            {new Date().toLocaleDateString(settings?.language === 'ar' ? 'ar-EG' : (settings?.language === 'en' ? 'en-US' : 'fr-FR'), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
         <Btn variant="primary" icon={Plus} onClick={() => setRegOpen(true)} size={isMobile ? 'md' : 'lg'} className="!rounded-lg">
-          Nouvelle entrée
+          {t.new_entry}
         </Btn>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-        <StatCard label="Total aujourd'hui" value={total} icon={Users} color="#3B82F6" bg="#EFF6FF" />
-        <StatCard label="Actuellement présents" value={present} icon={UserCheck} color="#10B981" bg="#D1FAE5" />
-        <StatCard label="Sorties enregistrées" value={sortis} icon={UserX} color="#6B7280" bg="#F1F5F9" />
-        <StatCard label="Véhicules" value={vehicules} icon={Car} color="#F59E0B" bg="#FEF3C7" />
+        <StatCard label={t.total_visitors} value={total} icon={Users} color="#3B82F6" bg="#EFF6FF" />
+        <StatCard label={t.on_site} value={present} icon={UserCheck} color="#10B981" bg="#D1FAE5" />
+        <StatCard label={t.total_exits} value={sortis} icon={UserX} color="#6B7280" bg="#F1F5F9" />
+        <StatCard label={t.vehicle} value={vehicules} icon={Car} color="#F59E0B" bg="#FEF3C7" />
       </div>
 
       {/* Main Registry Table Card */}
       <Card className="border-slate-200 dark:border-slate-800">
         <CardHeader
-          title={`Flux de passage (${filtered.length})`}
-          subtitle="Suivi en temps réel des entrées et sorties"
+          title={`${t.dashboard} (${filtered.length})`}
+
+          subtitle={t.tracking_desc}
           actions={
-            <Btn variant="ghost" size="sm" icon={RefreshCw} onClick={() => notify('info', 'Données actualisées')} className="text-[10px] font-black uppercase tracking-widest">
-              {!isMobile && 'Actualiser'}
+            <Btn variant="ghost" size="sm" icon={RefreshCw} onClick={() => fetchVisitors(true)} loading={loading} className="text-[10px] font-black uppercase tracking-widest">
+              {!isMobile && t.refresh}
             </Btn>
           }
         />
@@ -294,7 +338,7 @@ export function Dashboard({ isMobile }) {
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue-bright transition-colors" />
             <input
               type="text"
-              placeholder="Rechercher par nom, plaque, destination..."
+              placeholder={t.search}
               value={searchQuery}
               onChange={e => dispatch({ type: 'SET_SEARCH', payload: e.target.value })}
               className="w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 focus:border-brand-blue-bright/20 rounded-lg py-2 pl-10 pr-4 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"
@@ -307,9 +351,9 @@ export function Dashboard({ isMobile }) {
               onChange={e => dispatch({ type: 'SET_FILTER_STATUS', payload: e.target.value })}
               className="px-4 py-2.5 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-lg text-xs font-black text-slate-700 dark:text-slate-300 outline-none cursor-pointer hover:border-slate-200 transition-colors appearance-none pr-8 relative bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%2394A3B8%22%20stroke-width%3D%221.66667%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E')] bg-[length:16px_16px] bg-[right_8px_center] bg-no-repeat"
             >
-              <option value="all">Tous statuts</option>
-              <option value="present">Présents</option>
-              <option value="sorti">Sortis</option>
+              <option value="all">{t.all} ({t.status})</option>
+              <option value="present">{t.present}</option>
+              <option value="sorti">{t.exited}</option>
             </select>
 
             <select
@@ -317,9 +361,9 @@ export function Dashboard({ isMobile }) {
               onChange={e => setFilterType(e.target.value)}
               className="px-4 py-2.5 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-lg text-xs font-black text-slate-700 dark:text-slate-300 outline-none cursor-pointer hover:border-slate-200 transition-colors appearance-none pr-8 relative bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%2394A3B8%22%20stroke-width%3D%221.66667%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E')] bg-[length:16px_16px] bg-[right_8px_center] bg-no-repeat"
             >
-              <option value="all">Flux mixte</option>
-              <option value="person">Personnes</option>
-              <option value="vehicule">Véhicules</option>
+              <option value="all">{t.all} ({t.filter_by})</option>
+              <option value="person">{t.person}</option>
+              <option value="vehicule">{t.vehicle}</option>
             </select>
           </div>
         </div>
@@ -327,11 +371,11 @@ export function Dashboard({ isMobile }) {
         {filtered.length === 0 ? (
           <EmptyState
             icon={Users}
-            title="Aucun résultat"
-            description="Aucun passage ne correspond à vos critères de recherche pour le moment."
+            title={t.no_results}
+            description={t.no_results_desc}
             action={
               <Btn variant="primary" icon={Plus} onClick={() => setRegOpen(true)}>
-                Enregistrer une entrée
+                {t.new_entry}
               </Btn>
             }
           />
@@ -348,7 +392,7 @@ export function Dashboard({ isMobile }) {
       {/* Modals */}
       <RegistrationModal isOpen={regOpen} onClose={() => setRegOpen(false)} />
 
-      <Modal isOpen={!!detailVisitor} onClose={() => setDetailVisitor(null)} title="Détails du passage" size="md">
+      <Modal isOpen={!!detailVisitor} onClose={() => setDetailVisitor(null)} title={t.profile} size="md">
         <VisitorDetail visitor={detailVisitor} onClose={() => setDetailVisitor(null)} onCheckout={handleCheckout} />
       </Modal>
     </div>
@@ -360,25 +404,27 @@ export function Dashboard({ isMobile }) {
 ============================================ */
 export function Historique({ isMobile }) {
   const { state, dispatch, notify } = useApp();
+  const { settings } = state;
+  const t = TRANSLATIONS[settings?.language || 'fr'];
   const [detailVisitor, setDetailVisitor] = useState(null);
   const [dateFilter, setDateFilter] = useState('');
 
   const all = state.visitors.filter(v => {
     if (!dateFilter) return true;
-    return v.date === new Date(dateFilter).toLocaleDateString('fr-FR');
+    return v.date === new Date(dateFilter).toLocaleDateString(settings?.language === 'ar' ? 'ar-EG' : (settings?.language === 'en' ? 'en-US' : 'fr-FR'));
   });
 
   const handleCheckout = (id) => {
     dispatch({ type: 'CHECKOUT_VISITOR', payload: id });
-    notify('info', 'Sortie enregistrée');
+    notify('info', t.exit_recorded);
   };
 
   return (
-    <div className="p-4 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="p-4 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-2 duration-500" dir={settings?.language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Historique complet</h1>
-          <p className="text-sm text-slate-500 font-bold mt-1">{state.visitors.length} passage(s) archivé(s)</p>
+          <h1 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{t.history}</h1>
+          <p className="text-sm text-slate-500 font-bold mt-1">{state.visitors.length} {t.history.toLowerCase()}</p>
         </div>
         <div className="flex gap-2 items-center">
           <div className="relative">
@@ -390,22 +436,23 @@ export function Historique({ isMobile }) {
               className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-lg py-2 pl-10 pr-3 text-xs font-black text-slate-700 dark:text-slate-200 outline-none hover:border-slate-200 focus:border-brand-blue-bright/20 transition-all"
             />
           </div>
-          {dateFilter && <Btn variant="ghost" size="sm" onClick={() => setDateFilter('')} className="text-[10px] font-black uppercase">Reset</Btn>}
-          <Btn variant="secondary" size="sm" icon={Download} className="text-[10px] font-black uppercase">Exporter</Btn>
+          {dateFilter && <Btn variant="ghost" size="sm" onClick={() => setDateFilter('')} className="text-[10px] font-black uppercase">{t.reset}</Btn>}
+          <Btn variant="secondary" size="sm" icon={Download} className="text-[10px] font-black uppercase">{t.export}</Btn>
         </div>
       </div>
 
       <Card className="border-slate-200 dark:border-slate-800">
-        <CardHeader title={`Archive des passages (${all.length})`} />
+        <CardHeader title={`${t.history} (${all.length})`} />
         {all.length === 0
-          ? <EmptyState icon={Clock} title="Aucun passage" description="Aucun passage n'a été enregistré pour cette date." />
+          ? <EmptyState icon={Clock} title={t.no_results} description={t.no_results_desc} />
           : <VisitorTable visitors={all} onView={setDetailVisitor} onCheckout={handleCheckout} compact={isMobile} />
         }
       </Card>
 
-      <Modal isOpen={!!detailVisitor} onClose={() => setDetailVisitor(null)} title="Détails du passage" size="md">
+      <Modal isOpen={!!detailVisitor} onClose={() => setDetailVisitor(null)} title={t.profile} size="md">
         <VisitorDetail visitor={detailVisitor} onClose={() => setDetailVisitor(null)} onCheckout={handleCheckout} />
       </Modal>
     </div>
+
   );
 }
