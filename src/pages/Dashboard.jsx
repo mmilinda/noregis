@@ -11,6 +11,29 @@ import { visitorService } from '../services/visitorService';
 import { visitService } from '../services/visitService';
 import { TRANSLATIONS } from '../translations';
 
+// Helper pour formater les dates ISO du backend
+const formatBackendDate = (dateStr) => {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('fr-FR');
+  } catch {
+    return dateStr;
+  }
+};
+
+const formatBackendTime = (dateStr) => {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return dateStr;
+  }
+};
+
 
 /* ============================================
    VISITOR DETAIL MODAL
@@ -71,25 +94,27 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
       <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-2 px-5">
         {isVehicule ? (
           <>
-            <Row label={t.license_plate} value={visitor.vehicule?.immatriculation} mono />
+            <Row label={t.license_plate} value={visitor.vehicule?.immatriculation || visitor.numeroPiece} mono />
             <Row label={t.brand_model} value={`${visitor.vehicule?.marque || ''} ${visitor.vehicule?.modele || ''}`.trim()} />
             <Row label={t.color} value={visitor.vehicule?.couleur} />
-            <Row label={t.id_type} value={visitor.vehicule?.typeVehicule} />
-            {visitor.nom && <Row label={t.driver} value={`${visitor.nom} ${visitor.prenom}`} />}
+            <Row label={t.id_type} value={visitor.vehicule?.typeVehicule || t.id_types?.carte_grise} />
+            {(visitor.nom || visitor.visiteur?.nom) && <Row label={t.driver} value={`${visitor.nom || visitor.visiteur?.nom || ''} ${visitor.prenom || visitor.visiteur?.prenom || ''}`} />}
           </>
         ) : (
           <>
             <Row label={t.fullname} value={`${visitor.nom || visitor.visiteur?.nom || ''} ${visitor.prenom || visitor.visiteur?.prenom || ''}`} />
             <Row label={t.id_number} value={visitor.numeroPiece || visitor.visiteur?.numeroPiece} mono />
             <Row label={t.id_type} value={visitor.typePiece || visitor.visiteur?.typePiece} />
-            {(visitor.dateNaissance || visitor.visiteur?.dateNaissance) && <Row label={t.birth_date} value={visitor.dateNaissance || visitor.visiteur?.dateNaissance} />}
+            {(visitor.dateNaissance || visitor.visiteur?.dateNaissance) && (
+              <Row label={t.birth_date} value={formatBackendDate(visitor.dateNaissance || visitor.visiteur?.dateNaissance)} />
+            )}
           </>
         )}
-        <Row label={t.host_name} value={visitor.personneVisitee} />
-        <Row label={t.service} value={visitor.service} />
-        <Row label={t.date} value={visitor.date} />
-        <Row label={t.entry_time} value={visitor.heureEntree} />
-        {visitor.heureSortie && <Row label={t.exit_time} value={visitor.heureSortie} />}
+        <Row label={t.host_name} value={visitor.personneVisitee || visitor.hote || visitor.visitedPerson} />
+        <Row label={t.service} value={visitor.service || visitor.departement} />
+        <Row label={t.date} value={visitor.date || formatBackendDate(visitor.createdAt)} />
+        <Row label={t.entry_time} value={visitor.heureEntree || formatBackendTime(visitor.createdAt)} />
+        {visitor.heureSortie && <Row label={t.exit_time} value={visitor.heureSortie || formatBackendTime(visitor.updatedAt)} />}
       </div>
 
       {visitor.statut === 'present' && (
@@ -168,12 +193,14 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{v.typePiece || v.visiteur?.typePiece}</p>
                 </td>
                 <td className="px-4 py-2.5">
-                  <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200">{v.personneVisitee}</p>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{v.service}</p>
+                  <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200">{v.personneVisitee || v.hote || v.visitedPerson || '—'}</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{v.service || v.departement}</p>
                 </td>
                 <td className="px-4 py-2.5 text-[10px] font-bold font-mono">
-                  {v.heureEntree}
-                  {v.heureSortie && <p className="text-[9px] text-slate-400 mt-0.5">→ {v.heureSortie}</p>}
+                  {v.heureEntree || formatBackendTime(v.createdAt)}
+                  {(v.heureSortie || (v.statut === 'sorti' && v.updatedAt)) && (
+                    <p className="text-[9px] text-slate-400 mt-0.5">→ {v.heureSortie || formatBackendTime(v.updatedAt)}</p>
+                  )}
                 </td>
                 <td className="px-4 py-2.5"><StatusBadge statut={v.statut} /></td>
                 <td className="px-5 py-4">
