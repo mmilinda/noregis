@@ -31,7 +31,13 @@ export function Login() {
           nom: data.user?.nom || 'User', 
           role: data.user?.role || 'Agent', 
           matricule: data.user?.matricule || 'AGN-001',
-          initials: (data.user?.prenom?.[0] || 'A') + (data.user?.nom?.[0] || 'U')
+          initials: (data.user?.prenom?.[0] || 'A') + (data.user?.nom?.[0] || 'U'),
+          email: data.user?.email || 'admin@noregis.app',
+          telephone: data.user?.telephone || '+226 01 02 03 04',
+          poste: data.user?.poste || 'Supervision Centrale',
+          departement: data.user?.departement || 'Administration & Sécurité',
+          niveau: data.user?.niveau || 'Niveau 1',
+          dateArrivee: data.user?.dateArrivee || '28/04/2026'
         } 
       });
       notify('success', t.welcome);
