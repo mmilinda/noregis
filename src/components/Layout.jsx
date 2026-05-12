@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard, History, Settings, User as UserIcon,
   Shield, Clock, Plus, Bell, Search} from 'lucide-react';
@@ -190,10 +190,43 @@ function BottomNav({ activeTab, onTabChange, onNewEntry, t }) {
 /* ============================================
    DESKTOP TOP BAR
 ============================================ */
-function DesktopTopBar({ activeTab, navItems, t }) {
+function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
   const { dispatch, state } = useApp();
   const { searchQuery } = state;
   const tabLabel = navItems.find(n => n.id === activeTab)?.label || 'NoRegis';
+  const [showNotifications, setShowNotifications] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const [notificationsList, setNotificationsList] = useState([
+    { id: 1, text: "Nouveau visiteur enregistré", time: "Il y a 5 minutes", read: false, tab: "dashboard" },
+    { id: 2, text: "Véhicule détecté à l'entrée", time: "Il y a 10 minutes", read: false, tab: "dashboard" },
+  ]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef]);
+
+  const handleNotifClick = (id, tab) => {
+    setNotificationsList(notificationsList.map(n => n.id === id ? { ...n, read: true } : n));
+    setShowNotifications(false);
+    if (onTabChange) {
+      onTabChange(tab);
+    }
+  };
+
+  const markAllAsRead = () => {
+    setNotificationsList(notificationsList.map(n => ({ ...n, read: true })));
+  };
+
+  const unreadCount = notificationsList.filter(n => !n.read).length;
 
   return (
     <header className="h-20 bg-white dark:bg-[#0D1117]/80 backdrop-blur-md border-b border-slate-100 dark:border-white/5 px-8 flex items-center justify-between sticky top-0 z-[90]">
@@ -207,17 +240,56 @@ function DesktopTopBar({ activeTab, navItems, t }) {
             type="text"
             placeholder={t.search}
             value={searchQuery}
-            onChange={e => dispatch({ type: 'SET_SEARCH', payload: e.target.value })}
+            onChange={e => {
+              dispatch({ type: 'SET_SEARCH', payload: e.target.value });
+              if (activeTab === 'profile' && e.target.value.trim() !== '') {
+                onTabChange('dashboard');
+              }
+            }}
             className="w-full bg-slate-50 dark:bg-white/5 border-2 border-transparent focus:border-brand-blue-bright/20 focus:bg-white dark:focus:bg-slate-800 rounded-lg py-2.5 pl-12 pr-4 text-sm font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"
           />
         </div>
       </div>
 
       <div className="flex items-center gap-6">
-        <button className="relative p-2.5 bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-brand-blue-bright rounded-xl transition-all">
-          <Bell size={20} />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-brand-red-bright rounded-full border-2 border-white dark:border-[#0D1117]" />
-        </button>
+        <div className="relative" ref={dropdownRef}>
+          <button 
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="relative p-2.5 bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-brand-blue-bright rounded-xl transition-all"
+          >
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span className="absolute top-2 right-2 w-2 h-2 bg-brand-red-bright rounded-full border-2 border-white dark:border-[#0D1117]" />
+            )}
+          </button>
+
+          {showNotifications && (
+            <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-100 dark:border-white/5 p-4 z-[100]">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Notifications</h3>
+                <button onClick={markAllAsRead} className="text-xs text-brand-blue-bright hover:underline">Tout marquer comme lu</button>
+              </div>
+              <div className="space-y-3">
+                {notificationsList.map(n => (
+                  <div 
+                    key={n.id}
+                    onClick={() => handleNotifClick(n.id, n.tab)}
+                    className="flex items-start gap-3 p-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <span className={`w-2 h-2 rounded-full mt-1.5 ${n.read ? 'bg-slate-300 dark:bg-slate-600' : 'bg-brand-blue-bright'}`} />
+                    <div>
+                      <p className={`text-sm ${n.read ? 'text-slate-500' : 'text-slate-900 dark:text-white font-bold'}`}>{n.text}</p>
+                      <p className="text-xs text-slate-500">{n.time}</p>
+                    </div>
+                  </div>
+                ))}
+                {notificationsList.length === 0 && (
+                  <p className="text-sm text-slate-500 text-center py-4">Aucune notification</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
         <div className="h-8 w-px bg-slate-100 dark:bg-white/10" />
         <LiveClock />
       </div>
@@ -261,7 +333,7 @@ export function Layout({ children, activeTab, onTabChange }) {
         {isMobile ? (
           <MobileHeader activeTab={activeTab} navItems={navItems} />
         ) : (
-          <DesktopTopBar activeTab={activeTab} navItems={navItems} t={t} />
+          <DesktopTopBar activeTab={activeTab} navItems={navItems} t={t} onTabChange={onTabChange} />
         )}
 
         <main className={`flex-1 overflow-y-auto w-full ${isMobile ? 'pb-24' : ''}`}>
