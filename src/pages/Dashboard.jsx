@@ -49,9 +49,37 @@ const Row = ({ label, value, mono }) => (
   </div>
 );
 
-function VisitorDetail({ visitor, onClose, onCheckout }) {
+function VisitorDetail({ visitor: initialVisitor, onClose, onCheckout }) {
   const { state } = useApp();
+  const [visitor, setVisitor] = React.useState(initialVisitor);
+  const [fetching, setFetching] = React.useState(false);
   const t = TRANSLATIONS[state.settings?.language || 'fr'];
+
+  React.useEffect(() => {
+    const fetchFullVisitor = async () => {
+      // Si on a déjà les noms, pas besoin de fetcher
+      const hasName = !!(initialVisitor.nom || initialVisitor.visiteur?.nom || initialVisitor.visitor?.nom || initialVisitor.visiteurId?.nom);
+      
+      // Si on a un ID de visiteur mais pas de nom, on tente de récupérer les détails
+      const visiteurId = initialVisitor.visiteur?._id || initialVisitor.visiteur || initialVisitor.visiteurId || initialVisitor.visitorId;
+      
+      if (!hasName && typeof visiteurId === 'string' && visiteurId.length > 10) {
+        setFetching(true);
+        try {
+          const data = await visitorService.getById(visiteurId);
+          // Le backend peut renvoyer { visiteur: { ... } } ou directement { ... }
+          const fullVisitorData = data.visiteur || data;
+          setVisitor(prev => ({ ...prev, ...fullVisitorData, visiteur: fullVisitorData }));
+        } catch (err) {
+          console.error("Erreur fetch visitor details:", err);
+        } finally {
+          setFetching(false);
+        }
+      }
+    };
+    fetchFullVisitor();
+  }, [initialVisitor]);
+
   if (!visitor) return null;
   const isVehicule = visitor.type === 'vehicule';
 
@@ -104,11 +132,11 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
           </>
         ) : (
           <>
-            <Row label={t.fullname} value={`${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || visitor.visiteurId?.nom || visitor.visitorId?.nom || visitor.Nom || visitor.lastName || visitor.name || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || visitor.visiteurId?.prenom || visitor.visitorId?.prenom || visitor.Prenom || visitor.firstName || ''}`.trim() || visitor.nomComplet || visitor.fullName || '—'} />
-            <Row label={t.id_number} value={visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece || visitor.visiteurId?.numeroPiece || visitor.visitorId?.numeroPiece} mono />
-            <Row label={t.id_type} value={visitor.typePiece || visitor.visiteur?.typePiece || visitor.visitor?.typePiece || visitor.visiteurId?.typePiece} />
+            <Row label={t.fullname} value={fetching ? '...' : (`${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || visitor.visiteurId?.nom || visitor.visitorId?.nom || visitor.Nom || visitor.lastName || visitor.name || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || visitor.visiteurId?.prenom || visitor.visitorId?.prenom || visitor.Prenom || visitor.firstName || ''}`.trim() || visitor.nomComplet || visitor.fullName || '—')} />
+            <Row label={t.id_number} value={fetching ? '...' : (visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece || visitor.visiteurId?.numeroPiece || visitor.visitorId?.numeroPiece)} mono />
+            <Row label={t.id_type} value={fetching ? '...' : (visitor.typePiece || visitor.visiteur?.typePiece || visitor.visitor?.typePiece || visitor.visiteurId?.typePiece)} />
             {(visitor.dateNaissance || visitor.visiteur?.dateNaissance || visitor.visitor?.dateNaissance || visitor.visiteurId?.dateNaissance) && (
-              <Row label={t.birth_date} value={formatBackendDate(visitor.dateNaissance || visitor.visiteur?.dateNaissance || visitor.visitor?.dateNaissance || visitor.visiteurId?.dateNaissance)} />
+              <Row label={t.birth_date} value={fetching ? '...' : formatBackendDate(visitor.dateNaissance || visitor.visiteur?.dateNaissance || visitor.visitor?.dateNaissance || visitor.visiteurId?.dateNaissance)} />
             )}
           </>
         )}
