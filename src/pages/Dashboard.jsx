@@ -69,8 +69,8 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
         <div className="flex-1 min-w-0">
           <p className="font-black text-lg text-slate-900 dark:text-white truncate">
             {isVehicule 
-              ? (visitor.vehicule?.immatriculation || visitor.numeroPiece) 
-              : `${visitor.nom || visitor.visiteur?.nom || ''} ${visitor.prenom || visitor.visiteur?.prenom || ''}`}
+              ? (visitor.vehicule?.immatriculation || visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece) 
+              : `${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || ''}`.trim() || '—'}
           </p>
           <div className="flex gap-2 mt-2 flex-wrap">
             <StatusBadge statut={visitor.statut} heureSortie={visitor.heureSortie} />
@@ -94,19 +94,19 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
       <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-2 px-5">
         {isVehicule ? (
           <>
-            <Row label={t.license_plate} value={visitor.vehicule?.immatriculation || visitor.numeroPiece} mono />
-            <Row label={t.brand_model} value={`${visitor.vehicule?.marque || ''} ${visitor.vehicule?.modele || ''}`.trim()} />
-            <Row label={t.color} value={visitor.vehicule?.couleur} />
-            <Row label={t.id_type} value={visitor.vehicule?.typeVehicule || t.id_types?.carte_grise} />
-            {(visitor.nom || visitor.visiteur?.nom) && <Row label={t.driver} value={`${visitor.nom || visitor.visiteur?.nom || ''} ${visitor.prenom || visitor.visiteur?.prenom || ''}`} />}
+            <Row label={t.license_plate} value={visitor.vehicule?.immatriculation || visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece} mono />
+            <Row label={t.brand_model} value={`${visitor.vehicule?.marque || visitor.visiteur?.marque || visitor.visitor?.marque || ''} ${visitor.vehicule?.modele || visitor.visiteur?.modele || visitor.visitor?.modele || ''}`.trim()} />
+            <Row label={t.color} value={visitor.vehicule?.couleur || visitor.visiteur?.couleur || visitor.visitor?.couleur} />
+            <Row label={t.id_type} value={visitor.vehicule?.typeVehicule || visitor.typePiece || visitor.visiteur?.typePiece || visitor.visitor?.typePiece || t.id_types?.carte_grise} />
+            {(visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom) && <Row label={t.driver} value={`${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || ''}`} />}
           </>
         ) : (
           <>
-            <Row label={t.fullname} value={`${visitor.nom || visitor.visiteur?.nom || ''} ${visitor.prenom || visitor.visiteur?.prenom || ''}`} />
-            <Row label={t.id_number} value={visitor.numeroPiece || visitor.visiteur?.numeroPiece} mono />
-            <Row label={t.id_type} value={visitor.typePiece || visitor.visiteur?.typePiece} />
-            {(visitor.dateNaissance || visitor.visiteur?.dateNaissance) && (
-              <Row label={t.birth_date} value={formatBackendDate(visitor.dateNaissance || visitor.visiteur?.dateNaissance)} />
+            <Row label={t.fullname} value={`${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || ''}`.trim() || '—'} />
+            <Row label={t.id_number} value={visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece} mono />
+            <Row label={t.id_type} value={visitor.typePiece || visitor.visiteur?.typePiece || visitor.visitor?.typePiece} />
+            {(visitor.dateNaissance || visitor.visiteur?.dateNaissance || visitor.visitor?.dateNaissance) && (
+              <Row label={t.birth_date} value={formatBackendDate(visitor.dateNaissance || visitor.visiteur?.dateNaissance || visitor.visitor?.dateNaissance)} />
             )}
           </>
         )}
@@ -311,7 +311,9 @@ export function Dashboard({ isMobile }) {
       try {
         const data = await visitService.getAll();
         if (!ignore) {
-          dispatch({ type: 'SET_VISITORS', payload: data.visites || [] });
+          const rawVisits = data.visites || [];
+          const uniqueVisits = Array.from(new Map(rawVisits.map(v => [v._id || v.id, v])).values());
+          dispatch({ type: 'SET_VISITORS', payload: uniqueVisits });
         }
       } catch {
         if (!ignore) notify('error', t.load_error);
@@ -343,8 +345,12 @@ export function Dashboard({ isMobile }) {
   // Filter
   const filtered = visitors.filter(v => {
     const q = searchQuery.toLowerCase();
-    const matchSearch = !q || [v.nom, v.prenom, v.numeroPiece, v.vehicule?.immatriculation, v.personneVisitee, v.service]
-      .filter(Boolean).some(f => f.toLowerCase().includes(q));
+    const matchSearch = !q || [
+      v.nom, v.prenom, v.numeroPiece, 
+      v.visiteur?.nom, v.visiteur?.prenom, v.visiteur?.numeroPiece,
+      v.visitor?.nom, v.visitor?.prenom, v.visitor?.numeroPiece,
+      v.vehicule?.immatriculation, v.personneVisitee, v.service
+    ].filter(Boolean).some(f => f.toLowerCase().includes(q));
     const matchStatus = filterStatus === 'all' || v.statut === filterStatus;
     const matchType = filterType === 'all' || v.type === filterType;
     return matchSearch && matchStatus && matchType;
@@ -490,14 +496,14 @@ export function Historique({ isMobile }) {
     // Header
     const headers = ["Nom", "Prenom", "Piece", "Type", "Hote", "Service", "Entree", "Sortie", "Statut"];
     const rows = all.map(v => [
-      v.nom || v.visiteur?.nom || '',
-      v.prenom || v.visiteur?.prenom || '',
-      v.numeroPiece || v.visiteur?.numeroPiece || '',
+      v.nom || v.visiteur?.nom || v.visitor?.nom || '',
+      v.prenom || v.visiteur?.prenom || v.visitor?.prenom || '',
+      v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || '',
       v.type || 'personne',
-      v.personneVisitee || v.hote || '',
+      v.personneVisitee || v.hote || v.visitedPerson || '',
       v.service || v.departement || '',
       v.heureEntree || (v.createdAt ? new Date(v.createdAt).toLocaleTimeString() : ''),
-      v.heureSortie || (v.updatedAt && v.statut === 'sorti' ? new Date(v.updatedAt).toLocaleTimeString() : ''),
+      v.heureSortie || (v.updatedAt && (v.statut === 'sorti' || v.statut === 'sortis') ? new Date(v.updatedAt).toLocaleTimeString() : ''),
       v.statut
     ]);
 
