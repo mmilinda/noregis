@@ -25,6 +25,8 @@ const formatBackendDate = (dateStr) => {
 
 const formatBackendTime = (dateStr) => {
   if (!dateStr) return '—';
+  // Si c'est déjà un format HH:mm, on le garde
+  if (/^\d{2}:\d{2}$/.test(dateStr)) return dateStr;
   try {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
@@ -69,8 +71,8 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
         <div className="flex-1 min-w-0">
           <p className="font-black text-lg text-slate-900 dark:text-white truncate">
             {isVehicule 
-              ? (visitor.vehicule?.immatriculation || visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece) 
-              : `${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || ''}`.trim() || '—'}
+              ? (visitor.vehicule?.immatriculation || visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece || visitor.visiteurId?.numeroPiece || visitor.visitorId?.numeroPiece || '—') 
+              : `${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || visitor.visiteurId?.nom || visitor.visitorId?.nom || visitor.Nom || visitor.lastName || visitor.name || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || visitor.visiteurId?.prenom || visitor.visitorId?.prenom || visitor.Prenom || visitor.firstName || ''}`.trim() || visitor.nomComplet || visitor.fullName || '—'}
           </p>
           <div className="flex gap-2 mt-2 flex-wrap">
             <StatusBadge statut={visitor.statut} heureSortie={visitor.heureSortie} />
@@ -94,27 +96,27 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
       <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-2 px-5">
         {isVehicule ? (
           <>
-            <Row label={t.license_plate} value={visitor.vehicule?.immatriculation || visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece} mono />
-            <Row label={t.brand_model} value={`${visitor.vehicule?.marque || visitor.visiteur?.marque || visitor.visitor?.marque || ''} ${visitor.vehicule?.modele || visitor.visiteur?.modele || visitor.visitor?.modele || ''}`.trim()} />
-            <Row label={t.color} value={visitor.vehicule?.couleur || visitor.visiteur?.couleur || visitor.visitor?.couleur} />
-            <Row label={t.id_type} value={visitor.vehicule?.typeVehicule || visitor.typePiece || visitor.visiteur?.typePiece || visitor.visitor?.typePiece || t.id_types?.carte_grise} />
-            {(visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom) && <Row label={t.driver} value={`${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || ''}`} />}
+            <Row label={t.license_plate} value={visitor.vehicule?.immatriculation || visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece || visitor.visiteurId?.numeroPiece || visitor.visitorId?.numeroPiece} mono />
+            <Row label={t.brand_model} value={`${visitor.vehicule?.marque || visitor.visiteur?.marque || visitor.visitor?.marque || visitor.visiteurId?.marque || visitor.visitorId?.marque || ''} ${visitor.vehicule?.modele || visitor.visiteur?.modele || visitor.visitor?.modele || visitor.visiteurId?.modele || visitor.visitorId?.modele || ''}`.trim() || '—'} />
+            <Row label={t.color} value={visitor.vehicule?.couleur || visitor.visiteur?.couleur || visitor.visitor?.couleur || visitor.visiteurId?.couleur} />
+            <Row label={t.id_type} value={visitor.vehicule?.typeVehicule || visitor.typePiece || visitor.visiteur?.typePiece || visitor.visitor?.typePiece || visitor.visiteurId?.typePiece || t.id_types?.carte_grise} />
+            {(visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || visitor.visiteurId?.nom || visitor.lastName || visitor.Nom) && <Row label={t.driver} value={`${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || visitor.visiteurId?.nom || visitor.visitorId?.nom || visitor.Nom || visitor.lastName || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || visitor.visiteurId?.prenom || visitor.visitorId?.prenom || visitor.Prenom || visitor.firstName || ''}`.trim()} />}
           </>
         ) : (
           <>
-            <Row label={t.fullname} value={`${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || ''}`.trim() || '—'} />
-            <Row label={t.id_number} value={visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece} mono />
-            <Row label={t.id_type} value={visitor.typePiece || visitor.visiteur?.typePiece || visitor.visitor?.typePiece} />
-            {(visitor.dateNaissance || visitor.visiteur?.dateNaissance || visitor.visitor?.dateNaissance) && (
-              <Row label={t.birth_date} value={formatBackendDate(visitor.dateNaissance || visitor.visiteur?.dateNaissance || visitor.visitor?.dateNaissance)} />
+            <Row label={t.fullname} value={`${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || visitor.visiteurId?.nom || visitor.visitorId?.nom || visitor.Nom || visitor.lastName || visitor.name || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || visitor.visiteurId?.prenom || visitor.visitorId?.prenom || visitor.Prenom || visitor.firstName || ''}`.trim() || visitor.nomComplet || visitor.fullName || '—'} />
+            <Row label={t.id_number} value={visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece || visitor.visiteurId?.numeroPiece || visitor.visitorId?.numeroPiece} mono />
+            <Row label={t.id_type} value={visitor.typePiece || visitor.visiteur?.typePiece || visitor.visitor?.typePiece || visitor.visiteurId?.typePiece} />
+            {(visitor.dateNaissance || visitor.visiteur?.dateNaissance || visitor.visitor?.dateNaissance || visitor.visiteurId?.dateNaissance) && (
+              <Row label={t.birth_date} value={formatBackendDate(visitor.dateNaissance || visitor.visiteur?.dateNaissance || visitor.visitor?.dateNaissance || visitor.visiteurId?.dateNaissance)} />
             )}
           </>
         )}
         <Row label={t.host_name} value={visitor.personneVisitee || visitor.hote || visitor.visitedPerson} />
         <Row label={t.service} value={visitor.service || visitor.departement} />
         <Row label={t.date} value={visitor.date || formatBackendDate(visitor.createdAt)} />
-        <Row label={t.entry_time} value={visitor.heureEntree || formatBackendTime(visitor.createdAt)} />
-        {visitor.heureSortie && <Row label={t.exit_time} value={visitor.heureSortie || formatBackendTime(visitor.updatedAt)} />}
+        <Row label={t.entry_time} value={formatBackendTime(visitor.heureEntree || visitor.createdAt)} />
+        {visitor.heureSortie && <Row label={t.exit_time} value={formatBackendTime(visitor.heureSortie || visitor.updatedAt)} />}
       </div>
 
       {(() => {
@@ -187,17 +189,17 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
                 <td className="px-4 py-2.5">
                   <p className="font-bold text-xs text-slate-900 dark:text-slate-100">
                     {v.type === 'vehicule' 
-                      ? (v.vehicule?.immatriculation || v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece) 
-                      : `${v.nom || v.visiteur?.nom || v.visitor?.nom || ''} ${v.prenom || v.visiteur?.prenom || v.visitor?.prenom || ''}`.trim() || '—'}
+                      ? (v.vehicule?.immatriculation || v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || v.visiteurId?.numeroPiece || v.visitorId?.numeroPiece) 
+                      : `${v.nom || v.visiteur?.nom || v.visitor?.nom || v.visiteurId?.nom || v.visitorId?.nom || v.Nom || v.lastName || v.name || ''} ${v.prenom || v.visiteur?.prenom || v.visitor?.prenom || v.visiteurId?.prenom || v.visitorId?.prenom || v.Prenom || v.firstName || ''}`.trim() || v.nomComplet || v.fullName || '—'}
                   </p>
-                  {v.type === 'vehicule' && <p className="text-[10px] text-slate-500 font-medium">{v.vehicule?.marque || v.visitor?.marque || v.visiteur?.marque} {v.vehicule?.modele || v.visitor?.modele || v.visiteur?.modele}</p>}
+                  {v.type === 'vehicule' && <p className="text-[10px] text-slate-500 font-medium">{v.vehicule?.marque || v.visitor?.marque || v.visiteur?.marque || v.visiteurId?.marque} {v.vehicule?.modele || v.visitor?.modele || v.visiteur?.modele || v.visiteurId?.modele}</p>}
                 </td>
                 <td className="px-4 py-2.5">
                   <p className="text-[10px] font-bold font-mono text-slate-600 dark:text-slate-400">
-                    {v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || v.vehicule?.immatriculation || '—'}
+                    {v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || v.visiteurId?.numeroPiece || v.visitorId?.numeroPiece || v.vehicule?.immatriculation || '—'}
                   </p>
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
-                    {v.typePiece || v.visiteur?.typePiece || v.visitor?.typePiece || (v.vehicule ? 'CARTE GRISE' : 'CNI')}
+                    {v.typePiece || v.visiteur?.typePiece || v.visitor?.typePiece || v.visiteurId?.typePiece || (v.vehicule ? 'CARTE GRISE' : 'CNI')}
                   </p>
                 </td>
                 <td className="px-4 py-2.5">
