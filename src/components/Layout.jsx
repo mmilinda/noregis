@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard, History, Settings, User as UserIcon,
-  Shield, Clock, Plus, Bell, Search} from 'lucide-react';
+  Clock, Plus, Bell, Search} from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { RegistrationModal } from './RegistrationModal';
 import { TRANSLATIONS } from '../translations';
+import Logo from '../assets/logo_noregis_shield.jpg'
 
 /* ============================================
    CLOCK
@@ -49,10 +50,10 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
       <div className="p-6 pb-5 border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-blue-bright to-brand-blue flex items-center justify-center shrink-0">
-            <Shield size={22} className="text-white fill-white/20" />
+          <img src={Logo} alt="NoRegis" className="rounded-lg" />
           </div>
           <div>
-            <p className="text-lg font-black text-white tracking-tight">NoRegis</p>
+            <p className="text-lg font-black text-white tracking-tight"><span className='text-white'>No</span><span className='text-brand-blue-bright'>Regis</span></p>
             <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Registre Digital</p>
           </div>
         </div>
@@ -128,10 +129,10 @@ function MobileHeader({ activeTab, navItems }) {
     <header className="sticky top-0 z-[100] bg-brand-navy p-4 flex items-center justify-between border-b border-white/5">
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-blue-bright to-brand-blue flex items-center justify-center">
-          <Shield size={18} className="text-white fill-white/20" />
+        <img src={Logo} alt="no regis logo " className="rounded-lg" />
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-base font-black text-white tracking-tight">NoRegis</span>
+          {/* <span className="text-base font-black text-white tracking-tight">NoRegis</span> */}
           <span className="text-xs font-bold text-white/30">/ {tabLabel}</span>
         </div>
       </div>
@@ -149,11 +150,6 @@ function BottomNav({ activeTab, onTabChange, onNewEntry, t }) {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-brand-navy border-t border-white/10 flex items-center px-2 pb-safe-area z-[100] h-20">
-      <button onClick={() => onTabChange('history')} className="flex-1 flex flex-col items-center gap-1.5 transition-all">
-        <History size={24} className={activeTab === 'history' ? 'text-brand-blue-bright' : 'text-white/30'} />
-        <span className={`text-[9px] font-black uppercase ${activeTab === 'history' ? 'text-brand-blue-bright' : 'text-white/30'}`}>{t.history}</span>
-      </button>
-
       <button onClick={() => onTabChange('dashboard')} className="flex-1 flex flex-col items-center gap-1.5 transition-all">
         <div className="relative">
           <LayoutDashboard size={24} className={activeTab === 'dashboard' ? 'text-brand-blue-bright' : 'text-white/30'} />
@@ -162,6 +158,10 @@ function BottomNav({ activeTab, onTabChange, onNewEntry, t }) {
           )}
         </div>
         <span className={`text-[9px] font-black uppercase ${activeTab === 'dashboard' ? 'text-brand-blue-bright' : 'text-white/30'}`}>{t.dashboard}</span>
+      </button>
+      <button onClick={() => onTabChange('history')} className="flex-1 flex flex-col items-center gap-1.5 transition-all">
+        <History size={24} className={activeTab === 'history' ? 'text-brand-blue-bright' : 'text-white/30'} />
+        <span className={`text-[9px] font-black uppercase ${activeTab === 'history' ? 'text-brand-blue-bright' : 'text-white/30'}`}>{t.history}</span>
       </button>
 
       {/* FAB */}

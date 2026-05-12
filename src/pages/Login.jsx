@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Shield, Lock, User, Loader2, ChevronRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Lock, User, Loader2, ChevronRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { Card } from '../components/UI';
 import { authService } from '../services/authService';
 import { TRANSLATIONS } from '../translations';
+import logo from '../assets/logo_noregis_shield.jpg';
 
 export function Login() {
   const { state, dispatch, notify } = useApp();
@@ -74,9 +75,8 @@ export function Login() {
       <div className="w-full max-w-md z-10">
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-brand-blue to-blue-700 shadow-2xl shadow-blue-500/20 mb-6 group transition-all hover:scale-105">
-            <Shield size={40} className="text-white group-hover:rotate-12 transition-transform" />
-          </div>
-          <h1 className="text-4xl font-black text-white tracking-tight mb-2">NoRegis</h1>
+            <img src={logo} alt="no regis logo " className="rounded-lg" />          </div>
+          {/* <h1 className="text-4xl font-black text-white tracking-tight mb-2">NoRegis</h1> */}
           <p className="text-slate-400 font-medium">{t.visitor_management}</p>
         </div>
 
