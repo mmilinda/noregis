@@ -277,8 +277,8 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
           <div className="flex-1 min-w-0 py-0.5">
             <p className="font-black text-xs text-slate-900 dark:text-slate-100 truncate tracking-tight">
               {v.type === 'vehicule' 
-                ? (v.vehicule?.immatriculation || v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece) 
-                : `${v.nom || v.visiteur?.nom || v.visitor?.nom || ''} ${v.prenom || v.visiteur?.prenom || v.visitor?.prenom || ''}`.trim() || '—'}
+                ? (v.vehicule?.immatriculation || v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || v.visiteurId?.numeroPiece || v.visitorId?.numeroPiece || '—') 
+                : `${v.nom || v.visiteur?.nom || v.visitor?.nom || v.visiteurId?.nom || v.visitorId?.nom || v.Nom || v.lastName || v.name || ''} ${v.prenom || v.visiteur?.prenom || v.visitor?.prenom || v.visiteurId?.prenom || v.visitorId?.prenom || v.Prenom || v.firstName || ''}`.trim() || v.nomComplet || v.fullName || '—'}
             </p>
             <p className="text-[10px] text-slate-500 font-bold truncate mt-0.5">
               <span className="text-slate-400">{t.to} :</span> {v.personneVisitee || v.hote || v.visitedPerson || '—'}
