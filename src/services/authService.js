@@ -5,6 +5,9 @@ export const authService = {
     const data = await api.post('/api/auth/login', { email, motDePasse: password });
     if (data.token) {
       localStorage.setItem('token', data.token);
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
     }
     return data;
   },
@@ -20,5 +23,6 @@ export const authService = {
 
   logout: () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
   }
 };

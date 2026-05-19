@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Users, User, Car, UserCheck, UserX, Clock, Plus, LogOut,
   Eye, Search, Download, RefreshCw, Calendar,
@@ -8,7 +8,33 @@ import { useApp } from '../context/useAppState';
 import { StatCard, Card, CardHeader, StatusBadge, TypeBadge, Btn, EmptyState, Modal } from '../components/UI';
 import { RegistrationModal } from '../components/RegistrationModal';
 import { visitorService } from '../services/visitorService';
+import { visitService } from '../services/visitService';
 import { TRANSLATIONS } from '../translations';
+
+// Helper pour formater les dates ISO du backend
+const formatBackendDate = (dateStr) => {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('fr-FR');
+  } catch {
+    return dateStr;
+  }
+};
+
+const formatBackendTime = (dateStr) => {
+  if (!dateStr) return '—';
+  // Si c'est déjà un format HH:mm, on le garde
+  if (/^\d{2}:\d{2}$/.test(dateStr)) return dateStr;
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return dateStr;
+  }
+};
 
 
 /* ============================================
@@ -23,9 +49,37 @@ const Row = ({ label, value, mono }) => (
   </div>
 );
 
-function VisitorDetail({ visitor, onClose, onCheckout }) {
+function VisitorDetail({ visitor: initialVisitor, onClose, onCheckout }) {
   const { state } = useApp();
+  const [visitor, setVisitor] = React.useState(initialVisitor);
+  const [fetching, setFetching] = React.useState(false);
   const t = TRANSLATIONS[state.settings?.language || 'fr'];
+
+  React.useEffect(() => {
+    const fetchFullVisitor = async () => {
+      // Si on a déjà les noms, pas besoin de fetcher
+      const hasName = !!(initialVisitor.nom || initialVisitor.visiteur?.nom || initialVisitor.visitor?.nom || initialVisitor.visiteurId?.nom);
+      
+      // Si on a un ID de visiteur mais pas de nom, on tente de récupérer les détails
+      const visiteurId = initialVisitor.visiteur?._id || initialVisitor.visiteur || initialVisitor.visiteurId || initialVisitor.visitorId;
+      
+      if (!hasName && typeof visiteurId === 'string' && visiteurId.length > 10) {
+        setFetching(true);
+        try {
+          const data = await visitorService.getById(visiteurId);
+          // Le backend peut renvoyer { visiteur: { ... } } ou directement { ... }
+          const fullVisitorData = data.visiteur || data;
+          setVisitor(prev => ({ ...prev, ...fullVisitorData, visiteur: fullVisitorData }));
+        } catch (err) {
+          console.error("Erreur fetch visitor details:", err);
+        } finally {
+          setFetching(false);
+        }
+      }
+    };
+    fetchFullVisitor();
+  }, [initialVisitor]);
+
   if (!visitor) return null;
   const isVehicule = visitor.type === 'vehicule';
 
@@ -44,16 +98,18 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-black text-lg text-slate-900 dark:text-white truncate">
-            {isVehicule ? visitor.vehicule?.immatriculation : `${visitor.nom} ${visitor.prenom}`}
+            {isVehicule 
+              ? (visitor.vehicule?.immatriculation || visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece || visitor.visiteurId?.numeroPiece || visitor.visitorId?.numeroPiece || '—') 
+              : `${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || visitor.visiteurId?.nom || visitor.visitorId?.nom || visitor.Nom || visitor.lastName || visitor.name || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || visitor.visiteurId?.prenom || visitor.visitorId?.prenom || visitor.Prenom || visitor.firstName || ''}`.trim() || visitor.nomComplet || visitor.fullName || '—'}
           </p>
           <div className="flex gap-2 mt-2 flex-wrap">
-            <StatusBadge statut={visitor.statut} />
-            <TypeBadge type={visitor.type} />
+            <StatusBadge statut={visitor.statut} heureSortie={visitor.heureSortie} />
+            <TypeBadge type={visitor.type || (visitor.vehicule ? 'vehicule' : 'person')} />
           </div>
         </div>
         <div className="text-right hidden sm:block">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.id_passage}</p>
-          <p className="text-sm font-black font-mono text-slate-900 dark:text-white">{visitor.id}</p>
+          <p className="text-sm font-black font-mono text-slate-900 dark:text-white">{visitor.id || visitor._id}</p>
         </div>
       </div>
 
@@ -68,32 +124,38 @@ function VisitorDetail({ visitor, onClose, onCheckout }) {
       <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-2 px-5">
         {isVehicule ? (
           <>
-            <Row label={t.license_plate} value={visitor.vehicule?.immatriculation} mono />
-            <Row label={t.brand_model} value={`${visitor.vehicule?.marque || ''} ${visitor.vehicule?.modele || ''}`.trim()} />
-            <Row label={t.color} value={visitor.vehicule?.couleur} />
-            <Row label={t.id_type} value={visitor.vehicule?.typeVehicule} />
-            {visitor.nom && <Row label={t.driver} value={`${visitor.nom} ${visitor.prenom}`} />}
+            <Row label={t.license_plate} value={visitor.vehicule?.immatriculation || visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece || visitor.visiteurId?.numeroPiece || visitor.visitorId?.numeroPiece} mono />
+            <Row label={t.brand_model} value={`${visitor.vehicule?.marque || visitor.visiteur?.marque || visitor.visitor?.marque || visitor.visiteurId?.marque || visitor.visitorId?.marque || ''} ${visitor.vehicule?.modele || visitor.visiteur?.modele || visitor.visitor?.modele || visitor.visiteurId?.modele || visitor.visitorId?.modele || ''}`.trim() || '—'} />
+            <Row label={t.color} value={visitor.vehicule?.couleur || visitor.visiteur?.couleur || visitor.visitor?.couleur || visitor.visiteurId?.couleur} />
+            <Row label={t.id_type} value={visitor.vehicule?.typeVehicule || visitor.typePiece || visitor.visiteur?.typePiece || visitor.visitor?.typePiece || visitor.visiteurId?.typePiece || t.id_types?.carte_grise} />
+            {(visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || visitor.visiteurId?.nom || visitor.lastName || visitor.Nom) && <Row label={t.driver} value={`${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || visitor.visiteurId?.nom || visitor.visitorId?.nom || visitor.Nom || visitor.lastName || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || visitor.visiteurId?.prenom || visitor.visitorId?.prenom || visitor.Prenom || visitor.firstName || ''}`.trim()} />}
           </>
         ) : (
           <>
-            <Row label={t.fullname} value={`${visitor.nom} ${visitor.prenom}`} />
-            <Row label={t.id_number} value={visitor.numeroPiece} mono />
-            <Row label={t.id_type} value={visitor.typePiece} />
-            {visitor.dateNaissance && <Row label={t.birth_date} value={visitor.dateNaissance} />}
+            <Row label={t.fullname} value={fetching ? '...' : (`${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || visitor.visiteurId?.nom || visitor.visitorId?.nom || visitor.Nom || visitor.lastName || visitor.name || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || visitor.visiteurId?.prenom || visitor.visitorId?.prenom || visitor.Prenom || visitor.firstName || ''}`.trim() || visitor.nomComplet || visitor.fullName || '—')} />
+            <Row label={t.id_number} value={fetching ? '...' : (visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece || visitor.visiteurId?.numeroPiece || visitor.visitorId?.numeroPiece)} mono />
+            <Row label={t.id_type} value={fetching ? '...' : (visitor.typePiece || visitor.visiteur?.typePiece || visitor.visitor?.typePiece || visitor.visiteurId?.typePiece)} />
+            {(visitor.dateNaissance || visitor.visiteur?.dateNaissance || visitor.visitor?.dateNaissance || visitor.visiteurId?.dateNaissance) && (
+              <Row label={t.birth_date} value={fetching ? '...' : formatBackendDate(visitor.dateNaissance || visitor.visiteur?.dateNaissance || visitor.visitor?.dateNaissance || visitor.visiteurId?.dateNaissance)} />
+            )}
           </>
         )}
-        <Row label={t.host_name} value={visitor.personneVisitee} />
-        <Row label={t.service} value={visitor.service} />
-        <Row label={t.date} value={visitor.date} />
-        <Row label={t.entry_time} value={visitor.heureEntree} />
-        {visitor.heureSortie && <Row label={t.exit_time} value={visitor.heureSortie} />}
+        <Row label={t.host_name} value={visitor.personneVisitee || visitor.hote || visitor.visitedPerson} />
+        <Row label={t.service} value={visitor.service || visitor.departement} />
+        <Row label={t.date} value={visitor.date || formatBackendDate(visitor.createdAt)} />
+        <Row label={t.entry_time} value={formatBackendTime(visitor.heureEntree || visitor.createdAt)} />
+        {visitor.heureSortie && <Row label={t.exit_time} value={formatBackendTime(visitor.heureSortie || visitor.updatedAt)} />}
       </div>
 
-      {visitor.statut === 'present' && (
-        <Btn variant="warning" icon={LogOut} onClick={() => { onCheckout(visitor.id); onClose(); }} fullWidth size="lg">
-          {t.mark_exit}
-        </Btn>
-      )}
+      {(() => {
+        const s = String(visitor.statut || '').toLowerCase();
+        const isPresent = (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!visitor.heureSortie && s !== 'sorti' && s !== 'sortis');
+        return isPresent && (
+          <Btn variant="warning" icon={LogOut} onClick={() => { onCheckout(visitor.id || visitor._id); onClose(); }} fullWidth size="lg">
+            {t.mark_exit}
+          </Btn>
+        );
+      })()}
     </div>
   );
 }
@@ -154,34 +216,46 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
                 <td className="px-4 py-2.5"><TypeBadge type={v.type} /></td>
                 <td className="px-4 py-2.5">
                   <p className="font-bold text-xs text-slate-900 dark:text-slate-100">
-                    {v.type === 'vehicule' ? v.vehicule?.immatriculation : `${v.nom} ${v.prenom}`}
+                    {v.type === 'vehicule' 
+                      ? (v.vehicule?.immatriculation || v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || v.visiteurId?.numeroPiece || v.visitorId?.numeroPiece) 
+                      : `${v.nom || v.visiteur?.nom || v.visitor?.nom || v.visiteurId?.nom || v.visitorId?.nom || v.Nom || v.lastName || v.name || ''} ${v.prenom || v.visiteur?.prenom || v.visitor?.prenom || v.visiteurId?.prenom || v.visitorId?.prenom || v.Prenom || v.firstName || ''}`.trim() || v.nomComplet || v.fullName || '—'}
                   </p>
-                  {v.type === 'vehicule' && <p className="text-[10px] text-slate-500 font-medium">{v.vehicule?.marque} {v.vehicule?.modele}</p>}
+                  {v.type === 'vehicule' && <p className="text-[10px] text-slate-500 font-medium">{v.vehicule?.marque || v.visitor?.marque || v.visiteur?.marque || v.visiteurId?.marque} {v.vehicule?.modele || v.visitor?.modele || v.visiteur?.modele || v.visiteurId?.modele}</p>}
                 </td>
                 <td className="px-4 py-2.5">
-                  <p className="text-[10px] font-bold font-mono text-slate-600 dark:text-slate-400">{v.numeroPiece || v.vehicule?.immatriculation || '—'}</p>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{v.typePiece}</p>
+                  <p className="text-[10px] font-bold font-mono text-slate-600 dark:text-slate-400">
+                    {v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || v.visiteurId?.numeroPiece || v.visitorId?.numeroPiece || v.vehicule?.immatriculation || '—'}
+                  </p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                    {v.typePiece || v.visiteur?.typePiece || v.visitor?.typePiece || v.visiteurId?.typePiece || (v.vehicule ? 'CARTE GRISE' : 'CNI')}
+                  </p>
                 </td>
                 <td className="px-4 py-2.5">
-                  <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200">{v.personneVisitee}</p>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{v.service}</p>
+                  <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200">{v.personneVisitee || v.hote || v.visitedPerson || '—'}</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{v.service || v.departement}</p>
                 </td>
                 <td className="px-4 py-2.5 text-[10px] font-bold font-mono">
-                  {v.heureEntree}
-                  {v.heureSortie && <p className="text-[9px] text-slate-400 mt-0.5">→ {v.heureSortie}</p>}
+                  {v.heureEntree || formatBackendTime(v.createdAt)}
+                  {(v.heureSortie || (String(v.statut).toLowerCase() === 'sorti' && v.updatedAt)) && (
+                    <p className="text-[9px] text-slate-400 mt-0.5">→ {v.heureSortie || formatBackendTime(v.updatedAt)}</p>
+                  )}
                 </td>
-                <td className="px-4 py-2.5"><StatusBadge statut={v.statut} /></td>
+                <td className="px-4 py-2.5"><StatusBadge statut={v.statut} heureSortie={v.heureSortie} /></td>
                 <td className="px-5 py-4">
                   <div className="flex gap-1 justify-end">
                     <Btn variant="ghost" size="sm" icon={Eye} onClick={() => onView(v)} className="rounded-full w-8 h-8 !p-0" />
-                    {v.statut === 'present' && (
-                      <button 
-                        onClick={() => onCheckout(v.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-amber-bright text-white border border-brand-amber-bright rounded-lg text-[10px] font-black uppercase hover:bg-amber-600 transition-all active:scale-95"
-                      >
-                        <LogOut size={12} /> {t.exited}
-                      </button>
-                    )}
+                    {(() => {
+                      const s = String(v.statut || '').toLowerCase();
+                      const isPresent = (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!v.heureSortie && s !== 'sorti' && s !== 'sortis');
+                      return isPresent && (
+                        <button 
+                          onClick={() => onCheckout(v.id || v._id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-amber-bright text-white border border-brand-amber-bright rounded-lg text-[10px] font-black uppercase hover:bg-amber-600 transition-all active:scale-95"
+                        >
+                          <LogOut size={12} /> {t.exited}
+                        </button>
+                      );
+                    })()}
                   </div>
                 </td>
               </tr>
@@ -202,25 +276,31 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
           </div>
           <div className="flex-1 min-w-0 py-0.5">
             <p className="font-black text-xs text-slate-900 dark:text-slate-100 truncate tracking-tight">
-              {v.type === 'vehicule' ? v.vehicule?.immatriculation : `${v.nom} ${v.prenom}`}
+              {v.type === 'vehicule' 
+                ? (v.vehicule?.immatriculation || v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || v.visiteurId?.numeroPiece || v.visitorId?.numeroPiece || '—') 
+                : `${v.nom || v.visiteur?.nom || v.visitor?.nom || v.visiteurId?.nom || v.visitorId?.nom || v.Nom || v.lastName || v.name || ''} ${v.prenom || v.visiteur?.prenom || v.visitor?.prenom || v.visiteurId?.prenom || v.visitorId?.prenom || v.Prenom || v.firstName || ''}`.trim() || v.nomComplet || v.fullName || '—'}
             </p>
             <p className="text-[10px] text-slate-500 font-bold truncate mt-0.5">
-              <span className="text-slate-400">{t.to} :</span> {v.personneVisitee}
+              <span className="text-slate-400">{t.to} :</span> {v.personneVisitee || v.hote || v.visitedPerson || '—'}
             </p>
             <p className="text-[9px] text-slate-400 font-medium mt-0.5">
-              {t.entry_time} : {v.heureEntree} {v.heureSortie && ` • ${t.exit_time} : ${v.heureSortie}`}
+              {t.entry_time} : {v.heureEntree || formatBackendTime(v.createdAt)} {(v.heureSortie || (String(v.statut).toLowerCase() === 'sorti' && v.updatedAt)) && ` • ${t.exit_time} : ${v.heureSortie || formatBackendTime(v.updatedAt)}`}
             </p>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0 pt-0.5">
-            <StatusBadge statut={v.statut} />
-            {v.statut === 'present' && (
-              <button 
-                onClick={e => { e.stopPropagation(); onCheckout(v.id); }}
-                className="px-2 py-1 bg-brand-amber-bright text-white border border-brand-amber-bright rounded-md text-[9px] font-black uppercase flex items-center justify-center gap-1 active:scale-90 transition-all"
-              >
-                <LogOut size={10} /> {t.exited}
-              </button>
-            )}
+            <StatusBadge statut={v.statut} heureSortie={v.heureSortie} />
+            {(() => {
+              const s = String(v.statut || '').toLowerCase();
+              const isPresent = (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!v.heureSortie && s !== 'sorti' && s !== 'sortis');
+              return isPresent && (
+                <button 
+                  onClick={e => { e.stopPropagation(); onCheckout(v.id || v._id); }}
+                  className="px-2 py-1 bg-brand-amber-bright text-white border border-brand-amber-bright rounded-md text-[9px] font-black uppercase flex items-center justify-center gap-1 active:scale-90 transition-all"
+                >
+                  <LogOut size={10} /> {t.exited}
+                </button>
+              );
+            })()}
           </div>
         </div>
       ))}
@@ -244,8 +324,8 @@ export function Dashboard({ isMobile }) {
   const fetchVisitors = useCallback(async (isRefresh = false) => {
     if (isRefresh) setLoading(true);
     try {
-      const data = await visitorService.getAll();
-      dispatch({ type: 'SET_VISITORS', payload: data.visiteurs || [] });
+      const data = await visitService.getAll();
+      dispatch({ type: 'SET_VISITORS', payload: data.visites || [] });
       if (isRefresh) notify('info', t.refresh_ok);
     } catch (err) {
       notify('error', err.message || t.api_error);
@@ -259,9 +339,11 @@ export function Dashboard({ isMobile }) {
 
     const loadData = async () => {
       try {
-        const data = await visitorService.getAll();
+        const data = await visitService.getAll();
         if (!ignore) {
-          dispatch({ type: 'SET_VISITORS', payload: data.visiteurs || [] });
+          const rawVisits = data.visites || [];
+          const uniqueVisits = Array.from(new Map(rawVisits.map(v => [v._id || v.id, v])).values());
+          dispatch({ type: 'SET_VISITORS', payload: uniqueVisits });
         }
       } catch {
         if (!ignore) notify('error', t.load_error);
@@ -274,26 +356,46 @@ export function Dashboard({ isMobile }) {
     return () => { ignore = true; };
   }, [dispatch, notify, t]);
 
-  // Stats
-  const total = visitors.length;
-  const present = visitors.filter(v => v.statut === 'present').length;
-  const sortis = visitors.filter(v => v.statut === 'sorti').length;
-  const vehicules = visitors.filter(v => v.type === 'vehicule').length;
+  // Stats memoized for performance and reactivity
+  const stats = React.useMemo(() => {
+    const total = visitors.length;
+    const present = visitors.filter(v => {
+      const s = String(v.statut || '').toLowerCase();
+      return (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!v.heureSortie && s !== 'sorti' && s !== 'sortis');
+    }).length;
+    const sortis = visitors.filter(v => {
+      const s = String(v.statut || '').toLowerCase();
+      return s === 'sorti' || s === 'sortis' || s === 'exited' || s === 'terminé' || v.heureSortie;
+    }).length;
+    const vehicules = visitors.filter(v => (v.type || (v.vehicule ? 'vehicule' : 'person')) === 'vehicule').length;
+    
+    return { total, present, sortis, vehicules };
+  }, [visitors]);
 
   // Filter
   const filtered = visitors.filter(v => {
     const q = searchQuery.toLowerCase();
-    const matchSearch = !q || [v.nom, v.prenom, v.numeroPiece, v.vehicule?.immatriculation, v.personneVisitee, v.service]
-      .filter(Boolean).some(f => f.toLowerCase().includes(q));
+    const matchSearch = !q || [
+      v.nom, v.prenom, v.numeroPiece, 
+      v.visiteur?.nom, v.visiteur?.prenom, v.visiteur?.numeroPiece,
+      v.visitor?.nom, v.visitor?.prenom, v.visitor?.numeroPiece,
+      v.vehicule?.immatriculation, v.personneVisitee, v.service
+    ].filter(Boolean).some(f => f.toLowerCase().includes(q));
     const matchStatus = filterStatus === 'all' || v.statut === filterStatus;
     const matchType = filterType === 'all' || v.type === filterType;
     return matchSearch && matchStatus && matchType;
   });
 
-  const handleCheckout = (id) => {
-    dispatch({ type: 'CHECKOUT_VISITOR', payload: id });
-    notify('info', t.exit_recorded);
+  const handleCheckout = async (id) => {
+    try {
+      await visitService.recordExit(id);
+      dispatch({ type: 'CHECKOUT_VISITOR', payload: id });
+      notify('info', t.exit_recorded);
+    } catch (err) {
+      notify('error', (t.error_prefix || 'Erreur') + ': ' + err.message);
+    }
   };
+
 
   return (
     <div className="p-3 lg:p-6 w-full max-w-7xl mx-auto flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500" dir={settings?.language === 'ar' ? 'rtl' : 'ltr'}>
@@ -312,10 +414,10 @@ export function Dashboard({ isMobile }) {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-        <StatCard label={t.total_visitors} value={total} icon={Users} color="#3B82F6" bg="#EFF6FF" />
-        <StatCard label={t.on_site} value={present} icon={UserCheck} color="#10B981" bg="#D1FAE5" />
-        <StatCard label={t.total_exits} value={sortis} icon={UserX} color="#6B7280" bg="#F1F5F9" />
-        <StatCard label={t.vehicle} value={vehicules} icon={Car} color="#F59E0B" bg="#FEF3C7" />
+        <StatCard label={t.total_visitors} value={stats.total} icon={Users} color="#3B82F6" bg="#EFF6FF" />
+        <StatCard label={t.on_site} value={stats.present} icon={UserCheck} color="#10B981" bg="#D1FAE5" />
+        <StatCard label={t.total_exits} value={stats.sortis} icon={UserX} color="#6B7280" bg="#F1F5F9" />
+        <StatCard label={t.vehicle} value={stats.vehicules} icon={Car} color="#F59E0B" bg="#FEF3C7" />
       </div>
 
       {/* Main Registry Table Card */}
@@ -411,12 +513,51 @@ export function Historique({ isMobile }) {
 
   const all = state.visitors.filter(v => {
     if (!dateFilter) return true;
-    return v.date === new Date(dateFilter).toLocaleDateString(settings?.language === 'ar' ? 'ar-EG' : (settings?.language === 'en' ? 'en-US' : 'fr-FR'));
+    
+    const filterDateStr = new Date(dateFilter).toLocaleDateString('fr-FR');
+    const visitorDate = v.date || (v.createdAt ? new Date(v.createdAt).toLocaleDateString('fr-FR') : '');
+    
+    return visitorDate === filterDateStr;
   });
 
-  const handleCheckout = (id) => {
-    dispatch({ type: 'CHECKOUT_VISITOR', payload: id });
-    notify('info', t.exit_recorded);
+  const handleExport = () => {
+    if (all.length === 0) return notify('warning', t.no_results);
+    
+    // Header
+    const headers = ["Nom", "Prenom", "Piece", "Type", "Hote", "Service", "Entree", "Sortie", "Statut"];
+    const rows = all.map(v => [
+      v.nom || v.visiteur?.nom || v.visitor?.nom || '',
+      v.prenom || v.visiteur?.prenom || v.visitor?.prenom || '',
+      v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || '',
+      v.type || 'personne',
+      v.personneVisitee || v.hote || v.visitedPerson || '',
+      v.service || v.departement || '',
+      v.heureEntree || (v.createdAt ? new Date(v.createdAt).toLocaleTimeString() : ''),
+      v.heureSortie || (v.updatedAt && (v.statut === 'sorti' || v.statut === 'sortis') ? new Date(v.updatedAt).toLocaleTimeString() : ''),
+      v.statut
+    ]);
+
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `historique_noregis_${dateFilter || 'complet'}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    notify('success', 'Exportation réussie');
+  };
+
+  const handleCheckout = async (id) => {
+    try {
+      await visitService.recordExit(id);
+      dispatch({ type: 'CHECKOUT_VISITOR', payload: id });
+      notify('info', t.exit_recorded);
+    } catch (err) {
+      notify('error', (t.error_prefix || 'Erreur') + ': ' + err.message);
+    }
   };
 
   return (
@@ -437,7 +578,7 @@ export function Historique({ isMobile }) {
             />
           </div>
           {dateFilter && <Btn variant="ghost" size="sm" onClick={() => setDateFilter('')} className="text-[10px] font-black uppercase">{t.reset}</Btn>}
-          <Btn variant="secondary" size="sm" icon={Download} className="text-[10px] font-black uppercase">{t.export}</Btn>
+          <Btn variant="secondary" size="sm" icon={Download} onClick={handleExport} className="text-[10px] font-black uppercase">{t.export}</Btn>
         </div>
       </div>
 

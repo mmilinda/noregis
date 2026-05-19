@@ -79,6 +79,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   };
 
   const handleScanData = (data, img) => {
+    const scanTime = new Date();
     setDocImage(img);
     setForm(prev => ({
       ...prev,
@@ -88,6 +89,8 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
       dateNaissance: data.dateNaissance || prev.dateNaissance,
       profession: data.profession || prev.profession,
       adresse: data.adresse || prev.adresse,
+      heureEntree: scanTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      date: scanTime.toLocaleDateString('fr-FR'),
       typePiece: data.typePiece ? normalizeTypePiece(data.typePiece) : prev.typePiece,
     }));
     setScanOpen(false);
@@ -224,16 +227,12 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     e.preventDefault();
     if (validate()) {
       onSubmit({
+        ...form,
         type: 'vehicule',
         statut: 'present',
         heureSortie: null,
-        nom: form.nom,
-        prenom: form.prenom,
-        typePiece: 'CNI', // valeur enum valide
-        personneVisitee: form.personneVisitee,
-        service: form.service,
-        heureEntree: form.heureEntree,
-        date: form.date,
+        typePiece: 'Carte Grise',
+        numeroPiece: form.immatriculation,
         vehicule: {
           immatriculation: form.immatriculation,
           marque: form.marque,
@@ -247,6 +246,7 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   };
 
   const handleScanData = (data, img) => {
+    const scanTime = new Date();
     setDocImage(img);
     setForm(prev => ({
       ...prev,
@@ -257,6 +257,8 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel, loading, t }) {
       typeVehicule: data.typeVehicule || prev.typeVehicule,
       nom: data.nom || prev.nom,
       prenom: data.prenom || prev.prenom,
+      heureEntree: scanTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      date: scanTime.toLocaleDateString('fr-FR'),
     }));
     setScanOpen(false);
   };

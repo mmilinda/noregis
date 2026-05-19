@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard, History, Settings, User as UserIcon,
-  Shield, Clock, Plus, Bell, Search} from 'lucide-react';
+  Shield, Clock, Plus, Bell, Search, LogOut } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { RegistrationModal } from './RegistrationModal';
 import { TRANSLATIONS } from '../translations';
@@ -39,7 +39,7 @@ function LiveClock({ light }) {
    DESKTOP SIDEBAR
 ============================================ */
 function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const { agent, visitors } = state;
   const present = visitors.filter(v => v.statut === 'present').length;
 
@@ -101,18 +101,31 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
         </button>
       </div>
 
-      {/* Agent */}
-      <div 
-        className="p-5 border-t border-white/5 flex items-center gap-3 cursor-pointer hover:bg-white/5 transition-colors group"
-        onClick={() => onTabChange('profile')}
-      >
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10 flex items-center justify-center text-white text-sm font-black shrink-0 overflow-hidden group-hover:border-brand-blue-bright/50 transition-colors">
-          {agent.photo ? <img src={agent.photo} alt="" className="w-full h-full object-cover" /> : agent.initials}
+      {/* Agent & Logout */}
+      <div className="mt-auto border-t border-white/5">
+        <div 
+          className="p-4 flex items-center gap-3 cursor-pointer hover:bg-white/5 transition-colors group"
+          onClick={() => onTabChange('profile')}
+        >
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10 flex items-center justify-center text-white text-[11px] font-black shrink-0 overflow-hidden group-hover:border-brand-blue-bright/50 transition-colors">
+            {agent.photo ? <img src={agent.photo} alt="" className="w-full h-full object-cover" /> : agent.initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-white/90 truncate">{agent.prenom} {agent.nom}</p>
+            <p className="text-[9px] font-black text-white/30 uppercase truncate">{agent.role}</p>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-white/90 truncate">{agent.prenom} {agent.nom}</p>
-          <p className="text-[10px] font-black text-white/30 uppercase truncate">{agent.role}</p>
-        </div>
+        
+        <button 
+          onClick={() => {
+            dispatch({ type: 'LOGOUT' });
+            // Pas besoin de notify ici car le retour au login est immédiat
+          }}
+          className="w-full flex items-center gap-3 px-6 py-4 text-brand-red hover:bg-red-500/10 transition-colors border-t border-white/5 group"
+        >
+          <LogOut size={18} className="opacity-50 group-hover:opacity-100" />
+          <span className="text-xs font-black uppercase tracking-widest">{t.logout}</span>
+        </button>
       </div>
     </aside>
   );
@@ -191,7 +204,7 @@ function BottomNav({ activeTab, onTabChange, onNewEntry, t }) {
    DESKTOP TOP BAR
 ============================================ */
 function DesktopTopBar({ activeTab, navItems, t }) {
-  const { dispatch, state } = useApp();
+  const { dispatch, state, notify } = useApp();
   const { searchQuery } = state;
   const tabLabel = navItems.find(n => n.id === activeTab)?.label || 'NoRegis';
 
