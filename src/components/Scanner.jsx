@@ -1,488 +1,175 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, Upload, X, RotateCcw, CheckCircle2, Loader2, Car, WifiOff, Zap, ZapOff } from 'lucide-react';
-import { Btn } from './UI';
+// Dt.jsx
+import { useState, useRef } from 'react';
+import { Calendar, Building2, User, CreditCard, CheckCircle2, X } from 'lucide-react';
+import { Btn, Input, Select, Modal } from './UI';
+import { ScanPanel } from './ScanPanel';
 import { useApp } from '../context/useAppState';
 import { TRANSLATIONS } from '../translations';
 
-/* ===========================================
-   HELPER: base64 → File (pour FormData)
-=========================================== */
-function base64ToFile(base64, filename = 'scan.jpg') {
-  const [meta, data] = base64.split(',');
-  const mime = meta.match(/:(.*?);/)[1];
-  const bytes = atob(data);
-  const arr = new Uint8Array(bytes.length);
-  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
-  return new File([arr], filename, { type: mime });
-}
+const servicesList = [
+  'Direction Générale', 'Ressources Humaines', 'Direction Financière',
+  'Comptabilité', 'Direction Technique', 'Maintenance', 'Informatique / IT',
+  'Logistique', 'Entrepôt / Livraison', 'Commercial / Ventes', 'Marketing',
+  'Juridique', 'Sécurité', 'Accueil / Réception', 'Autre'
+];
 
-/* ===========================================
-   PRÉTRAITEMENT IMAGE (Canvas)
-   Niveaux de gris + contraste + netteté
-=========================================== */
-function preparerImageOCR(base64) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width  = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-
-      // ── 1. Dessin de l'image originale ──────────────────────────────────
-      ctx.drawImage(img, 0, 0);
-
-      // ── 2. Niveaux de gris + contraste ──────────────────────────────────
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      const facteurContraste = 1.5; // 1 = neutre, >1 = plus de contraste
-
-      for (let i = 0; i < data.length; i += 4) {
-        // Luminance perceptuelle (niveaux de gris)
-        const gris = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-        // Contraste : ((gris - 128) * facteur) + 128
-        const contraste = Math.min(255, Math.max(0, (gris - 128) * facteurContraste + 128));
-        data[i] = data[i + 1] = data[i + 2] = contraste;
-        // data[i + 3] = alpha, inchangé
-      }
-      ctx.putImageData(imageData, 0, 0);
-
-      // ── 3. Filtre de netteté (sharpen) via convolution 3×3 ──────────────
-      const src = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const dst = ctx.createImageData(canvas.width, canvas.height);
-      const s = src.data, d = dst.data;
-      const w = canvas.width, h = canvas.height;
-
-      // Kernel sharpen
-      const kernel = [
-         0, -1,  0,
-        -1,  5, -1,
-         0, -1,  0,
-      ];
-
-      for (let y = 1; y < h - 1; y++) {
-        for (let x = 1; x < w - 1; x++) {
-          let r = 0, g = 0, b = 0;
-          for (let ky = -1; ky <= 1; ky++) {
-            for (let kx = -1; kx <= 1; kx++) {
-              const idx = ((y + ky) * w + (x + kx)) * 4;
-              const k   = kernel[(ky + 1) * 3 + (kx + 1)];
-              r += s[idx]     * k;
-              g += s[idx + 1] * k;
-              b += s[idx + 2] * k;
-            }
-          }
-          const idx = (y * w + x) * 4;
-          d[idx]     = Math.min(255, Math.max(0, r));
-          d[idx + 1] = Math.min(255, Math.max(0, g));
-          d[idx + 2] = Math.min(255, Math.max(0, b));
-          d[idx + 3] = 255;
-        }
-      }
-      ctx.putImageData(dst, 0, 0);
-
-      // ── 4. Export en JPEG haute qualité ──────────────────────────────────
-      resolve(canvas.toDataURL('image/jpeg', 0.95));
-    };
-    img.src = base64;
-  });
-}
-
-/* ===========================================
-   OCR PROCESSING ENGINE
-=========================================== */
-function OcrProcessing({ image, mode, onDone, t }) {
-  useEffect(() => {
-    let isMounted = true;
-
-    const runBackendOCR = async () => {
-      try {
-        // ✅ Prétraitement avant envoi
-        const imagePreparee = await preparerImageOCR(image);
-
-        const token = localStorage.getItem('token');
-        const baseUrl = import.meta.env.VITE_API_URL || 'https://noregisbackend.onrender.com';
-
-        const formData = new FormData();
-        formData.append('image', base64ToFile(imagePreparee));
-        formData.append('mode', mode);
-
-        const response = await fetch(`${baseUrl}/api/scan`, {
-          method: 'POST',
-          headers: { 'Authorization': token ? `Bearer ${token}` : '' },
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const errorBody = await response.json().catch(() => ({}));
-          throw new Error(`Erreur Scan: ${errorBody.message || response.statusText}`);
-        }
-
-        const result = await response.json();
-        if (!isMounted) return;
-        if (!result.infosExtraites) throw new Error(t.no_text);
-
-        onDone(result.infosExtraites);
-
-      } catch (err) {
-        console.error('Scan Error:', err);
-        onDone({ error: t.cloud_fail });
-      }
-    };
-
-    runBackendOCR();
-    return () => { isMounted = false; };
-  }, [image, mode, onDone, t]);
-
-  return (
-    <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
-      <Loader2 size={36} className="animate-spin text-brand-blue-bright" />
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">
-        {t.analysis}
-      </p>
-    </div>
-  );
-}
-
-/* ===========================================
-   SCANNER (Camera Live) — PLEIN ÉCRAN MOBILE
-=========================================== */
-function LiveCamera({ onCapture, onClose, t }) {
-  const videoRef   = useRef(null);
-  const streamRef  = useRef(null);
-
-  const [ready,      setReady]      = useState(false);
-  const [flashOn,    setFlashOn]    = useState(false);
-  const [flashAvail, setFlashAvail] = useState(false);
-  const [error,      setError]      = useState(() => {
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-      return t.camera_unsupported;
-    }
-    return null;
-  });
-
-  useEffect(() => {
-    if (error) return;
-
-    try {
-      screen.orientation?.lock?.('portrait').catch(() => {});
-    } catch (_) {}
-
-    const startCamera = async (facing) => {
-      try {
-        const s = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: facing,
-            width:  { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-        });
-        streamRef.current = s;
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = s;
-          setReady(true);
-        }
-
-        const track = s.getVideoTracks()[0];
-        const caps  = track?.getCapabilities?.();
-
-        if (caps?.torch) {
-          setFlashAvail(true);
-          try {
-            await track.applyConstraints({ advanced: [{ torch: true }] });
-            setFlashOn(true);
-          } catch (_) {
-            console.warn('Flash auto non activé');
-          }
-        }
-
-      } catch (err) {
-        if (facing === 'environment') {
-          startCamera('user');
-        } else {
-          setError(`${t.camera_error} : ${err.name === 'NotAllowedError' ? t.permission_denied : t.unavailable}`);
-        }
-      }
-    };
-
-    startCamera('environment');
-
-    return () => {
-      const track = streamRef.current?.getVideoTracks()[0];
-      if (track) {
-        track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
-        streamRef.current.getTracks().forEach(tr => tr.stop());
-      }
-      try { screen.orientation?.unlock?.(); } catch (_) {}
-    };
-  }, [error, t]);
-
-  const toggleFlash = useCallback(async () => {
-    const track = streamRef.current?.getVideoTracks()[0];
-    if (!track) return;
-    const next = !flashOn;
-    try {
-      await track.applyConstraints({ advanced: [{ torch: next }] });
-      setFlashOn(next);
-    } catch (err) {
-      console.warn('Flash toggle error:', err);
-    }
-  }, [flashOn]);
-
-  const capture = useCallback(() => {
-    const video = videoRef.current;
-    const MAX = 1280;
-    let w = video.videoWidth;
-    let h = video.videoHeight;
-    if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
-    if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
-
-    const canvas = document.createElement('canvas');
-    canvas.width  = w;
-    canvas.height = h;
-    canvas.getContext('2d').drawImage(video, 0, 0, w, h);
-
-    const track = streamRef.current?.getVideoTracks()[0];
-    if (track && flashOn) {
-      track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
-    }
-
-    onCapture(canvas.toDataURL('image/jpeg', 0.95));
-  }, [flashOn, onCapture]);
-
-  const handleClose = useCallback(() => {
-    const track = streamRef.current?.getVideoTracks()[0];
-    if (track && flashOn) {
-      track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
-    }
-    onClose();
-  }, [flashOn, onClose]);
-
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black">
-
-      <div className="flex-1 relative overflow-hidden">
-
-        {!ready && !error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-slate-400 z-10">
-            <Loader2 size={40} className="animate-spin text-brand-blue-bright" />
-          </div>
-        )}
-
-        {error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8 text-center bg-slate-900 z-10">
-            <WifiOff size={40} className="text-brand-red-bright" />
-            <p className="text-sm font-black text-white uppercase tracking-tight leading-tight">{error}</p>
-            <button
-              onClick={handleClose}
-              className="mt-4 px-6 py-2 bg-white/10 text-white rounded-lg text-[10px] font-black uppercase"
-            >
-              {t.close}
-            </button>
-          </div>
-        )}
-
-        <video
-          ref={videoRef}
-          autoPlay playsInline muted
-          className={`absolute inset-0 w-full h-full object-cover ${ready ? 'opacity-100' : 'opacity-0'}`}
-        />
-
-        {/* Cadre de visée */}
-        <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
-          <div className="relative w-full aspect-[1.6] max-w-sm border-2 border-white/20 rounded-2xl">
-            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-brand-blue-bright rounded-tl-xl" />
-            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-brand-blue-bright rounded-tr-xl" />
-            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-brand-blue-bright rounded-bl-xl" />
-            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-brand-blue-bright rounded-br-xl" />
-            <p className="absolute -bottom-7 left-0 right-0 text-center text-[9px] font-black text-white/60 uppercase tracking-widest">
-              {t.id_card}
-            </p>
-          </div>
-        </div>
-
-        {flashAvail && ready && (
-          <button
-            onClick={toggleFlash}
-            className={`
-              absolute top-4 right-4 z-20
-              w-11 h-11 rounded-full flex items-center justify-center
-              transition-all duration-200 active:scale-90
-              ${flashOn
-                ? 'bg-yellow-400 text-slate-900 shadow-[0_0_16px_4px_rgba(250,204,21,0.5)]'
-                : 'bg-white/10 text-white backdrop-blur-sm border border-white/20'
-              }
-            `}
-          >
-            {flashOn ? <Zap size={20} fill="currentColor" /> : <ZapOff size={20} />}
-          </button>
-        )}
-
-        <button
-          onClick={handleClose}
-          className="absolute top-4 left-4 z-20 w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center active:scale-90 transition-transform"
-        >
-          <X size={22} />
-        </button>
-      </div>
-
-      {/* Barre de contrôles */}
-      <div
-        className="flex items-center justify-center gap-10 py-8 bg-gradient-to-t from-black/90 to-transparent"
-        style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
-      >
-        <div className="w-12 h-12" />
-
-        <button
-          onClick={capture}
-          disabled={!ready}
-          className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-95 transition-transform disabled:opacity-40"
-        >
-          <div className="w-14 h-14 rounded-full bg-white" />
-        </button>
-
-        {flashAvail ? (
-          <button
-            onClick={toggleFlash}
-            className={`
-              w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90
-              ${flashOn
-                ? 'bg-yellow-400 text-slate-900 shadow-[0_0_12px_2px_rgba(250,204,21,0.4)]'
-                : 'bg-white/10 text-white'
-              }
-            `}
-          >
-            {flashOn ? <Zap size={20} fill="currentColor" /> : <ZapOff size={20} />}
-          </button>
-        ) : (
-          <div className="w-12 h-12" />
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ===========================================
-   SCAN PANEL (Main Entry)
-=========================================== */
-export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
+export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations }) {
   const { state } = useApp();
-  const t = TRANSLATIONS[state.settings?.language || 'fr'];
-  const [phase, setPhase] = useState('choose');
-  const [capturedImage, setCapturedImage] = useState(null);
-  const [ocrData, setOcrData] = useState(null);
-  const fileRef = useRef(null);
+  const t = translations || TRANSLATIONS[state.settings?.language || 'fr'];
 
-  const handleOcrDone   = (data) => { setOcrData(data); setPhase('done'); };
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => { setCapturedImage(reader.result); setPhase('ocr'); };
-    reader.readAsDataURL(file);
+  const [formData, setFormData] = useState({
+    nom: initial.nom || '',
+    prenom: initial.prenom || '',
+    numeroPiece: initial.numeroPiece || '',
+    typePiece: initial.typePiece || '',
+    dateNaissance: initial.dateNaissance || '',
+    personneVisitee: initial.personneVisitee || '',
+    service: initial.service || '',
+    motif: initial.motif || '',
+    profession: initial.profession || '',
+    heureEntree: initial.heureEntree || new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+    date: initial.date || new Date().toLocaleDateString('fr-FR'),
+    ...initial
+  });
+
+  const [errors, setErrors] = useState({});
+  const [showScan, setShowScan] = useState(false);
+  const [docImage, setDocImage] = useState(initial.docImage || null);
+
+  // Met à jour un champ
+  const handleChange = (field) => (e) => {
+    setFormData(prev => ({ ...prev, [field]: e.target.value }));
   };
 
-  const isAr = state.settings?.language === 'ar';
+  // Valide le formulaire
+  const validate = () => {
+    const err = {};
+    if (!formData.nom.trim()) err.nom = t.required_field;
+    if (!formData.prenom.trim()) err.prenom = t.required_field;
+    if (!formData.numeroPiece.trim()) err.numeroPiece = t.required_field;
+    if (!formData.typePiece) err.typePiece = t.select_type;
+    if (!formData.personneVisitee.trim()) err.personneVisitee = t.required_field;
+    if (!formData.service) err.service = t.select_service;
+    setErrors(err);
+    return Object.keys(err).length === 0;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (validate()) {
+      onSubmit({
+        ...formData,
+        type: 'person',
+        statut: 'present',
+        heureSortie: null,
+        photo: docImage
+      });
+    }
+  };
+
+  // Callback du scan : pré‑remplit les champs
+  const handleOcrData = (data, image) => {
+    setFormData(prev => ({
+      ...prev,
+      nom: data.nom || prev.nom,
+      prenom: data.prenom || prev.prenom,
+      numeroPiece: data.numero_piece || data.numeroPiece || prev.numeroPiece,
+      typePiece: data.type_piece || data.typePiece || prev.typePiece,
+      dateNaissance: data.date_naissance || data.dateNaissance || prev.dateNaissance,
+    }));
+    setDocImage(image);
+    setShowScan(false);
+  };
+
+  const isRtl = state.settings?.language === 'ar';
 
   return (
-    <div
-      className="flex flex-col h-full min-h-[520px] bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800"
-      dir={isAr ? 'rtl' : 'ltr'}
-    >
-      <div className="p-4 border-b border-slate-50 dark:border-slate-800 flex items-center gap-4 bg-slate-50/50 dark:bg-slate-900/50">
-        <div className="w-10 h-10 rounded-lg bg-brand-blue-light text-brand-blue-bright flex items-center justify-center">
-          {mode === 'vehicule' ? <Car size={20} /> : <Camera size={20} />}
-        </div>
-        <div>
-          <h2 className="text-base font-black text-slate-900 dark:text-white leading-none">{t.scanning}</h2>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter mt-1.5">
-            {mode === 'vehicule' ? t.license_plate : t.id_card}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-hidden">
-
-        {phase === 'choose' && (
-          <div className="p-8 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-300">
-            <p className="text-center text-slate-500 text-[11px] font-extrabold uppercase tracking-widest mb-2">{t.scan_method}</p>
-            <button
-              onClick={() => setPhase('camera')}
-              className="group flex items-center gap-4 p-4 rounded-xl border-2 border-brand-blue-bright/10 bg-brand-blue-light/10 hover:border-brand-blue-bright/30 transition-all text-left"
-            >
-              <div className="w-10 h-10 rounded-lg bg-brand-blue-bright text-white flex items-center justify-center shrink-0">
-                <Camera size={20} />
+    <>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        {/* Bloc Scan */}
+        <div className="bg-gradient-to-r from-brand-blue-light/20 to-brand-green-light/20 dark:from-brand-blue-bright/10 dark:to-brand-green-bright/10 border-2 border-brand-blue-bright/20 rounded-xl p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {docImage ? (
+              <div className="w-12 h-9 rounded-lg overflow-hidden border-2 border-brand-green-bright">
+                <img src={docImage} alt="doc" className="w-full h-full object-cover" />
               </div>
-              <div className="flex-1">
-                <p className="font-black text-sm text-slate-900 dark:text-white">{t.live_camera}</p>
-                <p className="text-[9px] font-bold text-brand-blue-bright uppercase tracking-tighter mt-1">{t.scan_id_desc}</p>
+            ) : (
+              <div className="w-12 h-9 rounded-lg bg-white/50 dark:bg-slate-800 flex items-center justify-center">
+                <CreditCard size={20} className="text-brand-blue-bright" />
               </div>
-            </button>
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="group flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 dark:border-slate-800 hover:border-slate-300 transition-all text-left"
-            >
-              <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center shrink-0">
-                <Upload size={20} />
-              </div>
-              <div className="flex-1">
-                <p className="font-black text-sm text-slate-900 dark:text-white">{t.import_file}</p>
-                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter mt-1">{t.scan_id_desc}</p>
-              </div>
-            </button>
-            <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFileUpload} />
-            <button
-              onClick={onClose}
-              className="mt-6 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest active:scale-95 transition-all"
-            >
-              {t.cancel}
-            </button>
-          </div>
-        )}
-
-        {phase === 'camera' && (
-          <LiveCamera
-            onCapture={(img) => { setCapturedImage(img); setPhase('ocr'); }}
-            onClose={() => setPhase('choose')}
-            t={t}
-          />
-        )}
-
-        {phase === 'ocr' && (
-          <OcrProcessing image={capturedImage} mode={mode} onDone={handleOcrDone} t={t} />
-        )}
-
-        {phase === 'done' && (
-          <div className="p-6 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="relative rounded-lg overflow-hidden border-2 border-brand-green-bright">
-              <img src={capturedImage} alt="Capture" className="w-full h-32 object-cover" />
-              <div className="absolute top-2 right-2 bg-brand-green-bright text-white px-2 py-1 rounded text-[9px] font-black uppercase tracking-tighter">
-                {t.capture_valid}
-              </div>
-            </div>
-            <div className="bg-brand-green-light/10 dark:bg-brand-green-bright/5 rounded-xl p-4 border border-brand-green-bright/20">
-              <p className="text-[9px] font-black text-brand-green-bright uppercase tracking-widest mb-3">
-                {t.extraction_done}
+            )}
+            <div>
+              <p className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                {docImage ? (
+                  <><CheckCircle2 size={16} className="text-brand-green-bright" /> {t.scan_id_done}</>
+                ) : (
+                  <><Camera size={16} className="text-brand-blue-bright" /> {t.scan_quick}</>
+                )}
               </p>
-              <div className="space-y-2">
-                {Object.entries(ocrData).map(([k, v]) => (
-                  <div key={k} className="flex justify-between items-center gap-4 pb-2 border-b border-brand-green-bright/5 last:border-0 last:pb-0">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">{k}</span>
-                    <span className={`text-xs font-black text-slate-900 dark:text-white ${isAr ? 'text-left' : 'text-right'}`}>
-                      {v || '—'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Btn variant="secondary" icon={RotateCcw} onClick={() => setPhase('choose')} fullWidth>{t.restart}</Btn>
-              <Btn variant="success" icon={CheckCircle2} onClick={() => onDataExtracted(ocrData, capturedImage)} fullWidth>{t.validate_data}</Btn>
+              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter leading-none mt-1">
+                {t.scan_id_desc}
+              </p>
             </div>
           </div>
-        )}
-      </div>
-    </div>
+          <Btn variant="primary" size="sm" icon={Camera} onClick={() => setShowScan(true)} type="button">
+            {docImage ? t.rescan_btn : t.scan_btn}
+          </Btn>
+        </div>
+
+        {/* Champs d'identité */}
+        <div className="space-y-4">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
+            <CreditCard size={14} /> {t.id_doc}
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <Input label={t.name} id="nom" required value={formData.nom} onChange={handleChange('nom')} error={errors.nom} placeholder="NOM" />
+            <Input label={t.firstname} id="prenom" required value={formData.prenom} onChange={handleChange('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input label={t.id_number} id="numeroPiece" required value={formData.numeroPiece} onChange={handleChange('numeroPiece')} error={errors.numeroPiece} placeholder={t.number_placeholder} />
+            <Select label={t.id_type} id="typePiece" required value={formData.typePiece} onChange={handleChange('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
+          </div>
+          <Input label={t.birth_date} id="dateNaissance" type="date" value={formData.dateNaissance} onChange={handleChange('dateNaissance')} icon={Calendar} />
+        </div>
+
+        {/* Destination */}
+        <div className="space-y-4">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
+            <Building2 size={14} /> {t.destination}
+          </p>
+          <Input label={t.host_name} id="personneVisitee" required value={formData.personneVisitee} onChange={handleChange('personneVisitee')} error={errors.personneVisitee} icon={User} placeholder={t.host_placeholder} />
+          <div className="grid grid-cols-2 gap-4">
+            <Select label={t.service_dept} id="service" required value={formData.service} onChange={handleChange('service')} options={servicesList} placeholder={t.select} error={errors.service} icon={Building2} />
+            <Input label={t.visit_reason} id="motif" required value={formData.motif} onChange={handleChange('motif')} placeholder={t.reason_placeholder} />
+          </div>
+        </div>
+
+        {/* Date / Heure */}
+        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-4 flex justify-around items-center">
+          <div className="flex items-center gap-2">
+            <Calendar size={14} className="text-slate-400" />
+            <span className="text-xs font-black text-slate-800 dark:text-slate-200">{formData.date}</span>
+          </div>
+          <div className="w-px h-4 bg-slate-200 dark:bg-slate-800" />
+          <div className="flex items-center gap-2">
+            <Clock size={14} className="text-slate-400" />
+            <span className="text-xs font-black text-slate-800 dark:text-slate-200">{formData.heureEntree}</span>
+          </div>
+        </div>
+
+        {/* Boutons */}
+        <div className="flex gap-3 pt-2">
+          <Btn variant="secondary" onClick={onCancel} fullWidth className="!rounded-lg">{t.cancel}</Btn>
+          <Btn variant="success" type="submit" icon={CheckCircle2} fullWidth className="!rounded-lg" loading={loading}>{t.validate_entry}</Btn>
+        </div>
+      </form>
+
+      {/* Modal ScanPanel */}
+      <Modal isOpen={showScan} onClose={() => setShowScan(false)} title={`${t.scan_btn} – ${t.id_card}`} size="md">
+        <div className="h-[560px]">
+          <ScanPanel mode="person" onDataExtracted={handleOcrData} onClose={() => setShowScan(false)} />
+        </div>
+      </Modal>
+    </>
   );
 }
