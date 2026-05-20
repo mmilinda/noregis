@@ -8,6 +8,7 @@ import {
 import { useApp } from '../context/useAppState';
 import { Card, Toggle, Btn, Modal } from '../components/UI';
 import { TRANSLATIONS } from '../translations';
+import { authService } from '../services/authService';
 import { demandeService } from '../services/demandeService';
 
 /* ============================================
@@ -119,7 +120,6 @@ export function Parametres() {
   );
 }
 
-
 /* ============================================
    PROFIL AGENT
 ============================================ */
@@ -165,8 +165,18 @@ export function ProfilAgent() {
   const [envoi, setEnvoi]     = useState(false);
   const [erreurEnvoi, setErreurEnvoi] = useState('');
 
+  // Admin edit mode direct
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    prenom: '', nom: '', telephone: '', departement: '', poste: '', niveauAccreditation: '', dateArrivee: ''
+  });
+
   // Charger la demande en attente de l'agent
   useEffect(() => {
+    if (agent?.role === 'ADMIN') {
+      setLoadingDemande(false);
+      return;
+    }
     const charger = async () => {
       try {
         const res = await demandeService.maDemande();
@@ -176,7 +186,7 @@ export function ProfilAgent() {
       }
     };
     charger();
-  }, []);
+  }, [agent]);
 
   const handlePhoto = (e) => {
     const file = e.target.files[0];
@@ -211,6 +221,38 @@ export function ProfilAgent() {
     setMotif('');
     setErreurEnvoi('');
     setDemandeModal(true);
+  };
+
+  const startEditing = () => {
+    setEditForm({
+      prenom: agent.prenom || '',
+      nom: agent.nom || '',
+      telephone: agent.telephone || '',
+      departement: agent.departement || '',
+      poste: agent.poste || '',
+      niveauAccreditation: agent.niveauAccreditation || agent.niveau || '',
+      dateArrivee: agent.dateArrivee ? new Date(agent.dateArrivee).toISOString().split('T')[0] : ''
+    });
+    setErreurEnvoi('');
+    setIsEditing(true);
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    setEnvoi(true);
+    setErreurEnvoi('');
+    try {
+      const res = await authService.updateProfile(editForm);
+      const updatedUser = res.user || res.utilisateur;
+      dispatch({ type: 'UPDATE_AGENT', payload: updatedUser });
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      notify('success', '✅ Profil mis à jour avec succès.');
+      setIsEditing(false);
+    } catch (err) {
+      setErreurEnvoi(err.message || 'Erreur lors de la mise à jour.');
+    } finally {
+      setEnvoi(false);
+    }
   };
 
   const handleSubmitDemande = async (e) => {
@@ -283,6 +325,7 @@ export function ProfilAgent() {
             <Camera size={18} />
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
         </div>
 
         {/* Info */}
@@ -302,50 +345,154 @@ export function ProfilAgent() {
         </div>
       </div>
 
-      {/* Details — lecture seule */}
+      {erreurEnvoi && isEditing && (
+        <div className="p-3 bg-red-50 dark:bg-red-950/30 text-brand-red border border-brand-red-bright/20 rounded-lg text-xs font-bold flex items-center gap-2">
+          <XCircle size={16} /><span>{erreurEnvoi}</span>
+        </div>
+      )}
+
+      {/* Details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
           <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 ml-1">{t.coordinates}</h3>
           <Card>
-            <InfoRow icon={Mail}    label={t.email}  value={agent?.email} />
-            <InfoRow icon={Phone}   label={t.phone}  value={agent?.telephone} />
-            <InfoRow icon={Building} label={t.dept}  value={agent?.departement} />
+            {isEditing ? (
+              <div className="p-4 space-y-4">
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Prénom</label>
+                  <input
+                    type="text"
+                    value={editForm.prenom}
+                    onChange={e => setEditForm(prev => ({ ...prev, prenom: e.target.value }))}
+                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Nom</label>
+                  <input
+                    type="text"
+                    value={editForm.nom}
+                    onChange={e => setEditForm(prev => ({ ...prev, nom: e.target.value }))}
+                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Téléphone</label>
+                  <input
+                    type="text"
+                    value={editForm.telephone}
+                    onChange={e => setEditForm(prev => ({ ...prev, telephone: e.target.value }))}
+                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Département</label>
+                  <input
+                    type="text"
+                    value={editForm.departement}
+                    onChange={e => setEditForm(prev => ({ ...prev, departement: e.target.value }))}
+                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <InfoRow icon={Mail}    label={t.email}  value={agent?.email} />
+                <InfoRow icon={Phone}   label={t.phone}  value={agent?.telephone} />
+                <InfoRow icon={Building} label={t.dept}  value={agent?.departement} />
+              </>
+            )}
           </Card>
         </div>
         <div>
           <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 ml-1">{t.ops_info}</h3>
           <Card>
-            <InfoRow icon={BadgeCheck} label={t.acc_level}   value={agent?.niveauAccreditation || agent?.niveau} />
-            <InfoRow icon={Building}   label={t.workstation} value={agent?.poste} />
-            <InfoRow icon={Calendar}   label={t.arrival}     value={
-              agent?.dateArrivee
-                ? new Date(agent.dateArrivee).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-                : '—'
-            } />
+            {isEditing ? (
+              <div className="p-4 space-y-4">
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Accréditation</label>
+                  <input
+                    type="text"
+                    value={editForm.niveauAccreditation}
+                    onChange={e => setEditForm(prev => ({ ...prev, niveauAccreditation: e.target.value }))}
+                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Poste</label>
+                  <input
+                    type="text"
+                    value={editForm.poste}
+                    onChange={e => setEditForm(prev => ({ ...prev, poste: e.target.value }))}
+                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Date d'arrivée</label>
+                  <input
+                    type="date"
+                    value={editForm.dateArrivee}
+                    onChange={e => setEditForm(prev => ({ ...prev, dateArrivee: e.target.value }))}
+                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <InfoRow icon={BadgeCheck} label={t.acc_level}   value={agent?.niveauAccreditation || agent?.niveau} />
+                <InfoRow icon={Building}   label={t.workstation} value={agent?.poste} />
+                <InfoRow icon={Calendar}   label={t.arrival}     value={
+                  agent?.dateArrivee
+                    ? new Date(agent.dateArrivee).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+                    : '—'
+                } />
+              </>
+            )}
           </Card>
         </div>
       </div>
 
       {/* Note lecture seule */}
-      <div className="flex items-center gap-2 text-xs text-slate-400 font-bold bg-slate-50 dark:bg-slate-900/40 px-4 py-3 rounded-lg border border-slate-100 dark:border-slate-800">
-        <ShieldAlert size={14} className="text-slate-400 shrink-0" />
-        Ces informations sont gérées par votre administrateur. Pour les modifier, soumettez une demande.
-      </div>
+      {agent?.role !== 'ADMIN' && (
+        <div className="flex items-center gap-2 text-xs text-slate-400 font-bold bg-slate-50 dark:bg-slate-900/40 px-4 py-3 rounded-lg border border-slate-100 dark:border-slate-800">
+          <ShieldAlert size={14} className="text-slate-400 shrink-0" />
+          Ces informations sont gérées par votre administrateur. Pour les modifier, soumettez une demande.
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex gap-3 justify-end mt-2">
-        <Btn
-          variant="secondary"
-          icon={Pencil}
-          disabled={!!demandePendante}
-          onClick={openDemandeModal}
-          className="!border-brand-blue-bright/30 !text-brand-blue-bright hover:!bg-brand-blue-bright hover:!text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {demandePendante ? 'Demande en attente…' : 'Demander une modification'}
-        </Btn>
-        <Btn variant="danger" icon={LogOut} onClick={handleLogout}>
-          {t.logout}
-        </Btn>
+        {agent?.role === 'ADMIN' ? (
+          isEditing ? (
+            <>
+              <Btn variant="secondary" onClick={() => setIsEditing(false)}>
+                Annuler
+              </Btn>
+              <Btn variant="primary" icon={Send} loading={envoi} onClick={handleSaveProfile}>
+                Enregistrer
+              </Btn>
+            </>
+          ) : (
+            <Btn variant="primary" icon={Pencil} onClick={startEditing}>
+              Modifier mon profil
+            </Btn>
+          )
+        ) : (
+          <Btn
+            variant="secondary"
+            icon={Pencil}
+            disabled={!!demandePendante}
+            onClick={openDemandeModal}
+            className="!border-brand-blue-bright/30 !text-brand-blue-bright hover:!bg-brand-blue-bright hover:!text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {demandePendante ? 'Demande en attente…' : 'Demander une modification'}
+          </Btn>
+        )}
+        {!isEditing && (
+          <Btn variant="danger" icon={LogOut} onClick={handleLogout}>
+            {t.logout}
+          </Btn>
+        )}
       </div>
 
       {/* ── MODAL DE DEMANDE ───────────────────────────────── */}
@@ -355,7 +502,7 @@ export function ProfilAgent() {
             Sélectionnez les champs à modifier, indiquez les nouvelles valeurs et ajoutez un motif si besoin.
           </p>
 
-          {erreurEnvoi && (
+          {erreurEnvoi && !isEditing && (
             <div className="p-3 bg-red-50 dark:bg-red-950/30 text-brand-red border border-brand-red-bright/20 rounded-lg text-xs font-bold flex items-center gap-2">
               <XCircle size={16} /><span>{erreurEnvoi}</span>
             </div>
@@ -418,3 +565,4 @@ export function ProfilAgent() {
     </div>
   );
 }
+
