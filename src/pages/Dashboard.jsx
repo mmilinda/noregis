@@ -212,7 +212,7 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {sorted.map(v => (
-              <tr key={v.id} className="group hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+              <tr key={v._id || v.id} className="group hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
                 <td className="px-4 py-2.5"><TypeBadge type={v.type} /></td>
                 <td className="px-4 py-2.5">
                   <p className="font-bold text-xs text-slate-900 dark:text-slate-100">
@@ -234,10 +234,17 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
                   <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200">{v.personneVisitee || v.hote || v.visitedPerson || '—'}</p>
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{v.service || v.departement}</p>
                 </td>
-                <td className="px-4 py-2.5 text-[10px] font-bold font-mono">
-                  {v.heureEntree || formatBackendTime(v.createdAt)}
-                  {(v.heureSortie || (String(v.statut).toLowerCase() === 'sorti' && v.updatedAt)) && (
-                    <p className="text-[9px] text-slate-400 mt-0.5">→ {v.heureSortie || formatBackendTime(v.updatedAt)}</p>
+                <td className="px-4 py-2.5">
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                    {formatBackendDate(v.heureEntree || v.createdAt)}
+                  </p>
+                  <p className="text-xs font-black font-mono text-slate-800 dark:text-slate-200">
+                    {formatBackendTime(v.heureEntree || v.createdAt)}
+                  </p>
+                  {(v.heureSortie || (String(v.statut || '').toLowerCase() === 'sorti' && v.updatedAt)) && (
+                    <p className="text-[9px] text-slate-400 mt-0.5 font-mono">
+                      → {formatBackendTime(v.heureSortie || v.updatedAt)}
+                    </p>
                   )}
                 </td>
                 <td className="px-4 py-2.5"><StatusBadge statut={v.statut} heureSortie={v.heureSortie} /></td>
@@ -270,7 +277,7 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
   return (
     <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
       {sorted.map(v => (
-        <div key={v.id} onClick={() => onView(v)} className="flex items-start gap-3 p-3 active:bg-slate-50 dark:active:bg-slate-900 transition-colors cursor-pointer group">
+        <div key={v._id || v.id} onClick={() => onView(v)} className="flex items-start gap-3 p-3 active:bg-slate-50 dark:active:bg-slate-900 transition-colors cursor-pointer group">
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${v.type === 'vehicule' ? 'bg-brand-green-light text-brand-green' : 'bg-brand-blue-light text-brand-blue'}`}>
             {v.type === 'vehicule' ? <Car size={20} /> : <User size={20} />}
           </div>
@@ -284,7 +291,10 @@ function VisitorTable({ visitors, onView, onCheckout, compact }) {
               <span className="text-slate-400">{t.to} :</span> {v.personneVisitee || v.hote || v.visitedPerson || '—'}
             </p>
             <p className="text-[9px] text-slate-400 font-medium mt-0.5">
-              {t.entry_time} : {v.heureEntree || formatBackendTime(v.createdAt)} {(v.heureSortie || (String(v.statut).toLowerCase() === 'sorti' && v.updatedAt)) && ` • ${t.exit_time} : ${v.heureSortie || formatBackendTime(v.updatedAt)}`}
+              {formatBackendDate(v.heureEntree || v.createdAt)} · {formatBackendTime(v.heureEntree || v.createdAt)}
+              {(v.heureSortie || (String(v.statut || '').toLowerCase() === 'sorti' && v.updatedAt)) && (
+                <> · → {formatBackendTime(v.heureSortie || v.updatedAt)}</>
+              )}
             </p>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0 pt-0.5">
@@ -374,15 +384,34 @@ export function Dashboard({ isMobile }) {
 
   // Filter
   const filtered = visitors.filter(v => {
-    const q = searchQuery.toLowerCase();
+    const q = (searchQuery || '').trim().toLowerCase();
+    
+    // 1. Status Filter
+    const s = String(v.statut || '').toLowerCase();
+    const isPresent = (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!v.heureSortie && s !== 'sorti' && s !== 'sortis');
+    
+    const matchStatus = filterStatus === 'all' || 
+                        (filterStatus === 'present' && isPresent) || 
+                        (filterStatus === 'sorti' && !isPresent);
+                        
+    // 2. Type Filter
+    const rawType = String(v.type || '').toLowerCase();
+    const visitorType = (rawType === 'vehicule' || v.vehicule) ? 'vehicule' : 'person';
+    const matchType = filterType === 'all' || visitorType === filterType;
+    
+    // 3. Search Query Match
     const matchSearch = !q || [
-      v.nom, v.prenom, v.numeroPiece, 
-      v.visiteur?.nom, v.visiteur?.prenom, v.visiteur?.numeroPiece,
-      v.visitor?.nom, v.visitor?.prenom, v.visitor?.numeroPiece,
-      v.vehicule?.immatriculation, v.personneVisitee, v.service
-    ].filter(Boolean).some(f => f.toLowerCase().includes(q));
-    const matchStatus = filterStatus === 'all' || v.statut === filterStatus;
-    const matchType = filterType === 'all' || v.type === filterType;
+      v.nom, v.prenom, v.numeroPiece, v.typePiece, v.immatriculation,
+      v.visiteur?.nom, v.visiteur?.prenom, v.visiteur?.numeroPiece, v.visiteur?.typePiece,
+      v.visitor?.nom, v.visitor?.prenom, v.visitor?.numeroPiece, v.visitor?.typePiece,
+      v.visiteurId?.nom, v.visiteurId?.prenom, v.visiteurId?.numeroPiece, v.visiteurId?.typePiece,
+      v.visitorId?.nom, v.visitorId?.prenom, v.visitorId?.numeroPiece, v.visitorId?.typePiece,
+      v.vehicule?.immatriculation, v.vehicule?.marque, v.vehicule?.modele, v.vehicule?.couleur,
+      v.personneVisitee, v.hote, v.visitedPerson,
+      v.service, v.departement,
+      v.nomComplet, v.fullName, v.Nom, v.Prenom, v.lastName, v.firstName, v.name
+    ].filter(Boolean).some(f => String(f).toLowerCase().includes(q));
+
     return matchSearch && matchStatus && matchType;
   });
 

@@ -5,7 +5,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { FormInput, FormSelect, Btn, Modal } from './UI';
-import { ScanPanel } from './Scanner';
+import { ScanPanel } from './ScanPanel';
 import { SERVICES } from '../data/mockData';
 import { useApp } from '../context/useAppState';
 import { visitorService } from '../services/visitorService';

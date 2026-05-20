@@ -2,6 +2,8 @@ export const TRANSLATIONS = {
   fr: {
     dashboard: "Tableau de bord",
     history: "Historique",
+    agents: "Agents",
+    agent_management: "Gestion des Agents",
     settings: "Paramètres",
     profile: "Profil",
     search: "Rechercher un visiteur...",
@@ -176,6 +178,8 @@ export const TRANSLATIONS = {
   en: {
     dashboard: "Dashboard",
     history: "History",
+    agents: "Agents",
+    agent_management: "Agent Management",
     settings: "Settings",
     profile: "Profile",
     search: "Search visitor...",
@@ -350,6 +354,8 @@ export const TRANSLATIONS = {
   ar: {
     dashboard: "لوحة التحكم",
     history: "السجل",
+    agents: "العملاء",
+    agent_management: "إدارة العملاء",
     settings: "الإعدادات",
     profile: "الملف الشخصي",
     search: "البحث عن زائر...",

@@ -18,6 +18,6 @@ export const visitorService = {
   },
 
   search: async (query) => {
-    return api.get(`/api/search?q=${encodeURIComponent(query)}`);
+    return api.get(`/api/search?query=${encodeURIComponent(query)}`);
   }
 };

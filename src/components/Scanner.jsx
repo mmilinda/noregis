@@ -1,6 +1,6 @@
 // Dt.jsx
 import { useState, useRef } from 'react';
-import { Calendar, Building2, User, CreditCard, CheckCircle2, X } from 'lucide-react';
+import { Calendar, Building2, User, CreditCard, CheckCircle2, X, Camera, Clock } from 'lucide-react';
 import { Btn, Input, Select, Modal } from './UI';
 import { ScanPanel } from './ScanPanel';
 import { useApp } from '../context/useAppState';

@@ -1,4 +1,4 @@
-const BASE_URL = 'https://noregisbackend.onrender.com';
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://noregisbackend.onrender.com';
 
 const api = {
   get: async (endpoint) => {
@@ -25,6 +25,23 @@ const api = {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'API Error');
+    }
+    return response.json();
+  },
+
+  postForm: async (endpoint, formData) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        // Content-Type is deliberately omitted so the browser automatically sets the correct multipart boundary
+      },
+      body: formData,
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

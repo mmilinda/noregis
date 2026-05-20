@@ -91,15 +91,17 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
       </nav>
 
       {/* CTA */}
-      <div className="p-4">
-        <button
-          onClick={onNewEntry}
-          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-blue-bright to-brand-blue text-white p-3.5 rounded-lg font-black text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
-        >
-          <Plus size={20} strokeWidth={3} />
-          {t.new_entry}
-        </button>
-      </div>
+      {agent?.role !== 'ADMIN' && (
+        <div className="p-4">
+          <button
+            onClick={onNewEntry}
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-blue-bright to-brand-blue text-white p-3.5 rounded-lg font-black text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+          >
+            <Plus size={20} strokeWidth={3} />
+            {t.new_entry}
+          </button>
+        </div>
+      )}
 
       {/* Agent & Logout */}
       <div className="mt-auto border-t border-white/5">
@@ -156,29 +158,52 @@ function MobileHeader({ activeTab, navItems }) {
 /* ============================================
    MOBILE BOTTOM NAV
 ============================================ */
-function BottomNav({ activeTab, onTabChange, onNewEntry, t }) {
+function BottomNav({ activeTab, onTabChange, onNewEntry, t, navItems }) {
   const { state } = useApp();
   const present = state.visitors.filter(v => v.statut === 'present').length;
+  const isAdmin = state.agent?.role === 'ADMIN';
+
+  if (isAdmin) {
+    return (
+      <nav className="fixed bottom-0 left-0 right-0 bg-brand-navy border-t border-white/10 flex items-center justify-around px-2 pb-safe-area z-[100] h-20">
+        {navItems.map(({ id, label, icon: Icon }) => {
+          const active = activeTab === id;
+          return (
+            <button key={id} onClick={() => onTabChange(id)} className="flex-grow flex flex-col items-center gap-1.5 transition-all">
+              <div className="relative">
+                <Icon size={24} className={active ? 'text-brand-blue-bright' : 'text-white/30'} />
+              </div>
+              <span className={`text-[8px] font-black uppercase tracking-tight ${active ? 'text-brand-blue-bright' : 'text-white/30'}`}>{label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    );
+  }
+
+  const midIndex = Math.ceil(navItems.length / 2);
+  const leftItems = navItems.slice(0, midIndex);
+  const rightItems = navItems.slice(midIndex);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-brand-navy border-t border-white/10 flex items-center px-2 pb-safe-area z-[100] h-20">
-      <button onClick={() => onTabChange('history')} className="flex-1 flex flex-col items-center gap-1.5 transition-all">
-        <History size={24} className={activeTab === 'history' ? 'text-brand-blue-bright' : 'text-white/30'} />
-        <span className={`text-[9px] font-black uppercase ${activeTab === 'history' ? 'text-brand-blue-bright' : 'text-white/30'}`}>{t.history}</span>
-      </button>
-
-      <button onClick={() => onTabChange('dashboard')} className="flex-1 flex flex-col items-center gap-1.5 transition-all">
-        <div className="relative">
-          <LayoutDashboard size={24} className={activeTab === 'dashboard' ? 'text-brand-blue-bright' : 'text-white/30'} />
-          {present > 0 && (
-            <span className="absolute -top-1.5 -right-2 bg-brand-green-bright text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg">{present}</span>
-          )}
-        </div>
-        <span className={`text-[9px] font-black uppercase ${activeTab === 'dashboard' ? 'text-brand-blue-bright' : 'text-white/30'}`}>{t.dashboard}</span>
-      </button>
+    <nav className="fixed bottom-0 left-0 right-0 bg-brand-navy border-t border-white/10 flex items-center justify-around px-2 pb-safe-area z-[100] h-20">
+      {leftItems.map(({ id, label, icon: Icon }) => {
+        const active = activeTab === id;
+        return (
+          <button key={id} onClick={() => onTabChange(id)} className="flex-grow flex flex-col items-center gap-1.5 transition-all">
+            <div className="relative">
+              <Icon size={24} className={active ? 'text-brand-blue-bright' : 'text-white/30'} />
+              {id === 'dashboard' && present > 0 && (
+                <span className="absolute -top-1.5 -right-2 bg-brand-green-bright text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg">{present}</span>
+              )}
+            </div>
+            <span className={`text-[8px] font-black uppercase tracking-tight ${active ? 'text-brand-blue-bright' : 'text-white/30'}`}>{label}</span>
+          </button>
+        );
+      })}
 
       {/* FAB */}
-      <div className="relative -top-6 px-4">
+      <div className="relative -top-6 px-2 shrink-0">
         <button 
           onClick={onNewEntry}
           className="w-16 h-16 rounded-xl bg-gradient-to-br from-brand-blue-bright to-brand-blue text-white flex items-center justify-center border-4 border-brand-navy active:scale-90 transition-transform"
@@ -187,15 +212,17 @@ function BottomNav({ activeTab, onTabChange, onNewEntry, t }) {
         </button>
       </div>
 
-      <button onClick={() => onTabChange('settings')} className="flex-1 flex flex-col items-center gap-1.5 transition-all">
-        <Settings size={24} className={activeTab === 'settings' ? 'text-brand-blue-bright' : 'text-white/30'} />
-        <span className={`text-[9px] font-black uppercase ${activeTab === 'settings' ? 'text-brand-blue-bright' : 'text-white/30'}`}>{t.settings}</span>
-      </button>
-
-      <button onClick={() => onTabChange('profile')} className="flex-1 flex flex-col items-center gap-1.5 transition-all">
-        <UserIcon size={24} className={activeTab === 'profile' ? 'text-brand-blue-bright' : 'text-white/30'} />
-        <span className={`text-[9px] font-black uppercase ${activeTab === 'profile' ? 'text-brand-blue-bright' : 'text-white/30'}`}>{t.profile}</span>
-      </button>
+      {rightItems.map(({ id, label, icon: Icon }) => {
+        const active = activeTab === id;
+        return (
+          <button key={id} onClick={() => onTabChange(id)} className="flex-grow flex flex-col items-center gap-1.5 transition-all">
+            <div className="relative">
+              <Icon size={24} className={active ? 'text-brand-blue-bright' : 'text-white/30'} />
+            </div>
+            <span className={`text-[8px] font-black uppercase tracking-tight ${active ? 'text-brand-blue-bright' : 'text-white/30'}`}>{label}</span>
+          </button>
+        );
+      })}
     </nav>
   );
 }
@@ -250,6 +277,7 @@ export function Layout({ children, activeTab, onTabChange }) {
   const navItems = [
     { id: 'dashboard', label: t.dashboard, icon: LayoutDashboard },
     { id: 'history',   label: t.history,   icon: History },
+    ...(state.agent?.role === 'ADMIN' ? [{ id: 'agents', label: t.agents || 'Agents', icon: Shield }] : []),
     { id: 'settings',  label: t.settings,  icon: Settings },
     { id: 'profile',   label: t.profile,   icon: UserIcon },
   ];
@@ -286,7 +314,7 @@ export function Layout({ children, activeTab, onTabChange }) {
 
       {/* Mobile Nav */}
       {isMobile && (
-        <BottomNav activeTab={activeTab} onTabChange={onTabChange} onNewEntry={() => setRegOpen(true)} t={t} />
+        <BottomNav activeTab={activeTab} onTabChange={onTabChange} onNewEntry={() => setRegOpen(true)} t={t} navItems={navItems} />
       )}
 
       {/* Global Modals */}
