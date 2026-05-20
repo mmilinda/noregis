@@ -79,24 +79,25 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     }
   };
 
+  // ✅ Correction : mapping direct des clés camelCase renvoyées par le backend
   const handleScanData = (data, img) => {
     const scanTime = new Date();
     setDocImage(img);
     setForm(prev => ({
       ...prev,
-      nom: data.nom || prev.nom,
-      prenom: data.prenom || prev.prenom,
-      numeroPiece: data.numero_piece || data.numeroPiece || prev.numeroPiece,
-      typePiece: data.type_piece || data.typePiece ? normalizeTypePiece(data.type_piece || data.typePiece) : prev.typePiece,
-      dateNaissance: data.date_naissance || data.dateNaissance || prev.dateNaissance,
-      sexe: data.sexe || prev.sexe,
-      taille: data.taille || prev.taille,
-      lieuNaissance: data.lieuNaissance || prev.lieuNaissance,
-      dateDelivrance: data.dateDelivrance || prev.dateDelivrance,
-      dateExpiration: data.dateExpiration || prev.dateExpiration,
-      centreEnregistrement: data.centreEnregistrement || prev.centreEnregistrement,
-      adresseDomicile: data.adresseDomicile || prev.adresseDomicile,
-      profession: data.profession || prev.profession,
+      nom: data.nom ?? prev.nom,
+      prenom: data.prenom ?? prev.prenom,
+      numeroPiece: data.numeroPiece ?? prev.numeroPiece,
+      typePiece: data.typePiece ? normalizeTypePiece(data.typePiece) : prev.typePiece,
+      dateNaissance: data.dateNaissance ?? prev.dateNaissance,
+      sexe: data.sexe ?? prev.sexe,
+      taille: data.taille ?? prev.taille,
+      lieuNaissance: data.lieuNaissance ?? prev.lieuNaissance,
+      dateDelivrance: data.dateDelivrance ?? prev.dateDelivrance,
+      dateExpiration: data.dateExpiration ?? prev.dateExpiration,
+      centreEnregistrement: data.centreEnregistrement ?? prev.centreEnregistrement,
+      adresseDomicile: data.adresseDomicile ?? prev.adresseDomicile,
+      profession: data.profession ?? prev.profession,
       heureEntree: scanTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
       date: scanTime.toLocaleDateString('fr-FR'),
     }));
@@ -285,13 +286,13 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     setDocImage(img);
     setForm(prev => ({
       ...prev,
-      immatriculation: data.numero_piece || data.numeroPiece || prev.immatriculation,
-      marque: data.marque || prev.marque,
-      modele: data.modele || prev.modele,
-      couleur: data.couleur || prev.couleur,
-      typeVehicule: data.typeVehicule || prev.typeVehicule,
-      nom: data.nom || prev.nom,
-      prenom: data.prenom || prev.prenom,
+      immatriculation: data.numeroPiece ?? prev.immatriculation,
+      marque: data.marque ?? prev.marque,
+      modele: data.modele ?? prev.modele,
+      couleur: data.couleur ?? prev.couleur,
+      typeVehicule: data.typeVehicule ?? prev.typeVehicule,
+      nom: data.nom ?? prev.nom,
+      prenom: data.prenom ?? prev.prenom,
       heureEntree: scanTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
       date: scanTime.toLocaleDateString('fr-FR'),
     }));

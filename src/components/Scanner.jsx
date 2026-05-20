@@ -1,4 +1,3 @@
-// Dt.jsx
 import { useState, useRef } from 'react';
 import { Calendar, Building2, User, CreditCard, CheckCircle2, Camera, Clock, MapPin, Ruler, CalendarDays, UserRound, FileText, Home, MapPinned } from 'lucide-react';
 import { Btn, Input, Select, Modal } from './UI';
@@ -17,28 +16,23 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
   const { state } = useApp();
   const t = translations || TRANSLATIONS[state.settings?.language || 'fr'];
 
-  // Initialisation du formulaire avec tous les champs (y compris ceux extraits par l'OCR)
   const [formData, setFormData] = useState({
-    // Identité
     nom: initial.nom || '',
     prenom: initial.prenom || '',
     dateNaissance: initial.dateNaissance || '',
     sexe: initial.sexe || '',
     taille: initial.taille || '',
     lieuNaissance: initial.lieuNaissance || '',
-    // Pièce d'identité
     numeroPiece: initial.numeroPiece || '',
     typePiece: initial.typePiece || '',
     dateDelivrance: initial.dateDelivrance || '',
     dateExpiration: initial.dateExpiration || '',
     centreEnregistrement: initial.centreEnregistrement || '',
     adresseDomicile: initial.adresseDomicile || '',
-    // Visite
     personneVisitee: initial.personneVisitee || '',
     service: initial.service || '',
     motif: initial.motif || '',
     profession: initial.profession || '',
-    // Horodatage
     heureEntree: initial.heureEntree || new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
     date: initial.date || new Date().toLocaleDateString('fr-FR'),
     ...initial
@@ -77,22 +71,22 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
     }
   };
 
-  // Mise à jour du formulaire après le scan OCR
+  // ✅ Correction : mapping direct des clés camelCase
   const handleOcrData = (data, image) => {
     setFormData(prev => ({
       ...prev,
-      nom: data.nom || prev.nom,
-      prenom: data.prenom || prev.prenom,
-      numeroPiece: data.numero_piece || data.numeroPiece || prev.numeroPiece,
-      typePiece: data.type_piece || data.typePiece || prev.typePiece,
-      dateNaissance: data.date_naissance || data.dateNaissance || prev.dateNaissance,
-      sexe: data.sexe || prev.sexe,
-      taille: data.taille || prev.taille,
-      lieuNaissance: data.lieuNaissance || prev.lieuNaissance,
-      dateDelivrance: data.dateDelivrance || prev.dateDelivrance,
-      dateExpiration: data.dateExpiration || prev.dateExpiration,
-      centreEnregistrement: data.centreEnregistrement || prev.centreEnregistrement,
-      adresseDomicile: data.adresseDomicile || prev.adresseDomicile,
+      nom: data.nom ?? prev.nom,
+      prenom: data.prenom ?? prev.prenom,
+      numeroPiece: data.numeroPiece ?? prev.numeroPiece,
+      typePiece: data.typePiece ?? prev.typePiece,
+      dateNaissance: data.dateNaissance ?? prev.dateNaissance,
+      sexe: data.sexe ?? prev.sexe,
+      taille: data.taille ?? prev.taille,
+      lieuNaissance: data.lieuNaissance ?? prev.lieuNaissance,
+      dateDelivrance: data.dateDelivrance ?? prev.dateDelivrance,
+      dateExpiration: data.dateExpiration ?? prev.dateExpiration,
+      centreEnregistrement: data.centreEnregistrement ?? prev.centreEnregistrement,
+      adresseDomicile: data.adresseDomicile ?? prev.adresseDomicile,
     }));
     setDocImage(image);
     setShowScan(false);
@@ -133,7 +127,7 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
           </Btn>
         </div>
 
-        {/* Section identité (champs de base) */}
+        {/* Section identité */}
         <div className="space-y-4">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
             <CreditCard size={14} /> {t.id_doc}
@@ -149,7 +143,7 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
           <Input label={t.birth_date} id="dateNaissance" type="date" value={formData.dateNaissance} onChange={handleChange('dateNaissance')} icon={Calendar} />
         </div>
 
-        {/* Informations complémentaires (extraites par l'OCR) */}
+        {/* Infos complémentaires */}
         <div className="space-y-4 border-t border-slate-200 dark:border-slate-700 pt-4">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
             <FileText size={14} /> Infos complémentaires (carte d'identité)
