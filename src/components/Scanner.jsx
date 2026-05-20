@@ -1,6 +1,6 @@
 // Dt.jsx
 import { useState, useRef } from 'react';
-import { Calendar, Building2, User, CreditCard, CheckCircle2, X, Camera, Clock } from 'lucide-react';
+import { Calendar, Building2, User, CreditCard, CheckCircle2, Camera, Clock, MapPin, Ruler, CalendarDays, UserRound, FileText, Home, MapPinned } from 'lucide-react';
 import { Btn, Input, Select, Modal } from './UI';
 import { ScanPanel } from './ScanPanel';
 import { useApp } from '../context/useAppState';
@@ -17,16 +17,28 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
   const { state } = useApp();
   const t = translations || TRANSLATIONS[state.settings?.language || 'fr'];
 
+  // Initialisation du formulaire avec tous les champs (y compris ceux extraits par l'OCR)
   const [formData, setFormData] = useState({
+    // Identité
     nom: initial.nom || '',
     prenom: initial.prenom || '',
+    dateNaissance: initial.dateNaissance || '',
+    sexe: initial.sexe || '',
+    taille: initial.taille || '',
+    lieuNaissance: initial.lieuNaissance || '',
+    // Pièce d'identité
     numeroPiece: initial.numeroPiece || '',
     typePiece: initial.typePiece || '',
-    dateNaissance: initial.dateNaissance || '',
+    dateDelivrance: initial.dateDelivrance || '',
+    dateExpiration: initial.dateExpiration || '',
+    centreEnregistrement: initial.centreEnregistrement || '',
+    adresseDomicile: initial.adresseDomicile || '',
+    // Visite
     personneVisitee: initial.personneVisitee || '',
     service: initial.service || '',
     motif: initial.motif || '',
     profession: initial.profession || '',
+    // Horodatage
     heureEntree: initial.heureEntree || new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
     date: initial.date || new Date().toLocaleDateString('fr-FR'),
     ...initial
@@ -36,12 +48,10 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
   const [showScan, setShowScan] = useState(false);
   const [docImage, setDocImage] = useState(initial.docImage || null);
 
-  // Met à jour un champ
   const handleChange = (field) => (e) => {
     setFormData(prev => ({ ...prev, [field]: e.target.value }));
   };
 
-  // Valide le formulaire
   const validate = () => {
     const err = {};
     if (!formData.nom.trim()) err.nom = t.required_field;
@@ -67,7 +77,7 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
     }
   };
 
-  // Callback du scan : pré‑remplit les champs
+  // Mise à jour du formulaire après le scan OCR
   const handleOcrData = (data, image) => {
     setFormData(prev => ({
       ...prev,
@@ -76,6 +86,13 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
       numeroPiece: data.numero_piece || data.numeroPiece || prev.numeroPiece,
       typePiece: data.type_piece || data.typePiece || prev.typePiece,
       dateNaissance: data.date_naissance || data.dateNaissance || prev.dateNaissance,
+      sexe: data.sexe || prev.sexe,
+      taille: data.taille || prev.taille,
+      lieuNaissance: data.lieuNaissance || prev.lieuNaissance,
+      dateDelivrance: data.dateDelivrance || prev.dateDelivrance,
+      dateExpiration: data.dateExpiration || prev.dateExpiration,
+      centreEnregistrement: data.centreEnregistrement || prev.centreEnregistrement,
+      adresseDomicile: data.adresseDomicile || prev.adresseDomicile,
     }));
     setDocImage(image);
     setShowScan(false);
@@ -116,7 +133,7 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
           </Btn>
         </div>
 
-        {/* Champs d'identité */}
+        {/* Section identité (champs de base) */}
         <div className="space-y-4">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
             <CreditCard size={14} /> {t.id_doc}
@@ -130,6 +147,24 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
             <Select label={t.id_type} id="typePiece" required value={formData.typePiece} onChange={handleChange('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
           </div>
           <Input label={t.birth_date} id="dateNaissance" type="date" value={formData.dateNaissance} onChange={handleChange('dateNaissance')} icon={Calendar} />
+        </div>
+
+        {/* Informations complémentaires (extraites par l'OCR) */}
+        <div className="space-y-4 border-t border-slate-200 dark:border-slate-700 pt-4">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
+            <FileText size={14} /> Infos complémentaires (carte d'identité)
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <Select label="Sexe" id="sexe" value={formData.sexe} onChange={handleChange('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
+            <Input label="Taille (cm)" id="taille" type="number" value={formData.taille} onChange={handleChange('taille')} icon={Ruler} placeholder="Taille" />
+          </div>
+          <Input label="Lieu de naissance" id="lieuNaissance" value={formData.lieuNaissance} onChange={handleChange('lieuNaissance')} icon={MapPin} placeholder="Lieu de naissance" />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Date de délivrance" id="dateDelivrance" type="date" value={formData.dateDelivrance} onChange={handleChange('dateDelivrance')} icon={CalendarDays} />
+            <Input label="Date d'expiration" id="dateExpiration" type="date" value={formData.dateExpiration} onChange={handleChange('dateExpiration')} icon={CalendarDays} />
+          </div>
+          <Input label="Centre d'enregistrement" id="centreEnregistrement" value={formData.centreEnregistrement} onChange={handleChange('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
+          <Input label="Adresse du domicile" id="adresseDomicile" value={formData.adresseDomicile} onChange={handleChange('adresseDomicile')} icon={MapPinned} placeholder="Adresse domicile" />
         </div>
 
         {/* Destination */}
