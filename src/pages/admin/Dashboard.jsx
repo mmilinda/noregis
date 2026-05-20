@@ -3,10 +3,10 @@ import {
   TrendingUp, Users, Car, Clock, Shield, Download, 
   Calendar, Award, UserCheck, RefreshCw, BarChart2
 } from 'lucide-react';
-import { useApp } from '../context/useAppState';
-import { Card, CardHeader, StatCard, Btn } from '../components/UI';
-import { visitService } from '../services/visitService';
-import { TRANSLATIONS } from '../translations';
+import { useApp } from '../../context/useAppState';
+import { Card, CardHeader, StatCard, Btn } from '../../components/UI';
+import { visitService } from '../../services/visitService';
+import { TRANSLATIONS } from '../../translations';
 
 export default function AdminDashboard({ isMobile }) {
   const { state, dispatch, notify } = useApp();
@@ -35,7 +35,6 @@ export default function AdminDashboard({ isMobile }) {
     fetchStats();
   }, []);
 
-  // Helper : normalise le statut pour détecter si quelqu'un est sur site
   const isOnSite = (v) => {
     const s = String(v.statut || '').toLowerCase();
     return (
@@ -43,23 +42,19 @@ export default function AdminDashboard({ isMobile }) {
     ) || (!v.heureSortie && s !== 'sorti' && s !== 'sortis' && s !== 'exited');
   };
 
-  // Helper : détecte si la visite est un véhicule
   const isVehicle = (v) => {
     const t = v.type || v.visiteur?.type || v.visiteurId?.type || v.visitor?.type;
     return String(t || '').toLowerCase() === 'vehicule';
   };
 
-  // 1. Calculate general indicators
   const stats = useMemo(() => {
     const today = new Date().toDateString();
 
-    // Visites d'aujourd'hui uniquement
     const visitsToday = visits.filter(v => {
       if (!v.createdAt) return false;
       return new Date(v.createdAt).toDateString() === today;
     });
 
-    // Semaine en cours vs semaine précédente (pour le % d'évolution)
     const oneWeekAgo = new Date(); oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     const twoWeeksAgo = new Date(); twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
     const thisWeek = visits.filter(v => v.createdAt && new Date(v.createdAt) >= oneWeekAgo).length;
@@ -76,7 +71,6 @@ export default function AdminDashboard({ isMobile }) {
     const vehicleVisits = visits.filter(isVehicle);
     const personVisits = visits.filter(v => !isVehicle(v));
 
-    // Heure de pointe — base = 30 derniers jours (représentatif sans être pollué par de très vieux historiques)
     const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const recentVisits = visits.filter(v => v.createdAt && new Date(v.createdAt) >= thirtyDaysAgo);
 
@@ -88,7 +82,6 @@ export default function AdminDashboard({ isMobile }) {
       }
     });
 
-    // Heure de pointe — distribution AUJOURD'HUI pour le graphique
     const todayHoursCount = Array(24).fill(0);
     visitsToday.forEach(v => {
       if (v.createdAt) {
@@ -97,7 +90,6 @@ export default function AdminDashboard({ isMobile }) {
       }
     });
 
-    // Cherche la meilleure plage de 2h (cohérent avec les tranches du graphique [8, 10, 12, 14, 16, 18, 20])
     const slots = [8, 10, 12, 14, 16, 18, 20];
     let peakSlot = null;
     let maxSlotVisits = 0;
@@ -109,7 +101,6 @@ export default function AdminDashboard({ isMobile }) {
       }
     });
 
-    // Fallback : si aucune visite dans les créneaux standards, chercher heure quelconque
     if (peakSlot === null && recentVisits.length > 0) {
       let peakH = 0, maxH = 0;
       hoursCount.forEach((c, h) => { if (c > maxH) { maxH = c; peakH = h; } });
@@ -133,7 +124,6 @@ export default function AdminDashboard({ isMobile }) {
     };
   }, [visits]);
 
-  // 2. Hourly data for SVG Chart — AUJOURD'HUI uniquement (8h → 20h par tranches de 2h)
   const chartData = useMemo(() => {
     const hours = [8, 10, 12, 14, 16, 18, 20];
     const dist = stats.todayHourlyDistribution;
@@ -143,9 +133,8 @@ export default function AdminDashboard({ isMobile }) {
     }));
   }, [stats.todayHourlyDistribution]);
 
-  // Calculate drawing coordinates for line chart
   const lineChartPoints = useMemo(() => {
-    const maxVal = Math.max(...chartData.map(d => d.val), 3); // minimum scaling limit of 3
+    const maxVal = Math.max(...chartData.map(d => d.val), 3);
     const width = 500;
     const height = 150;
     const padding = 25;
@@ -160,7 +149,6 @@ export default function AdminDashboard({ isMobile }) {
       return acc + `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y} `;
     }, '');
 
-    // Area path closing at the bottom
     const areaPathData = pathData + 
       `L ${points[points.length - 1].x} ${height - padding} ` + 
       `L ${points[0].x} ${height - padding} Z`;
@@ -168,7 +156,6 @@ export default function AdminDashboard({ isMobile }) {
     return { points, pathData, areaPathData, width, height, padding };
   }, [chartData]);
 
-  // Department popularity list
   const departmentsList = useMemo(() => {
     const depts = {};
     visits.forEach(v => {
@@ -299,153 +286,108 @@ export default function AdminDashboard({ isMobile }) {
                       fill="url(#chartGrad)" 
                     />
 
-                    {/* Main Line */}
+                    {/* Line path */}
                     <path 
                       d={lineChartPoints.pathData} 
                       fill="none" 
                       stroke="#2563EB" 
-                      strokeWidth="3.5" 
+                      strokeWidth="3" 
                       strokeLinecap="round"
-                      strokeLinejoin="round"
                     />
 
                     {/* Data Points */}
                     {lineChartPoints.points.map((p, idx) => (
-                      <g key={idx} className="group cursor-pointer">
+                      <g key={idx} className="group/point cursor-pointer">
                         <circle 
                           cx={p.x} 
                           cy={p.y} 
-                          r="5.5" 
-                          fill="#ffffff" 
-                          stroke="#2563EB" 
-                          strokeWidth="3"
-                          className="transition-all duration-200 hover:r-7"
+                          r="5" 
+                          fill="#2563EB" 
+                          stroke="#FFFFFF" 
+                          strokeWidth="2.5"
+                          className="dark:stroke-[#161B22] group-hover/point:r-6 group-hover/point:stroke-brand-blue-bright transition-all"
                         />
-                        {/* Tooltip text (value) above dot */}
-                        <text
-                          x={p.x}
-                          y={p.y - 12}
+                        <rect 
+                          x={p.x - 18} 
+                          y={p.y - 30} 
+                          width="36" 
+                          height="20" 
+                          rx="4" 
+                          fill="#1E293B" 
+                          className="opacity-0 group-hover/point:opacity-100 transition-opacity"
+                        />
+                        <text 
+                          x={p.x} 
+                          y={p.y - 17} 
+                          fill="#FFFFFF" 
+                          fontSize="9" 
+                          fontWeight="bold" 
                           textAnchor="middle"
-                          className="text-[9px] font-black fill-slate-700 dark:fill-slate-300"
+                          className="opacity-0 group-hover/point:opacity-100 transition-opacity"
                         >
                           {p.val}
                         </text>
                       </g>
                     ))}
 
-                    {/* X Axis labels */}
+                    {/* X Axis Labels */}
                     {lineChartPoints.points.map((p, idx) => (
                       <text 
                         key={idx}
                         x={p.x} 
-                        y={lineChartPoints.height - 4} 
-                        textAnchor="middle" 
-                        className="text-[9px] font-black fill-slate-400 dark:fill-slate-500 uppercase tracking-wider"
+                        y={lineChartPoints.height - 5} 
+                        fill="#94A3B8" 
+                        fontSize="9" 
+                        fontWeight="bold" 
+                        textAnchor="middle"
                       >
                         {p.label}
                       </text>
                     ))}
                   </svg>
                 </div>
-                <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/30 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800/50">
-                  <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Fluctuations d'entrées</span>
-                  <span className={`text-xs font-black flex items-center gap-1 ${stats.weekEvolution > 0 ? 'text-brand-blue' : stats.weekEvolution < 0 ? 'text-brand-red' : 'text-slate-400'}`}>
-                    <TrendingUp size={16} className={stats.weekEvolution < 0 ? 'rotate-180' : ''} />
-                    {stats.weekEvolution > 0 ? '+' : ''}{stats.weekEvolution}% vs la semaine dernière
-                  </span>
-                </div>
               </div>
             )}
           </div>
         </Card>
 
-        {/* Breakdown & Popularity side panel */}
-        <div className="flex flex-col gap-6">
-          {/* Visitor Split Card */}
-          <Card className="border-slate-200 dark:border-slate-800 flex-1">
-            <CardHeader title="Répartition des Visites" subtitle="Comparaison personnes physiques vs véhicules" />
-            <div className="p-6 flex flex-col justify-between h-full gap-5">
-              {loading ? (
-                <div className="h-32 flex items-center justify-center">
-                  <span className="w-8 h-8 border-3 border-brand-blue-bright border-t-transparent rounded-full animate-spin" />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* People bar */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
-                      <span className="flex items-center gap-1.5"><Users size={14} className="text-brand-blue-bright" /> Personnes</span>
-                      <span>{stats.people} ({stats.total > 0 ? Math.round((stats.people / stats.total) * 100) : 0}%)</span>
-                    </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                      <div 
-                        className="bg-brand-blue-bright h-full rounded-full transition-all duration-1000"
-                        style={{ width: `${stats.total > 0 ? (stats.people / stats.total) * 100 : 0}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Vehicles bar */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
-                      <span className="flex items-center gap-1.5"><Car size={14} className="text-brand-amber-bright" /> Véhicules</span>
-                      <span>{stats.vehicles} ({stats.total > 0 ? Math.round((stats.vehicles / stats.total) * 100) : 0}%)</span>
-                    </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                      <div 
-                        className="bg-brand-amber-bright h-full rounded-full transition-all duration-1000"
-                        style={{ width: `${stats.total > 0 ? (stats.vehicles / stats.total) * 100 : 0}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-around text-center">
-                <div>
-                  <h4 className="text-xl font-black text-slate-800 dark:text-white leading-none">{stats.people}</h4>
-                  <p className="text-[9px] uppercase font-bold text-slate-400 mt-1">Membres</p>
-                </div>
-                <div className="w-px bg-slate-100 dark:bg-slate-800" />
-                <div>
-                  <h4 className="text-xl font-black text-slate-800 dark:text-white leading-none">{stats.vehicles}</h4>
-                  <p className="text-[9px] uppercase font-bold text-slate-400 mt-1">Moyens Mobiles</p>
-                </div>
+        {/* Popular Destinations / Services list */}
+        <Card className="border-slate-200 dark:border-slate-800">
+          <CardHeader title="Départements Populaires" subtitle="Top 5 des destinations les plus fréquentées." />
+          <div className="p-6">
+            {loading ? (
+              <div className="h-48 flex items-center justify-center">
+                <span className="w-8 h-8 border-3 border-brand-blue-bright border-t-transparent rounded-full animate-spin" />
               </div>
-            </div>
-          </Card>
-
-          {/* Popular Departments Card */}
-          <Card className="border-slate-200 dark:border-slate-800 flex-1">
-            <CardHeader title="Départements les plus visités" />
-            <div className="p-4">
-              {loading ? (
-                <div className="h-32 flex items-center justify-center">
-                  <span className="w-6 h-6 border-2 border-brand-blue-bright border-t-transparent rounded-full animate-spin" />
-                </div>
-              ) : departmentsList.length === 0 ? (
-                <div className="text-center text-xs font-bold text-slate-400 py-6">Aucune donnée départementale.</div>
-              ) : (
-                <div className="space-y-3">
-                  {departmentsList.map((dept, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-2 rounded-lg bg-slate-50 dark:bg-slate-900/40 hover:scale-[1.01] transition-transform">
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                        <span className="w-5 h-5 rounded bg-brand-blue-bright/10 text-brand-blue-bright text-[10px] font-black flex items-center justify-center">
-                          {idx + 1}
-                        </span>
-                        {dept.name}
-                      </span>
-                      <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-black text-slate-600 dark:text-slate-400">
-                        {dept.count} visite(s)
-                      </span>
+            ) : departmentsList.length === 0 ? (
+              <div className="h-48 flex flex-col items-center justify-center text-slate-400">
+                <p className="text-xs font-bold">Aucune donnée</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {departmentsList.map((d, index) => {
+                  const max = departmentsList[0].count;
+                  const pct = Math.round((d.count / max) * 100);
+                  return (
+                    <div key={index} className="space-y-1.5">
+                      <div className="flex justify-between items-center text-xs font-bold text-slate-700 dark:text-slate-300">
+                        <span className="truncate max-w-[150px]">{d.name}</span>
+                        <span className="font-mono text-slate-500">{d.count} visite(s)</span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-brand-blue-bright rounded-full" 
+                          style={{ width: `${pct}%` }} 
+                        />
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </Card>
-        </div>
-        
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </Card>
+
       </div>
     </div>
   );

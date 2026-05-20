@@ -1,22 +1,36 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import { useApp } from './context/useAppState';
 import { Layout } from './components/Layout';
 import { Toast } from './components/UI';
-import { Dashboard, Historique } from './pages/Dashboard';
 import { Parametres, ProfilAgent } from './pages/Settings';
 import { Login } from './pages/Login';
 import { visitService } from './services/visitService';
 
-import AdminDashboard from './pages/AdminDashboard';
-import AgentsManagement from './pages/Agents';
+// Admin Pages
+import AdminDashboard from './pages/admin/Dashboard';
+import AgentsManagement from './pages/admin/Agents';
+
+// Agent Pages
+import AgentDashboard from './pages/agent/Dashboard';
+import AgentHistorique from './pages/agent/Historique';
 
 /* ============================================
-   INNER APP (has access to context)
+   INNER APP (has access to context and router)
 ============================================ */
 function AppInner() {
-  const [activeTab, setActiveTab] = useState('dashboard');
   const { state, dispatch } = useApp();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Determine active tab based on route path
+  const path = location.pathname.replace('/', '') || 'dashboard';
+  const activeTab = path;
+
+  const handleTabChange = (tabId) => {
+    navigate('/' + tabId);
+  };
 
   // Sync font size and dark mode to <html> element
   useEffect(() => {
@@ -58,20 +72,17 @@ function AppInner() {
 
   const isAdmin = state.agent?.role === 'ADMIN';
 
-  const pages = {
-    dashboard: isAdmin ? <AdminDashboard /> : <Dashboard />,
-    history:   <Historique />,
-    ...(isAdmin ? { agents: <AgentsManagement /> } : {}),
-    settings:  <Parametres />,
-    profile:   <ProfilAgent />,
-  };
-
-  const currentPage = pages[activeTab] || pages.dashboard;
-
   return (
     <div className={state.darkMode ? 'dark' : ''} style={{ minHeight: '100vh' }}>
-      <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-        {currentPage}
+      <Layout activeTab={activeTab} onTabChange={handleTabChange}>
+        <Routes>
+          <Route path="/dashboard" element={isAdmin ? <AdminDashboard /> : <AgentDashboard />} />
+          <Route path="/history" element={<AgentHistorique />} />
+          {isAdmin && <Route path="/agents" element={<AgentsManagement />} />}
+          <Route path="/settings" element={<Parametres />} />
+          <Route path="/profile" element={<ProfilAgent />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
       </Layout>
       <Toast />
     </div>
@@ -84,7 +95,9 @@ function AppInner() {
 export default function App() {
   return (
     <AppProvider>
-      <AppInner />
+      <Router>
+        <AppInner />
+      </Router>
     </AppProvider>
   );
 }

@@ -5,11 +5,11 @@ import {
   ShieldAlert, RefreshCw, AlertTriangle, Bell,
   CheckCircle, XCircle, Clock, ChevronDown, ChevronUp,
 } from 'lucide-react';
-import { useApp } from '../context/useAppState';
-import { Card, CardHeader, Btn, FormInput, FormSelect, Modal } from '../components/UI';
-import { authService } from '../services/authService';
-import { demandeService } from '../services/demandeService';
-import { TRANSLATIONS } from '../translations';
+import { useApp } from '../../context/useAppState';
+import { Card, CardHeader, Btn, FormInput, FormSelect, Modal } from '../../components/UI';
+import { authService } from '../../services/authService';
+import { demandeService } from '../../services/demandeService';
+import { TRANSLATIONS } from '../../translations';
 
 const EMPTY_FORM = {
   email: '', password: '', prenom: '', nom: '', role: 'AGENT',
