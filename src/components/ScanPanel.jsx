@@ -39,7 +39,9 @@ function preparerImageOCR(base64) {
       const facteurContraste = 1.5; // 1 = neutre, >1 = plus de contraste
 
       for (let i = 0; i < data.length; i += 4) {
+        // Luminance perceptuelle (niveaux de gris)
         const gris = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        // Contraste : ((gris - 128) * facteur) + 128
         const contraste = Math.min(255, Math.max(0, (gris - 128) * facteurContraste + 128));
         data[i] = data[i + 1] = data[i + 2] = contraste;
       }
@@ -51,6 +53,7 @@ function preparerImageOCR(base64) {
       const s = src.data, d = dst.data;
       const w = canvas.width, h = canvas.height;
 
+      // Kernel sharpen
       const kernel = [
          0, -1,  0,
         -1,  5, -1,
@@ -94,6 +97,7 @@ function OcrProcessing({ image, mode, onDone, t }) {
 
     const runBackendOCR = async () => {
       try {
+        // Préraitement avant envoi
         const imagePreparee = await preparerImageOCR(image);
 
         const formData = new FormData();
@@ -243,45 +247,98 @@ function LiveCamera({ onCapture, onClose, t }) {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black">
+
       <div className="flex-1 relative overflow-hidden">
+
         {!ready && !error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-slate-400 z-10">
             <Loader2 size={40} className="animate-spin text-brand-blue-bright" />
           </div>
         )}
+
         {error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8 text-center bg-slate-900 z-10">
             <WifiOff size={40} className="text-brand-red-bright" />
             <p className="text-sm font-black text-white uppercase tracking-tight leading-tight">{error}</p>
-            <button onClick={handleClose} className="mt-4 px-6 py-2 bg-white/10 text-white rounded-lg text-[10px] font-black uppercase">{t.close}</button>
+            <button
+              onClick={handleClose}
+              className="mt-4 px-6 py-2 bg-white/10 text-white rounded-lg text-[10px] font-black uppercase"
+            >
+              {t.close}
+            </button>
           </div>
         )}
-        <video ref={videoRef} autoPlay playsInline muted className={`absolute inset-0 w-full h-full object-cover ${ready ? 'opacity-100' : 'opacity-0'}`} />
+
+        <video
+          ref={videoRef}
+          autoPlay playsInline muted
+          className={`absolute inset-0 w-full h-full object-cover ${ready ? 'opacity-100' : 'opacity-0'}`}
+        />
+
+        {/* Cadre de visée */}
         <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
           <div className="relative w-full aspect-[1.6] max-w-sm border-2 border-white/20 rounded-2xl">
             <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-brand-blue-bright rounded-tl-xl" />
             <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-brand-blue-bright rounded-tr-xl" />
             <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-brand-blue-bright rounded-bl-xl" />
             <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-brand-blue-bright rounded-br-xl" />
-            <p className="absolute -bottom-7 left-0 right-0 text-center text-[9px] font-black text-white/60 uppercase tracking-widest">{t.id_card}</p>
+            <p className="absolute -bottom-7 left-0 right-0 text-center text-[9px] font-black text-white/60 uppercase tracking-widest">
+              {t.id_card}
+            </p>
           </div>
         </div>
+
         {flashAvail && ready && (
-          <button onClick={toggleFlash} className={`absolute top-4 right-4 z-20 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 ${flashOn ? 'bg-yellow-400 text-slate-900 shadow-[0_0_16px_4px_rgba(250,204,21,0.5)]' : 'bg-white/10 text-white backdrop-blur-sm border border-white/20'}`}>
+          <button
+            onClick={toggleFlash}
+            className={`
+              absolute top-4 right-4 z-20
+              w-11 h-11 rounded-full flex items-center justify-center
+              transition-all duration-200 active:scale-90
+              ${flashOn
+                ? 'bg-yellow-400 text-slate-900 shadow-[0_0_16px_4px_rgba(250,204,21,0.5)]'
+                : 'bg-white/10 text-white backdrop-blur-sm border border-white/20'
+              }
+            `}
+          >
             {flashOn ? <Zap size={20} fill="currentColor" /> : <ZapOff size={20} />}
           </button>
         )}
-        <button onClick={handleClose} className="absolute top-4 left-4 z-20 w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center active:scale-90 transition-transform">
+
+        <button
+          onClick={handleClose}
+          className="absolute top-4 left-4 z-20 w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center active:scale-90 transition-transform"
+        >
           <X size={22} />
         </button>
       </div>
-      <div className="flex items-center justify-center gap-10 py-8 bg-gradient-to-t from-black/90 to-transparent" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
+
+      {/* Barre de contrôles */}
+      <div
+        className="flex items-center justify-center gap-10 py-8 bg-gradient-to-t from-black/90 to-transparent"
+        style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
+      >
         <div className="w-12 h-12" />
-        <button onClick={capture} disabled={!ready} className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-95 transition-transform disabled:opacity-40">
+
+        <button
+          onClick={capture}
+          disabled={!ready}
+          className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-95 transition-transform disabled:opacity-40"
+        >
           <div className="w-14 h-14 rounded-full bg-white" />
         </button>
+
         {flashAvail ? (
-          <button onClick={toggleFlash} className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 ${flashOn ? 'bg-yellow-400 text-slate-900 shadow-[0_0_12px_2px_rgba(250,204,21,0.4)]' : 'bg-white/10 text-white'}`}>
+          <button
+            onClick={toggleFlash}
+            className={`
+              w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90
+              ${flashOn
+                ? 'bg-yellow-400 text-slate-900 shadow-[0_0_12px_2px_rgba(250,204,21,0.4)]'
+                : 'bg-white/10 text-white'
+              }
+            `}
+          >
             {flashOn ? <Zap size={20} fill="currentColor" /> : <ZapOff size={20} />}
           </button>
         ) : (
@@ -293,7 +350,7 @@ function LiveCamera({ onCapture, onClose, t }) {
 }
 
 /* ===========================================
-   SCAN PANEL (Main Entry) – CORRIGÉ
+   SCAN PANEL (Main Entry)
 =========================================== */
 export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
   const { state } = useApp();
@@ -303,40 +360,16 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
   const [ocrData, setOcrData] = useState(null);
   const fileRef = useRef(null);
 
-  const handleOcrDone = (data) => {
-    console.log('📥 Données OCR reçues :', data); // DEBUG
-    setOcrData(data);
-    setPhase('done');
-  };
-
+  const handleOcrDone   = (data) => { setOcrData(data); setPhase('done'); };
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setCapturedImage(reader.result);
-      setPhase('ocr');
-    };
+    reader.onloadend = () => { setCapturedImage(reader.result); setPhase('ocr'); };
     reader.readAsDataURL(file);
   };
 
   const isAr = state.settings?.language === 'ar';
-
-  // Liste fixe de tous les champs (affichage systématique)
-  const allFields = [
-    { label: 'NOM', key: 'nom' },
-    { label: 'PRENOM', key: 'prenom' },
-    { label: 'DATE NAISSANCE', key: 'dateNaissance' },
-    { label: 'NUMERO PIECE', key: 'numeroPiece' },
-    { label: 'TYPE PIECE', key: 'typePiece' },
-    { label: 'SEXE', key: 'sexe' },
-    { label: 'TAILLE (cm)', key: 'taille' },
-    { label: 'LIEU NAISSANCE', key: 'lieuNaissance' },
-    { label: 'DATE DELIVRANCE', key: 'dateDelivrance' },
-    { label: 'DATE EXPIRATION', key: 'dateExpiration' },
-    { label: 'CENTRE ENREGISTREMENT', key: 'centreEnregistrement' },
-    { label: 'ADRESSE DOMICILE', key: 'adresseDomicile' },
-  ];
 
   return (
     <div
@@ -356,7 +389,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {/* Phase 'choose' (inchangée) */}
+
         {phase === 'choose' && (
           <div className="p-8 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-300">
             <p className="text-center text-slate-500 text-[11px] font-extrabold uppercase tracking-widest mb-2">{t.scan_method}</p>
@@ -418,13 +451,12 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
               <p className="text-[9px] font-black text-brand-green-bright uppercase tracking-widest mb-3">
                 {t.extraction_done}
               </p>
-              {/* Affichage de tous les champs (même vides) */}
               <div className="space-y-2">
-                {allFields.map(({ label, key }) => (
-                  <div key={key} className="flex justify-between items-center gap-4 pb-2 border-b border-brand-green-bright/5 last:border-0 last:pb-0">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">{label}</span>
+                {Object.entries(ocrData).map(([k, v]) => (
+                  <div key={k} className="flex justify-between items-center gap-4 pb-2 border-b border-brand-green-bright/5 last:border-0 last:pb-0">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">{k}</span>
                     <span className={`text-xs font-black text-slate-900 dark:text-white ${isAr ? 'text-left' : 'text-right'}`}>
-                      {ocrData?.[key] || '—'}
+                      {v || '—'}
                     </span>
                   </div>
                 ))}
