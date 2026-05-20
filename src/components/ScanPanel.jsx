@@ -1,3 +1,357 @@
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Camera, Upload, X, RotateCcw, CheckCircle2, Loader2, Car, WifiOff, Zap, ZapOff } from 'lucide-react';
+import { Btn } from './UI';
+import { useApp } from '../context/useAppState';
+import { TRANSLATIONS } from '../translations';
+import api from '../services/api';
+
+/* ===========================================
+   HELPER: base64 -> File (pour FormData)
+=========================================== */
+function base64ToFile(base64, filename = 'scan.jpg') {
+  const [meta, data] = base64.split(',');
+  const mime = meta.match(/:(.*?);/)[1];
+  const bytes = atob(data);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new File([arr], filename, { type: mime });
+}
+
+/* ===========================================
+   PRÉTRAITEMENT IMAGE (Canvas)
+   Niveaux de gris + contraste + netteté
+=========================================== */
+function preparerImageOCR(base64) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width  = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+
+      // 1. Dessin de l'image originale
+      ctx.drawImage(img, 0, 0);
+
+      // 2. Niveaux de gris + contraste
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      const facteurContraste = 1.5; // 1 = neutre, >1 = plus de contraste
+
+      for (let i = 0; i < data.length; i += 4) {
+        // Luminance perceptuelle (niveaux de gris)
+        const gris = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        // Contraste : ((gris - 128) * facteur) + 128
+        const contraste = Math.min(255, Math.max(0, (gris - 128) * facteurContraste + 128));
+        data[i] = data[i + 1] = data[i + 2] = contraste;
+      }
+      ctx.putImageData(imageData, 0, 0);
+
+      // 3. Filtre de netteté (sharpen) via convolution 3x3
+      const src = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const dst = ctx.createImageData(canvas.width, canvas.height);
+      const s = src.data, d = dst.data;
+      const w = canvas.width, h = canvas.height;
+
+      // Kernel sharpen
+      const kernel = [
+         0, -1,  0,
+        -1,  5, -1,
+         0, -1,  0,
+      ];
+
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          let r = 0, g = 0, b = 0;
+          for (let ky = -1; ky <= 1; ky++) {
+            for (let kx = -1; kx <= 1; kx++) {
+              const idx = ((y + ky) * w + (x + kx)) * 4;
+              const k   = kernel[(ky + 1) * 3 + (kx + 1)];
+              r += s[idx]     * k;
+              g += s[idx + 1] * k;
+              b += s[idx + 2] * k;
+            }
+          }
+          const idx = (y * w + x) * 4;
+          d[idx]     = Math.min(255, Math.max(0, r));
+          d[idx + 1] = Math.min(255, Math.max(0, g));
+          d[idx + 2] = Math.min(255, Math.max(0, b));
+          d[idx + 3] = 255;
+        }
+      }
+      ctx.putImageData(dst, 0, 0);
+
+      // 4. Export en JPEG haute qualité
+      resolve(canvas.toDataURL('image/jpeg', 0.95));
+    };
+    img.src = base64;
+  });
+}
+
+/* ===========================================
+   OCR PROCESSING ENGINE
+=========================================== */
+function OcrProcessing({ image, mode, onDone, t }) {
+  useEffect(() => {
+    let isMounted = true;
+
+    const runBackendOCR = async () => {
+      try {
+        // Préraitement avant envoi
+        const imagePreparee = await preparerImageOCR(image);
+
+        const formData = new FormData();
+        formData.append('image', base64ToFile(imagePreparee));
+        formData.append('mode', mode);
+
+        const result = await api.postForm('/api/scan', formData);
+        if (!isMounted) return;
+        if (!result.infosExtraites) throw new Error(t.no_text);
+
+        onDone(result.infosExtraites);
+
+      } catch (err) {
+        console.error('Scan Error:', err);
+        onDone({ error: t.cloud_fail });
+      }
+    };
+
+    runBackendOCR();
+    return () => { isMounted = false; };
+  }, [image, mode, onDone, t]);
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+      <Loader2 size={36} className="animate-spin text-brand-blue-bright" />
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">
+        {t.analysis}
+      </p>
+    </div>
+  );
+}
+
+/* ===========================================
+   SCANNER (Camera Live) — PLEIN ÉCRAN MOBILE
+=========================================== */
+function LiveCamera({ onCapture, onClose, t }) {
+  const videoRef   = useRef(null);
+  const streamRef  = useRef(null);
+
+  const [ready,      setReady]      = useState(false);
+  const [flashOn,    setFlashOn]    = useState(false);
+  const [flashAvail, setFlashAvail] = useState(false);
+  const [error,      setError]      = useState(() => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      return t.camera_unsupported;
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (error) return;
+
+    try {
+      screen.orientation?.lock?.('portrait').catch(() => {});
+    } catch (_) {}
+
+    const startCamera = async (facing) => {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: facing,
+            width:  { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+        });
+        streamRef.current = s;
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          setReady(true);
+        }
+
+        const track = s.getVideoTracks()[0];
+        const caps  = track?.getCapabilities?.();
+
+        if (caps?.torch) {
+          setFlashAvail(true);
+          try {
+            await track.applyConstraints({ advanced: [{ torch: true }] });
+            setFlashOn(true);
+          } catch (_) {
+            console.warn('Flash auto non activé');
+          }
+        }
+
+      } catch (err) {
+        if (facing === 'environment') {
+          startCamera('user');
+        } else {
+          setError(`${t.camera_error} : ${err.name === 'NotAllowedError' ? t.permission_denied : t.unavailable}`);
+        }
+      }
+    };
+
+    startCamera('environment');
+
+    return () => {
+      const track = streamRef.current?.getVideoTracks()[0];
+      if (track) {
+        track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+        streamRef.current.getTracks().forEach(tr => tr.stop());
+      }
+      try { screen.orientation?.unlock?.(); } catch (_) {}
+    };
+  }, [error, t]);
+
+  const toggleFlash = useCallback(async () => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    const next = !flashOn;
+    try {
+      await track.applyConstraints({ advanced: [{ torch: next }] });
+      setFlashOn(next);
+    } catch (err) {
+      console.warn('Flash toggle error:', err);
+    }
+  }, [flashOn]);
+
+  const capture = useCallback(() => {
+    const video = videoRef.current;
+    const MAX = 1280;
+    let w = video.videoWidth;
+    let h = video.videoHeight;
+    if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+    if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = w;
+    canvas.height = h;
+    canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track && flashOn) {
+      track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+    }
+
+    onCapture(canvas.toDataURL('image/jpeg', 0.95));
+  }, [flashOn, onCapture]);
+
+  const handleClose = useCallback(() => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track && flashOn) {
+      track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+    }
+    onClose();
+  }, [flashOn, onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black">
+
+      <div className="flex-1 relative overflow-hidden">
+
+        {!ready && !error && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-slate-400 z-10">
+            <Loader2 size={40} className="animate-spin text-brand-blue-bright" />
+          </div>
+        )}
+
+        {error && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8 text-center bg-slate-900 z-10">
+            <WifiOff size={40} className="text-brand-red-bright" />
+            <p className="text-sm font-black text-white uppercase tracking-tight leading-tight">{error}</p>
+            <button
+              onClick={handleClose}
+              className="mt-4 px-6 py-2 bg-white/10 text-white rounded-lg text-[10px] font-black uppercase"
+            >
+              {t.close}
+            </button>
+          </div>
+        )}
+
+        <video
+          ref={videoRef}
+          autoPlay playsInline muted
+          className={`absolute inset-0 w-full h-full object-cover ${ready ? 'opacity-100' : 'opacity-0'}`}
+        />
+
+        {/* Cadre de visée */}
+        <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
+          <div className="relative w-full aspect-[1.6] max-w-sm border-2 border-white/20 rounded-2xl">
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-brand-blue-bright rounded-tl-xl" />
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-brand-blue-bright rounded-tr-xl" />
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-brand-blue-bright rounded-bl-xl" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-brand-blue-bright rounded-br-xl" />
+            <p className="absolute -bottom-7 left-0 right-0 text-center text-[9px] font-black text-white/60 uppercase tracking-widest">
+              {t.id_card}
+            </p>
+          </div>
+        </div>
+
+        {flashAvail && ready && (
+          <button
+            onClick={toggleFlash}
+            className={`
+              absolute top-4 right-4 z-20
+              w-11 h-11 rounded-full flex items-center justify-center
+              transition-all duration-200 active:scale-90
+              ${flashOn
+                ? 'bg-yellow-400 text-slate-900 shadow-[0_0_16px_4px_rgba(250,204,21,0.5)]'
+                : 'bg-white/10 text-white backdrop-blur-sm border border-white/20'
+              }
+            `}
+          >
+            {flashOn ? <Zap size={20} fill="currentColor" /> : <ZapOff size={20} />}
+          </button>
+        )}
+
+        <button
+          onClick={handleClose}
+          className="absolute top-4 left-4 z-20 w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center active:scale-90 transition-transform"
+        >
+          <X size={22} />
+        </button>
+      </div>
+
+      {/* Barre de contrôles */}
+      <div
+        className="flex items-center justify-center gap-10 py-8 bg-gradient-to-t from-black/90 to-transparent"
+        style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
+      >
+        <div className="w-12 h-12" />
+
+        <button
+          onClick={capture}
+          disabled={!ready}
+          className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-95 transition-transform disabled:opacity-40"
+        >
+          <div className="w-14 h-14 rounded-full bg-white" />
+        </button>
+
+        {flashAvail ? (
+          <button
+            onClick={toggleFlash}
+            className={`
+              w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90
+              ${flashOn
+                ? 'bg-yellow-400 text-slate-900 shadow-[0_0_12px_2px_rgba(250,204,21,0.4)]'
+                : 'bg-white/10 text-white'
+              }
+            `}
+          >
+            {flashOn ? <Zap size={20} fill="currentColor" /> : <ZapOff size={20} />}
+          </button>
+        ) : (
+          <div className="w-12 h-12" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ===========================================
+   SCAN PANEL (Main Entry)
+=========================================== */
 export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
   const { state } = useApp();
   const t = TRANSLATIONS[state.settings?.language || 'fr'];
@@ -6,44 +360,22 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
   const [ocrData, setOcrData] = useState(null);
   const fileRef = useRef(null);
 
-  const handleOcrDone = (data) => {
-    console.log('📥 Données OCR reçues :', data); // DEBUG
-    setOcrData(data);
-    setPhase('done');
-  };
-
+  const handleOcrDone   = (data) => { setOcrData(data); setPhase('done'); };
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setCapturedImage(reader.result);
-      setPhase('ocr');
-    };
+    reader.onloadend = () => { setCapturedImage(reader.result); setPhase('ocr'); };
     reader.readAsDataURL(file);
   };
 
   const isAr = state.settings?.language === 'ar';
 
-  // Liste fixe de tous les champs à afficher (même si leur valeur est null)
-  const allFields = [
-    { label: 'NOM', key: 'nom' },
-    { label: 'PRENOM', key: 'prenom' },
-    { label: 'DATE NAISSANCE', key: 'dateNaissance' },
-    { label: 'NUMERO PIECE', key: 'numeroPiece' },
-    { label: 'TYPE PIECE', key: 'typePiece' },
-    { label: 'SEXE', key: 'sexe' },
-    { label: 'TAILLE (cm)', key: 'taille' },
-    { label: 'LIEU NAISSANCE', key: 'lieuNaissance' },
-    { label: 'DATE DELIVRANCE', key: 'dateDelivrance' },
-    { label: 'DATE EXPIRATION', key: 'dateExpiration' },
-    { label: 'CENTRE ENREGISTREMENT', key: 'centreEnregistrement' },
-    { label: 'ADRESSE DOMICILE', key: 'adresseDomicile' },
-  ];
-
   return (
-    <div className="flex flex-col h-full min-h-[520px] bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800" dir={isAr ? 'rtl' : 'ltr'}>
-      {/* Header (inchangé) */}
+    <div
+      className="flex flex-col h-full min-h-[520px] bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800"
+      dir={isAr ? 'rtl' : 'ltr'}
+    >
       <div className="p-4 border-b border-slate-50 dark:border-slate-800 flex items-center gap-4 bg-slate-50/50 dark:bg-slate-900/50">
         <div className="w-10 h-10 rounded-lg bg-brand-blue-light text-brand-blue-bright flex items-center justify-center">
           {mode === 'vehicule' ? <Car size={20} /> : <Camera size={20} />}
@@ -57,7 +389,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {/* Phase 'choose' (inchangée) */}
+
         {phase === 'choose' && (
           <div className="p-8 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-300">
             <p className="text-center text-slate-500 text-[11px] font-extrabold uppercase tracking-widest mb-2">{t.scan_method}</p>
@@ -120,11 +452,11 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
                 {t.extraction_done}
               </p>
               <div className="space-y-2">
-                {allFields.map(({ label, key }) => (
-                  <div key={key} className="flex justify-between items-center gap-4 pb-2 border-b border-brand-green-bright/5 last:border-0 last:pb-0">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">{label}</span>
+                {Object.entries(ocrData).map(([k, v]) => (
+                  <div key={k} className="flex justify-between items-center gap-4 pb-2 border-b border-brand-green-bright/5 last:border-0 last:pb-0">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">{k}</span>
                     <span className={`text-xs font-black text-slate-900 dark:text-white ${isAr ? 'text-left' : 'text-right'}`}>
-                      {ocrData?.[key] || '—'}
+                      {v || '—'}
                     </span>
                   </div>
                 ))}
