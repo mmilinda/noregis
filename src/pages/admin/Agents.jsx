@@ -185,6 +185,22 @@ export default function AgentsManagement({ isMobile }) {
     }
   };
 
+  const handleDownloadQr = async () => {
+    if (!qrData?.qrCodeData || !qrAgent) return;
+    try {
+      const link = document.createElement('a');
+      link.href = qrData.qrCodeData;
+      const filename = `QR_${qrAgent.prenom || 'Agent'}_${qrAgent.nom || ''}.png`.trim().replace(/\s+/g, '_');
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      notify('success', `QR téléchargé : ${filename}`);
+    } catch (err) {
+      notify('error', 'Impossible de télécharger le QR code.');
+    }
+  };
+
   // ── Demandes ──────────────────────────────────────────────
   const handleApprouver = async (id) => {
     setTraitementId(id);
@@ -616,10 +632,12 @@ export default function AgentsManagement({ isMobile }) {
               )}
               <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 text-sm break-all">
                 <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400 dark:text-slate-500 mb-2">Lien de scan public</p>
-                <p className="font-black text-slate-900 dark:text-white">{qrData.qrUrl}</p>
+                <p className="font-black text-slate-900 dark:text-white text-base">{window.location.origin}{qrData.qrPath}</p>
+                <p className="text-[10px] text-slate-400 mt-2 font-bold">URL complète: {qrData.qrUrl}</p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <Btn variant="secondary" onClick={handleCopyLink}>Copier le lien</Btn>
+                <Btn variant="primary" onClick={handleDownloadQr} icon={QrCode}>Télécharger QR</Btn>
                 <Btn variant="success" onClick={closeQrModal}>Fermer</Btn>
               </div>
             </div>
