@@ -195,7 +195,7 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
 
       {/* Modal ScanPanel */}
       <Modal isOpen={showScan} onClose={() => setShowScan(false)} title={`${t.scan_btn} – ${t.id_card}`} size="md">
-        <div className="h-[560px]">
+        <div className="h-[560px] max-h-[92vh]">
           <ScanPanel mode="person" onDataExtracted={handleOcrData} onClose={() => setShowScan(false)} />
         </div>
       </Modal>

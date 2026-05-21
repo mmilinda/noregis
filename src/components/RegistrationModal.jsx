@@ -218,7 +218,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
       </form>
 
       <Modal isOpen={scanOpen} onClose={() => setScanOpen(false)} title={`${t.scan_btn} – ${t.id_card}`} size="md">
-        <div className="h-[560px]">
+        <div className="h-[400px] max-h-[92vh] md:h-[560px] md:max-h-[92vh]">
           <ScanPanel mode="person" onDataExtracted={handleScanData} onClose={() => setScanOpen(false)} />
         </div>
       </Modal>
@@ -393,7 +393,7 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel, loading, t }) {
       </form>
 
       <Modal isOpen={scanOpen} onClose={() => setScanOpen(false)} title={`${t.scan_btn} – ${t.license_plate}`} size="md">
-        <div className="h-[560px]">
+        <div className="h-[560px] max-h-[92vh]">
           <ScanPanel mode="vehicule" onDataExtracted={handleScanData} onClose={() => setScanOpen(false)} />
         </div>
       </Modal>

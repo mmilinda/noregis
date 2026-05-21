@@ -303,7 +303,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex flex-col items-center justify-end sm:justify-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-[1000] flex flex-col items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
       <div className={`
         relative w-full ${sizes[size]} bg-white dark:bg-[#161B22] rounded-t-2xl sm:rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[92vh] sm:max-h-[95vh] overflow-hidden

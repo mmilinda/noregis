@@ -373,7 +373,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
 
   return (
     <div
-      className="flex flex-col h-full min-h-[520px] bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800"
+      className="flex flex-col h-full min-h-0 bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800"
       dir={isAr ? 'rtl' : 'ltr'}
     >
       <div className="p-4 border-b border-slate-50 dark:border-slate-800 flex items-center gap-4 bg-slate-50/50 dark:bg-slate-900/50">
@@ -388,7 +388,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto pb-24">
 
         {phase === 'choose' && (
           <div className="p-8 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-300">
@@ -440,7 +440,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
         )}
 
         {phase === 'done' && (
-          <div className="p-6 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="p-2 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="relative rounded-lg overflow-hidden border-2 border-brand-green-bright">
               <img src={capturedImage} alt="Capture" className="w-full h-32 object-cover" />
               <div className="absolute top-2 right-2 bg-brand-green-bright text-white px-2 py-1 rounded text-[9px] font-black uppercase tracking-tighter">
@@ -462,13 +462,18 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
                 ))}
               </div>
             </div>
-            <div className="flex gap-3">
-              <Btn variant="secondary" icon={RotateCcw} onClick={() => setPhase('choose')} fullWidth>{t.restart}</Btn>
-              <Btn variant="success" icon={CheckCircle2} onClick={() => onDataExtracted(ocrData, capturedImage)} fullWidth>{t.validate_data}</Btn>
-            </div>
           </div>
         )}
       </div>
+
+      {phase === 'done' && (
+        <div className="border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 p-4 sticky bottom-0 z-10 backdrop-blur-sm">
+          <div className="flex gap-3">
+            <Btn variant="secondary" icon={RotateCcw} onClick={() => setPhase('choose')} fullWidth>{t.restart}</Btn>
+            <Btn variant="success" icon={CheckCircle2} onClick={() => onDataExtracted(ocrData, capturedImage)} fullWidth>{t.validate_data}</Btn>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
