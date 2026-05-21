@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import QRCode from 'qrcode';
 import {
   Shield, UserPlus, Power, Search, Mail, Lock, User, Phone,
   Building2, Briefcase, Award, Calendar, Edit3,
@@ -160,7 +161,16 @@ export default function AgentsManagement({ isMobile }) {
 
     try {
       const response = await authService.generateAgentQr(agent._id);
-      setQrData(response);
+      
+      // Generate QR code on frontend with correct origin
+      const qrUrl = `${window.location.origin}${response.qrPath}`;
+      const qrCodeData = await QRCode.toDataURL(qrUrl);
+      
+      setQrData({
+        ...response,
+        qrUrl,
+        qrCodeData,
+      });
     } catch (err) {
       setQrError(err.message || 'Impossible de générer le QR code.');
     } finally {
@@ -632,8 +642,7 @@ export default function AgentsManagement({ isMobile }) {
               )}
               <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 text-sm break-all">
                 <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400 dark:text-slate-500 mb-2">Lien de scan public</p>
-                <p className="font-black text-slate-900 dark:text-white text-base">{window.location.origin}{qrData.qrPath}</p>
-                <p className="text-[10px] text-slate-400 mt-2 font-bold">URL complète: {qrData.qrUrl}</p>
+                <p className="font-black text-slate-900 dark:text-white text-base">{qrData.qrUrl}</p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <Btn variant="secondary" onClick={handleCopyLink}>Copier le lien</Btn>
