@@ -50,6 +50,10 @@ export const authService = {
     return api.put(`/api/auth/users/${id}/toggle`);
   },
 
+  generateAgentQr: async (id) => {
+    return api.post(`/api/auth/users/${id}/qr-code`);
+  },
+
   createUser: async ({ email, password, prenom, nom, role, telephone, departement, poste, niveauAccreditation, dateArrivee }) => {
     return api.post('/api/auth/register', {
       email,

@@ -7,6 +7,7 @@ import { Toast } from './components/UI';
 import { Parametres, ProfilAgent } from './pages/Settings';
 import { Login } from './pages/Login';
 import { visitService } from './services/visitService';
+import { PublicScan } from './pages/PublicScan';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -59,6 +60,16 @@ function AppInner() {
     })();
     return () => { cancelled = true; };
   }, [state.isAuthenticated, dispatch]);
+
+  // Public scan route should be reachable sans login.
+  if (location.pathname.startsWith('/scan/')) {
+    return (
+      <div className={state.darkMode ? 'dark' : ''} style={{ minHeight: '100vh' }}>
+        <PublicScan />
+        <Toast />
+      </div>
+    );
+  }
 
   // If not authenticated, show only the Login page
   if (!state.isAuthenticated) {

@@ -3,7 +3,7 @@ import {
   Shield, UserPlus, Power, Search, Mail, Lock, User, Phone,
   Building2, Briefcase, Award, Calendar, Edit3,
   ShieldAlert, RefreshCw, AlertTriangle, Bell,
-  CheckCircle, XCircle, Clock, ChevronDown, ChevronUp,
+  CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, QrCode, Loader2,
 } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
 import { Card, CardHeader, Btn, FormInput, FormSelect, Modal } from '../../components/UI';
@@ -52,6 +52,13 @@ export default function AgentsManagement({ isMobile }) {
   const [rejectModal, setRejectModal]     = useState(null); // demande being rejected
   const [motifRejet, setMotifRejet]       = useState('');
   const [traitementId, setTraitementId]   = useState(null);
+
+  // ── QR code generation state ─────────────────────────────
+  const [qrModalOpen, setQrModalOpen]     = useState(false);
+  const [qrAgent, setQrAgent]             = useState(null);
+  const [qrData, setQrData]               = useState(null);
+  const [qrLoading, setQrLoading]         = useState(false);
+  const [qrError, setQrError]             = useState('');
 
   // ── Fetch ─────────────────────────────────────────────────
   const fetchAgents = useCallback(async (silent = false) => {
@@ -141,6 +148,40 @@ export default function AgentsManagement({ isMobile }) {
       setEditError(err.message || 'Erreur lors de la mise à jour.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleGenerateQr = async (agent) => {
+    setQrModalOpen(true);
+    setQrAgent(agent);
+    setQrData(null);
+    setQrError('');
+    setQrLoading(true);
+
+    try {
+      const response = await authService.generateAgentQr(agent._id);
+      setQrData(response);
+    } catch (err) {
+      setQrError(err.message || 'Impossible de générer le QR code.');
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const closeQrModal = () => {
+    setQrModalOpen(false);
+    setQrAgent(null);
+    setQrData(null);
+    setQrError('');
+  };
+
+  const handleCopyLink = async () => {
+    if (!qrData?.qrUrl) return;
+    try {
+      await navigator.clipboard.writeText(qrData.qrUrl);
+      notify('success', 'Lien copié dans le presse-papiers.');
+    } catch {
+      notify('error', 'Impossible de copier le lien.');
     }
   };
 
@@ -333,6 +374,9 @@ export default function AgentsManagement({ isMobile }) {
                             <div className="flex items-center justify-end gap-1">
                               <Btn variant="ghost" size="sm" icon={Edit3} onClick={() => openEdit(agent)} className="text-brand-blue hover:bg-brand-blue/10">
                                 Modifier
+                              </Btn>
+                              <Btn variant="ghost" size="sm" icon={QrCode} onClick={() => handleGenerateQr(agent)} className="text-brand-blue hover:bg-brand-blue/10">
+                                QR
                               </Btn>
                               <Btn
                                 variant={agent.isActif !== false ? 'ghost' : 'success'}
@@ -545,6 +589,44 @@ export default function AgentsManagement({ isMobile }) {
             <Btn type="submit" variant="primary" loading={saving}>Enregistrer</Btn>
           </div>
         </form>
+      </Modal>
+
+      {/* ── MODAL QR CODE ─────────────────────────────────── */}
+      <Modal isOpen={qrModalOpen} onClose={closeQrModal} title={`QR code ${qrAgent?.prenom || ''} ${qrAgent?.nom || ''}`} size="md">
+        <div className="space-y-4">
+          {qrLoading ? (
+            <div className="p-8 text-center text-slate-500">
+              <Loader2 className="mx-auto mb-4 animate-spin" size={24} />
+              <p className="text-sm font-black uppercase tracking-widest">Génération du QR code...</p>
+            </div>
+          ) : qrError ? (
+            <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 text-sm font-bold text-red-700 dark:text-red-200">
+              {qrError}
+            </div>
+          ) : qrData ? (
+            <div className="space-y-4">
+              {qrData.qrCodeData ? (
+                <div className="flex justify-center">
+                  <img src={qrData.qrCodeData} alt="QR Code" className="w-48 h-48" />
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-4 text-sm text-slate-600 dark:text-slate-300">
+                  Le QR code a été généré. Copiez le lien ci-dessous pour l'imprimer ou le partager.
+                </div>
+              )}
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 text-sm break-all">
+                <p className="text-[10px] uppercase tracking-[0.35em] text-slate-400 dark:text-slate-500 mb-2">Lien de scan public</p>
+                <p className="font-black text-slate-900 dark:text-white">{qrData.qrUrl}</p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <Btn variant="secondary" onClick={handleCopyLink}>Copier le lien</Btn>
+                <Btn variant="success" onClick={closeQrModal}>Fermer</Btn>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-slate-500">Cliquez sur Générer pour créer le QR code associé à cet agent.</div>
+          )}
+        </div>
       </Modal>
 
       {/* ── MODAL REJET ───────────────────────────────────── */}
