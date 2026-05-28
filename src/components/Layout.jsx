@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard, History, Settings, User as UserIcon,
-  Shield, Clock, Plus, Bell, Search, LogOut } from 'lucide-react';
+  Shield, Clock, Plus, Bell, Search, LogOut, HelpCircle } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { RegistrationModal } from './RegistrationModal';
 import { TRANSLATIONS } from '../translations';
@@ -36,7 +36,7 @@ function LiveClock({ light }) {
 }
 
 /* ============================================
-   DESKTOP SIDEBAR
+   DESKTOP SIDEBAR  — Persana-style light
 ============================================ */
 function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
   const { state, dispatch } = useApp();
@@ -44,31 +44,31 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
   const present = visitors.filter(v => v.statut === 'present').length;
 
   return (
-    <aside className="w-64 bg-brand-navy flex flex-col h-screen sticky top-0 border-r border-white/5 overflow-hidden z-[100]">
+    <aside className="w-[260px] bg-white dark:bg-[#161B22] flex flex-col h-screen sticky top-0 border-r border-slate-200 dark:border-slate-800 overflow-hidden z-[100]">
       {/* Logo */}
-      <div className="p-6 pb-5 border-b border-white/5">
+      <div className="p-6 pb-5 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-blue-bright to-brand-blue flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-blue-bright to-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20">
             <Shield size={22} className="text-white fill-white/20" />
           </div>
           <div>
-            <p className="text-lg font-black text-white tracking-tight">NoRegis</p>
-            <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Registre Digital</p>
+            <p className="text-lg font-black text-slate-900 dark:text-white tracking-tight">NoRegis</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Registre Digital</p>
           </div>
         </div>
       </div>
 
       {/* Live clock + presence */}
-      <div className="px-6 py-5 border-b border-white/5 space-y-4">
-        <LiveClock light />
-        <div className="flex items-center gap-3 bg-white/5 p-3 rounded-lg border border-white/5">
+      <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 space-y-3">
+        <LiveClock />
+        <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-900/20 p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-800/30">
           <span className="w-2 h-2 rounded-full bg-brand-green-bright animate-pulse" />
-          <span className="text-xs font-bold text-white/60">{present} {present > 1 ? t.present.toLowerCase() : t.present.toLowerCase()}</span>
+          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">{present} {t.present.toLowerCase()}</span>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="p-3 flex-1 flex flex-col gap-1 overflow-y-auto">
+      <nav className="px-3 py-4 flex-1 flex flex-col gap-0.5 overflow-y-auto">
         {navItems.map(({ id, label, icon: Icon }) => {
           const active = activeTab === id;
           return (
@@ -76,15 +76,16 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
               key={id}
               onClick={() => onTabChange(id)}
               className={`
-                flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group
-                ${active 
-                  ? 'bg-brand-blue-bright/10 text-brand-blue-bright border border-brand-blue-bright/20 shadow-inner' 
-                  : 'text-white/40 hover:text-white hover:bg-white/5 border border-transparent'
+                flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative
+                ${active
+                  ? 'bg-blue-50 dark:bg-brand-blue-bright/10 text-brand-blue-bright'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5'
                 }
               `}
             >
-              <Icon size={20} className={active ? 'text-brand-blue-bright' : 'text-white/20 group-hover:text-white/60'} />
-              <span className="text-sm font-bold">{label}</span>
+              {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-brand-blue-bright rounded-r-full" />}
+              <Icon size={20} className={active ? 'text-brand-blue-bright' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'} />
+              <span className="text-[13px] font-semibold">{label}</span>
             </button>
           );
         })}
@@ -92,41 +93,46 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
 
       {/* CTA */}
       {agent?.role !== 'ADMIN' && (
-        <div className="p-4">
+        <div className="px-4 pb-2">
           <button
             onClick={onNewEntry}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-blue-bright to-brand-blue text-white p-3.5 rounded-lg font-black text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-blue-bright to-blue-600 text-white p-3 rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98] transition-all"
           >
-            <Plus size={20} strokeWidth={3} />
+            <Plus size={20} strokeWidth={2.5} />
             {t.new_entry}
           </button>
         </div>
       )}
 
+      {/* Help Center */}
+      <div className="px-3 pb-1">
+        <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+          <HelpCircle size={20} />
+          <span className="text-[13px] font-semibold">Centre d'aide</span>
+        </button>
+      </div>
+
       {/* Agent & Logout */}
-      <div className="mt-auto border-t border-white/5">
-        <div 
-          className="p-4 flex items-center gap-3 cursor-pointer hover:bg-white/5 transition-colors group"
+      <div className="border-t border-slate-100 dark:border-slate-800">
+        <div
+          className="p-4 flex items-center gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group"
           onClick={() => onTabChange('profile')}
         >
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10 flex items-center justify-center text-white text-[11px] font-black shrink-0 overflow-hidden group-hover:border-brand-blue-bright/50 transition-colors">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-[11px] font-black shrink-0 overflow-hidden group-hover:shadow-md transition-all">
             {agent.photo ? <img src={agent.photo} alt="" className="w-full h-full object-cover" /> : agent.initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-white/90 truncate">{agent.prenom} {agent.nom}</p>
-            <p className="text-[9px] font-black text-white/30 uppercase truncate">{agent.role}</p>
+            <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{agent.prenom} {agent.nom}</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase truncate">{agent.role}</p>
           </div>
         </div>
-        
-        <button 
-          onClick={() => {
-            dispatch({ type: 'LOGOUT' });
-            // Pas besoin de notify ici car le retour au login est immédiat
-          }}
-          className="w-full flex items-center gap-3 px-6 py-4 text-brand-red hover:bg-red-500/10 transition-colors border-t border-white/5 group"
+
+        <button
+          onClick={() => dispatch({ type: 'LOGOUT' })}
+          className="w-full flex items-center gap-3 px-6 py-3.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors border-t border-slate-100 dark:border-slate-800 group"
         >
           <LogOut size={18} className="opacity-50 group-hover:opacity-100" />
-          <span className="text-xs font-black uppercase tracking-widest">{t.logout}</span>
+          <span className="text-xs font-bold uppercase tracking-widest">{t.logout}</span>
         </button>
       </div>
     </aside>
@@ -140,17 +146,17 @@ function MobileHeader({ activeTab, navItems }) {
   const tabLabel = navItems.find(n => n.id === activeTab)?.label || 'NoRegis';
 
   return (
-    <header className="sticky top-0 z-[100] bg-brand-navy p-4 flex items-center justify-between border-b border-white/5">
+    <header className="sticky top-0 z-[100] bg-white dark:bg-[#161B22] p-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 shadow-sm">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-blue-bright to-brand-blue flex items-center justify-center">
+        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-blue-bright to-blue-600 flex items-center justify-center">
           <Shield size={18} className="text-white fill-white/20" />
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-base font-black text-white tracking-tight">NoRegis</span>
-          <span className="text-xs font-bold text-white/30">/ {tabLabel}</span>
+          <span className="text-base font-black text-slate-900 dark:text-white tracking-tight">NoRegis</span>
+          <span className="text-xs font-bold text-slate-400">/ {tabLabel}</span>
         </div>
       </div>
-      <LiveClock light />
+      <LiveClock />
     </header>
   );
 }
@@ -163,20 +169,25 @@ function BottomNav({ activeTab, onTabChange, onNewEntry, t, navItems }) {
   const present = state.visitors.filter(v => v.statut === 'present').length;
   const isAdmin = state.agent?.role === 'ADMIN';
 
+  const renderItem = ({ id, label, icon: Icon }) => {
+    const active = activeTab === id;
+    return (
+      <button key={id} onClick={() => onTabChange(id)} className="flex-grow flex flex-col items-center gap-1.5 transition-all">
+        <div className="relative">
+          <Icon size={24} className={active ? 'text-brand-blue-bright' : 'text-slate-400'} />
+          {id === 'dashboard' && present > 0 && (
+            <span className="absolute -top-1.5 -right-2 bg-brand-green-bright text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg">{present}</span>
+          )}
+        </div>
+        <span className={`text-[8px] font-black uppercase tracking-tight ${active ? 'text-brand-blue-bright' : 'text-slate-400'}`}>{label}</span>
+      </button>
+    );
+  };
+
   if (isAdmin) {
     return (
-      <nav className="fixed bottom-0 left-0 right-0 bg-brand-navy border-t border-white/10 flex items-center justify-around px-2 pb-safe-area z-[100] h-20">
-        {navItems.map(({ id, label, icon: Icon }) => {
-          const active = activeTab === id;
-          return (
-            <button key={id} onClick={() => onTabChange(id)} className="flex-grow flex flex-col items-center gap-1.5 transition-all">
-              <div className="relative">
-                <Icon size={24} className={active ? 'text-brand-blue-bright' : 'text-white/30'} />
-              </div>
-              <span className={`text-[8px] font-black uppercase tracking-tight ${active ? 'text-brand-blue-bright' : 'text-white/30'}`}>{label}</span>
-            </button>
-          );
-        })}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#161B22] border-t border-slate-200 dark:border-slate-800 flex items-center justify-around px-2 pb-safe-area z-[100] h-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        {navItems.map(renderItem)}
       </nav>
     );
   }
@@ -186,43 +197,20 @@ function BottomNav({ activeTab, onTabChange, onNewEntry, t, navItems }) {
   const rightItems = navItems.slice(midIndex);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-brand-navy border-t border-white/10 flex items-center justify-around px-2 pb-safe-area z-[100] h-20">
-      {leftItems.map(({ id, label, icon: Icon }) => {
-        const active = activeTab === id;
-        return (
-          <button key={id} onClick={() => onTabChange(id)} className="flex-grow flex flex-col items-center gap-1.5 transition-all">
-            <div className="relative">
-              <Icon size={24} className={active ? 'text-brand-blue-bright' : 'text-white/30'} />
-              {id === 'dashboard' && present > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-brand-green-bright text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg">{present}</span>
-              )}
-            </div>
-            <span className={`text-[8px] font-black uppercase tracking-tight ${active ? 'text-brand-blue-bright' : 'text-white/30'}`}>{label}</span>
-          </button>
-        );
-      })}
+    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#161B22] border-t border-slate-200 dark:border-slate-800 flex items-center justify-around px-2 pb-safe-area z-[100] h-20 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      {leftItems.map(renderItem)}
 
       {/* FAB */}
       <div className="relative -top-6 px-2 shrink-0">
-        <button 
+        <button
           onClick={onNewEntry}
-          className="w-16 h-16 rounded-xl bg-gradient-to-br from-brand-blue-bright to-brand-blue text-white flex items-center justify-center border-4 border-brand-navy active:scale-90 transition-transform"
+          className="w-16 h-16 rounded-xl bg-gradient-to-br from-brand-blue-bright to-blue-600 text-white flex items-center justify-center border-4 border-white dark:border-[#161B22] active:scale-90 transition-transform shadow-lg shadow-blue-500/20"
         >
           <Plus size={32} strokeWidth={3} />
         </button>
       </div>
 
-      {rightItems.map(({ id, label, icon: Icon }) => {
-        const active = activeTab === id;
-        return (
-          <button key={id} onClick={() => onTabChange(id)} className="flex-grow flex flex-col items-center gap-1.5 transition-all">
-            <div className="relative">
-              <Icon size={24} className={active ? 'text-brand-blue-bright' : 'text-white/30'} />
-            </div>
-            <span className={`text-[8px] font-black uppercase tracking-tight ${active ? 'text-brand-blue-bright' : 'text-white/30'}`}>{label}</span>
-          </button>
-        );
-      })}
+      {rightItems.map(renderItem)}
     </nav>
   );
 }
@@ -231,34 +219,34 @@ function BottomNav({ activeTab, onTabChange, onNewEntry, t, navItems }) {
    DESKTOP TOP BAR
 ============================================ */
 function DesktopTopBar({ activeTab, navItems, t }) {
-  const { dispatch, state, notify } = useApp();
+  const { dispatch, state } = useApp();
   const { searchQuery } = state;
   const tabLabel = navItems.find(n => n.id === activeTab)?.label || 'NoRegis';
 
   return (
-    <header className="h-20 bg-white dark:bg-[#0D1117]/80 backdrop-blur-md border-b border-slate-100 dark:border-white/5 px-8 flex items-center justify-between sticky top-0 z-[90]">
+    <header className="h-16 bg-white dark:bg-[#161B22] border-b border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between sticky top-0 z-[90]">
       <div className="flex items-center gap-8">
-        <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">{tabLabel}</h2>
-        
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{tabLabel}</h2>
+
         {/* Search */}
-        <div className="relative group w-80">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue-bright transition-colors" />
+        <div className="relative group w-72">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue-bright transition-colors" />
           <input
             type="text"
             placeholder={t.search}
             value={searchQuery}
             onChange={e => dispatch({ type: 'SET_SEARCH', payload: e.target.value })}
-            className="w-full bg-slate-50 dark:bg-white/5 border-2 border-transparent focus:border-brand-blue-bright/20 focus:bg-white dark:focus:bg-slate-800 rounded-lg py-2.5 pl-12 pr-4 text-sm font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"
+            className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 focus:border-brand-blue-bright/40 focus:bg-white dark:focus:bg-slate-800 rounded-lg py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-100 outline-none transition-all"
           />
         </div>
       </div>
 
-      <div className="flex items-center gap-6">
-        <button className="relative p-2.5 bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-brand-blue-bright rounded-xl transition-all">
+      <div className="flex items-center gap-4">
+        <button className="relative p-2 text-slate-400 hover:text-brand-blue-bright hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg transition-all">
           <Bell size={20} />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-brand-red-bright rounded-full border-2 border-white dark:border-[#0D1117]" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#161B22]" />
         </button>
-        <div className="h-8 w-px bg-slate-100 dark:bg-white/10" />
+        <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
         <LiveClock />
       </div>
     </header>
@@ -298,7 +286,7 @@ export function Layout({ children, activeTab, onTabChange }) {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-100 dark:bg-[#0D1117]">
+      <div className="flex-1 flex flex-col min-w-0 bg-[#F8F9FC] dark:bg-[#0D1117]">
         {isMobile ? (
           <MobileHeader activeTab={activeTab} navItems={navItems} />
         ) : (
@@ -322,4 +310,3 @@ export function Layout({ children, activeTab, onTabChange }) {
     </div>
   );
 }
-

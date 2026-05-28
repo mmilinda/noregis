@@ -105,7 +105,7 @@ export function Btn({
 ============================================ */
 export function Card({ children, className = "" }) {
   return (
-    <div className={`bg-white dark:bg-[#161B22] border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden ${className}`}>
+    <div className={`bg-white dark:bg-[#161B22] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm ${className}`}>
       {children}
     </div>
   );
@@ -113,7 +113,7 @@ export function Card({ children, className = "" }) {
 
 export function CardHeader({ title, subtitle, actions, icon: Icon }) {
   return (
-    <div className="flex items-center justify-between p-4 border-b border-slate-50 dark:border-slate-800">
+    <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
       <div className="flex items-center gap-2.5">
         {Icon && (
           <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-brand-blue flex items-center justify-center">
@@ -121,8 +121,8 @@ export function CardHeader({ title, subtitle, actions, icon: Icon }) {
           </div>
         )}
         <div>
-          <h3 className="text-xs font-black text-slate-900 dark:text-white leading-none">{title}</h3>
-          {subtitle && <p className="text-[10px] text-slate-500 mt-1">{subtitle}</p>}
+          <h3 className="text-sm font-bold text-slate-800 dark:text-white leading-none">{title}</h3>
+          {subtitle && <p className="text-xs text-slate-400 mt-1">{subtitle}</p>}
         </div>
       </div>
       {actions && <div className="flex gap-1.5">{actions}</div>}
@@ -254,16 +254,16 @@ export function TypeBadge({ type }) {
 ============================================ */
 export function StatCard({ label, value, icon: Icon, color, bg }) {
   return (
-    <Card className="p-4 flex items-center gap-3 border-slate-200 dark:border-slate-800">
+    <Card className="p-5 flex items-center gap-4 border-slate-200 dark:border-slate-800 hover:shadow-md transition-shadow duration-300">
       <div 
-        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+        className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
         style={{ backgroundColor: bg, color: color }}
       >
-        <Icon size={20} />
+        <Icon size={22} />
       </div>
       <div>
-        <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">{label}</p>
-        <p className="text-xl font-black text-slate-900 dark:text-white mt-0.5">{value}</p>
+        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
+        <p className="text-2xl font-bold text-slate-900 dark:text-white mt-0.5">{value}</p>
       </div>
     </Card>
   );
