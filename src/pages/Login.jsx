@@ -11,7 +11,7 @@ export function Login() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  
+
   const currentLang = state.settings?.language || 'fr';
   const t = TRANSLATIONS[currentLang];
 
@@ -22,17 +22,17 @@ export function Login() {
 
     try {
       const data = await authService.login(formData);
-      
-      dispatch({ 
-        type: 'LOGIN', 
-        payload: { 
+
+      dispatch({
+        type: 'LOGIN',
+        payload: {
           user: data.user,
-          prenom: data.user?.prenom || 'Admin', 
-          nom: data.user?.nom || 'User', 
-          role: data.user?.role || 'Agent', 
+          prenom: data.user?.prenom || 'Admin',
+          nom: data.user?.nom || 'User',
+          role: data.user?.role || 'Agent',
           matricule: data.user?.matricule || 'AGN-001',
           initials: (data.user?.prenom?.[0] || 'A') + (data.user?.nom?.[0] || 'U')
-        } 
+        }
       });
       notify('success', t.welcome);
     } catch (err) {
@@ -91,10 +91,10 @@ export function Login() {
 
   return (
     <div className="min-h-screen w-full flex bg-[#F8F9FC] dark:bg-[#0D1117] overflow-hidden font-sans" dir={isRtl ? 'rtl' : 'ltr'}>
-      
+
       {/* LEFT SIDE: Login Form */}
       <div className="w-full lg:w-[45%] flex flex-col justify-between p-8 md:p-16 bg-white dark:bg-[#161B22] relative z-10 shadow-2xl">
-        
+
         {/* Top: Logo & Language Selector */}
         <div className="flex items-center justify-between w-full">
           {/* Logo brand like Vesper */}
@@ -106,18 +106,7 @@ export function Login() {
           </div>
 
           {/* Language selector */}
-          <div className="flex gap-1.5 bg-slate-50 dark:bg-slate-900 p-1 rounded-lg">
-            {['fr', 'en', 'ar'].map(l => (
-              <button 
-                key={l}
-                type="button"
-                onClick={() => changeLang(l)}
-                className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase transition-all ${currentLang === l ? 'bg-white dark:bg-slate-800 text-brand-blue-bright shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
+
         </div>
 
         {/* Center: Form Container */}
@@ -139,8 +128,8 @@ export function Login() {
                 <div className={`absolute ${isRtl ? 'right-3.5' : 'left-3.5'} top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-brand-blue-bright`}>
                   <Mail size={16} />
                 </div>
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   required
                   placeholder={t.email_placeholder}
                   className={`w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg py-3 ${isRtl ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4'} text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-brand-blue-bright/60 focus:bg-white transition-all`}
@@ -157,8 +146,8 @@ export function Login() {
                 <div className={`absolute ${isRtl ? 'right-3.5' : 'left-3.5'} top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-brand-blue-bright`}>
                   <Lock size={16} />
                 </div>
-                <input 
-                  type={showPassword ? "text" : "password"} 
+                <input
+                  type={showPassword ? "text" : "password"}
                   required
                   placeholder="••••••••"
                   className={`w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg py-3 ${isRtl ? 'pr-10 pl-10 text-right' : 'pl-10 pr-10'} text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-brand-blue-bright/60 focus:bg-white transition-all`}
@@ -178,7 +167,7 @@ export function Login() {
             {/* Remember me & Forgot Password */}
             <div className="flex items-center justify-between text-xs font-semibold py-1">
               <label className="flex items-center gap-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer">
-                <input 
+                <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={e => setRememberMe(e.target.checked)}
@@ -186,8 +175,8 @@ export function Login() {
                 />
                 {content.remember}
               </label>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="text-brand-blue-bright hover:underline"
               >
                 {content.forgot}
@@ -203,8 +192,8 @@ export function Login() {
             )}
 
             {/* Submit Button */}
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
               className="w-full bg-gradient-to-r from-brand-blue-bright to-blue-600 hover:shadow-lg hover:shadow-blue-500/20 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
             >
@@ -212,7 +201,7 @@ export function Login() {
                 <Loader2 size={18} className="animate-spin" />
               ) : (
                 <>
-                  {t.login_btn} 
+                  {t.login_btn}
                   <ChevronRight size={16} className={isRtl ? 'rotate-180' : ''} />
                 </>
               )}
@@ -245,21 +234,13 @@ export function Login() {
 
       {/* RIGHT SIDE: Gorgeous Blue Card & Mockup Dashboard Tablet */}
       <div className="hidden lg:flex w-[55%] bg-gradient-to-br from-blue-600 to-indigo-800 relative overflow-hidden p-16 flex-col justify-between">
-        
+
         {/* Background decorative glowing circles */}
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-500/30 rounded-full blur-3xl pointer-events-none" />
 
         {/* Top: Logo / Slogan Header */}
-        <div className="flex items-center gap-3 relative z-10">
-          <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center">
-            <Shield size={20} className="text-white fill-white/10" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-white leading-tight">NoRegis</h2>
-            <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider">digital registry</p>
-          </div>
-        </div>
+
 
         {/* Middle Header Message */}
         <div className="my-auto max-w-md relative z-10">
@@ -272,9 +253,9 @@ export function Login() {
         </div>
 
         {/* Bottom Mockup Dashboard Tablet - slanted to match screenshot exactly */}
-        <div 
+        <div
           className="absolute -right-20 -bottom-24 w-[540px] h-[360px] bg-slate-900 border-8 border-slate-900 rounded-[2rem] overflow-hidden shadow-2xl transition-all duration-700 ease-out z-10"
-          style={{ 
+          style={{
             transform: 'perspective(1000px) rotateY(-15deg) rotateX(8deg) rotateZ(-3deg)',
             boxShadow: '0 30px 60px -15px rgba(0,0,0,0.5)'
           }}
