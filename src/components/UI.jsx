@@ -269,6 +269,39 @@ export function StatCard({ label, value, icon: Icon, color, bg }) {
   );
 }
 
+export function DashboardStatCard({ title, value, icon: Icon, gradientFrom, gradientTo, className = '' }) {
+  return (
+    <div
+      className={`relative overflow-hidden rounded-[2rem] p-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)] text-slate-900 dark:text-white ${className}`}
+      style={{ background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})` }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="max-w-[68%]">
+          <p className="text-[9px] font-black uppercase tracking-[0.35em] opacity-80">{title}</p>
+          <p className="mt-3 text-3xl lg:text-4xl font-black leading-tight">{value}</p>
+        </div>
+        {Icon && (
+          <div className="w-12 h-12 rounded-3xl bg-white/85 dark:bg-white/10 text-slate-900 dark:text-white flex items-center justify-center shadow-lg">
+            <Icon size={20} />
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6 flex items-center justify-between gap-3">
+        <div className="flex items-center -space-x-2.5">
+          <div className="w-9 h-9 rounded-full border-4 border-white bg-white/80 shadow-sm" />
+          <div className="w-9 h-9 rounded-full border-4 border-white bg-white/80 shadow-sm" />
+          <div className="w-9 h-9 rounded-full border-4 border-white bg-white/80 shadow-sm" />
+          <span className="ml-2 text-[9px] font-black uppercase tracking-[0.35em] text-slate-900 dark:text-slate-100">+2</span>
+        </div>
+        <div className="w-10 h-10 rounded-3xl bg-white/85 dark:bg-white/10 text-slate-900 dark:text-white flex items-center justify-center shadow-lg">
+          <ChevronRight size={16} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ============================================
    TOGGLE
 ============================================ */

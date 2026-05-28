@@ -123,16 +123,43 @@ export function Parametres() {
 /* ============================================
    PROFIL AGENT
 ============================================ */
-function InfoRow({ icon: Icon, label, value }) {
+function InfoField({ label, value, children }) {
   return (
-    <div className="flex items-center gap-4 p-4 border-b border-slate-100 dark:border-slate-800 last:border-0">
-      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-brand-blue flex items-center justify-center shrink-0">
-        <Icon size={18} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{label}</p>
-        <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-0.5">{value || '—'}</p>
-      </div>
+    <div className="flex flex-col gap-1.5">
+      <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{label}</p>
+      {children ? children : <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{value || '—'}</p>}
+    </div>
+  );
+}
+
+function SectionHeader({ title, onEdit, isEditing, onCancel, onSave, loading }) {
+  return (
+    <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{title}</h3>
+      {!isEditing ? (
+        <button
+          onClick={onEdit}
+          className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-brand-orange bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40 rounded-lg border border-orange-200 dark:border-orange-700/50 transition-colors"
+        >
+          <Pencil size={14} /> Edit
+        </button>
+      ) : (
+        <div className="flex gap-2">
+          <button
+            onClick={onCancel}
+            className="px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onSave}
+            disabled={loading}
+            className="px-3 py-1.5 text-xs font-bold text-white bg-brand-blue hover:bg-brand-blue/90 disabled:opacity-50 rounded-lg transition-colors"
+          >
+            {loading ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -167,6 +194,7 @@ export function ProfilAgent() {
 
   // Admin edit mode direct
   const [isEditing, setIsEditing] = useState(false);
+  const [editingSection, setEditingSection] = useState(null);
   const [editForm, setEditForm] = useState({
     prenom: '', nom: '', telephone: '', departement: '', poste: '', niveauAccreditation: '', dateArrivee: ''
   });
@@ -283,216 +311,176 @@ export function ProfilAgent() {
   };
 
   return (
-    <div className="p-3 lg:p-6 w-full max-w-7xl mx-auto flex flex-col gap-6" dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
-      <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white">{t.profile}</h1>
-
-      {/* Bannière demande en attente */}
-      {!loadingDemande && demandePendante && (
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-          <Clock size={18} className="text-amber-500 shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Demande de modification en attente</p>
-            <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-              Champ(s) : <span className="font-bold">{Object.keys(demandePendante.modifications || {}).join(', ')}</span>
-            </p>
-            {demandePendante.motif && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5 italic">«{demandePendante.motif}»</p>
-            )}
-            <p className="text-[10px] text-amber-500 mt-1 font-bold">
-              Soumise le {new Date(demandePendante.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Hero */}
-      <div className="relative bg-gradient-to-br from-brand-navy via-slate-900 to-black rounded-xl p-8 lg:p-12 flex flex-col lg:flex-row items-center gap-8 overflow-hidden">
-        <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
-        <div className="absolute -bottom-10 right-20 w-32 h-32 rounded-full bg-white/5 pointer-events-none" />
-
-        {/* Photo */}
-        <div className="relative shrink-0">
-          <div className="w-32 h-32 lg:w-40 lg:h-40 rounded-xl overflow-hidden bg-white/10 border-4 border-white/20 flex items-center justify-center">
-            {agent?.photo
-              ? <img src={agent.photo} alt="Agent" className="w-full h-full object-cover" />
-              : <span className="text-5xl lg:text-6xl font-black text-white">{agent?.initials || 'AU'}</span>
-            }
-          </div>
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-brand-blue-bright text-white border-4 border-slate-900 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
-          >
-            <Camera size={18} />
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-        </div>
-
-        {/* Info */}
-        <div className="text-white text-center lg:text-left z-10">
-          <p className="text-3xl lg:text-4xl font-black mb-3">{agent?.prenom} {agent?.nom}</p>
-          <div className="flex gap-2 flex-wrap justify-center lg:justify-start">
-            <span className="bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 border border-white/10">
-              <BadgeCheck size={14} className="text-blue-400" /> {agent?.role}
-            </span>
-            <span className="bg-white/5 px-4 py-1.5 rounded-full text-xs font-mono font-bold text-slate-300 border border-white/5">
-              {agent?.matricule}
-            </span>
-          </div>
-          <p className="text-sm opacity-70 mt-5 flex items-center gap-2 justify-center lg:justify-start">
-            <Building size={14} /> {agent?.poste || t.poste_undef}
-          </p>
-        </div>
+    <div className="p-3 lg:p-6 w-full max-w-7xl mx-auto flex flex-col gap-6 bg-slate-50 dark:bg-slate-950 min-h-screen" dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
+      {/* Header with Profile Title */}
+      <div className="mb-2">
+        <h1 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">My Profile</h1>
       </div>
 
-      {erreurEnvoi && isEditing && (
-        <div className="p-3 bg-red-50 dark:bg-red-950/30 text-brand-red border border-brand-red-bright/20 rounded-lg text-xs font-bold flex items-center gap-2">
-          <XCircle size={16} /><span>{erreurEnvoi}</span>
-        </div>
-      )}
-
-      {/* Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>
-          <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 ml-1">{t.coordinates}</h3>
-          <Card>
-            {isEditing ? (
-              <div className="p-4 space-y-4">
-                <div>
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Prénom</label>
-                  <input
-                    type="text"
-                    value={editForm.prenom}
-                    onChange={e => setEditForm(prev => ({ ...prev, prenom: e.target.value }))}
-                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Nom</label>
-                  <input
-                    type="text"
-                    value={editForm.nom}
-                    onChange={e => setEditForm(prev => ({ ...prev, nom: e.target.value }))}
-                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Téléphone</label>
-                  <input
-                    type="text"
-                    value={editForm.telephone}
-                    onChange={e => setEditForm(prev => ({ ...prev, telephone: e.target.value }))}
-                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Département</label>
-                  <input
-                    type="text"
-                    value={editForm.departement}
-                    onChange={e => setEditForm(prev => ({ ...prev, departement: e.target.value }))}
-                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
-                  />
-                </div>
+      {/* Profile Card with Avatar Header */}
+      <Card className="bg-white dark:bg-slate-900">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
+            {/* Avatar */}
+            <div className="relative shrink-0">
+              <div className="w-28 h-28 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border-4 border-slate-200 dark:border-slate-700 flex items-center justify-center flex-shrink-0">
+                {agent?.photo
+                  ? <img src={agent.photo} alt="Agent" className="w-full h-full object-cover" />
+                  : <span className="text-4xl font-black text-slate-400">{agent?.initials || 'AU'}</span>
+                }
               </div>
-            ) : (
-              <>
-                <InfoRow icon={Mail}    label={t.email}  value={agent?.email} />
-                <InfoRow icon={Phone}   label={t.phone}  value={agent?.telephone} />
-                <InfoRow icon={Building} label={t.dept}  value={agent?.departement} />
-              </>
-            )}
-          </Card>
-        </div>
-        <div>
-          <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 ml-1">{t.ops_info}</h3>
-          <Card>
-            {isEditing ? (
-              <div className="p-4 space-y-4">
-                <div>
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Accréditation</label>
-                  <input
-                    type="text"
-                    value={editForm.niveauAccreditation}
-                    onChange={e => setEditForm(prev => ({ ...prev, niveauAccreditation: e.target.value }))}
-                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Poste</label>
-                  <input
-                    type="text"
-                    value={editForm.poste}
-                    onChange={e => setEditForm(prev => ({ ...prev, poste: e.target.value }))}
-                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Date d'arrivée</label>
-                  <input
-                    type="date"
-                    value={editForm.dateArrivee}
-                    onChange={e => setEditForm(prev => ({ ...prev, dateArrivee: e.target.value }))}
-                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
-                  />
-                </div>
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-brand-blue text-white border-4 border-white dark:border-slate-900 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
+                title="Change photo"
+              >
+                <Camera size={16} />
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+            </div>
+
+            {/* Profile Info */}
+            <div className="flex-1">
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-1">{agent?.prenom} {agent?.nom}</h2>
+              <p className="text-sm font-bold text-slate-600 dark:text-slate-400 mb-3">{agent?.role}</p>
+              <div className="flex flex-wrap gap-2">
+                <span className="text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg">{agent?.matricule}</span>
+                {agent?.poste && (
+                  <span className="text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                    <Building size={12} /> {agent.poste}
+                  </span>
+                )}
               </div>
-            ) : (
-              <>
-                <InfoRow icon={BadgeCheck} label={t.acc_level}   value={agent?.niveauAccreditation || agent?.niveau} />
-                <InfoRow icon={Building}   label={t.workstation} value={agent?.poste} />
-                <InfoRow icon={Calendar}   label={t.arrival}     value={
-                  agent?.dateArrivee
-                    ? new Date(agent.dateArrivee).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-                    : '—'
-                } />
-              </>
-            )}
-          </Card>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Note lecture seule */}
-      {agent?.role !== 'ADMIN' && (
-        <div className="flex items-center gap-2 text-xs text-slate-400 font-bold bg-slate-50 dark:bg-slate-900/40 px-4 py-3 rounded-lg border border-slate-100 dark:border-slate-800">
-          <ShieldAlert size={14} className="text-slate-400 shrink-0" />
-          Ces informations sont gérées par votre administrateur. Pour les modifier, soumettez une demande.
-        </div>
-      )}
+        {/* Personal Information Section */}
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+          <SectionHeader
+            title="Personal Information"
+            isEditing={editingSection === 'personal'}
+            onEdit={() => {
+              setEditingSection('personal');
+              setEditForm(prev => ({...prev, prenom: agent.prenom || '', nom: agent.nom || '', telephone: agent.telephone || ''}));
+            }}
+            onCancel={() => setEditingSection(null)}
+            onSave={() => handleSaveProfile({ preventDefault: () => {} })}
+            loading={envoi}
+          />
 
-      {/* Actions */}
-      <div className="flex gap-3 justify-end mt-2">
-        {agent?.role === 'ADMIN' ? (
-          isEditing ? (
-            <>
-              <Btn variant="secondary" onClick={() => setIsEditing(false)}>
-                Annuler
-              </Btn>
-              <Btn variant="primary" icon={Send} loading={envoi} onClick={handleSaveProfile}>
-                Enregistrer
-              </Btn>
-            </>
+          {editingSection === 'personal' ? (
+            <div className="space-y-4">
+              <InfoField label="First Name">
+                <input
+                  type="text"
+                  value={editForm.prenom}
+                  onChange={e => setEditForm(prev => ({ ...prev, prenom: e.target.value }))}
+                  className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-blue transition-colors"
+                />
+              </InfoField>
+              <InfoField label="Last Name">
+                <input
+                  type="text"
+                  value={editForm.nom}
+                  onChange={e => setEditForm(prev => ({ ...prev, nom: e.target.value }))}
+                  className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-blue transition-colors"
+                />
+              </InfoField>
+              <InfoField label="Phone Number">
+                <input
+                  type="text"
+                  value={editForm.telephone}
+                  onChange={e => setEditForm(prev => ({ ...prev, telephone: e.target.value }))}
+                  className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-blue transition-colors"
+                />
+              </InfoField>
+            </div>
           ) : (
-            <Btn variant="primary" icon={Pencil} onClick={startEditing}>
-              Modifier mon profil
-            </Btn>
-          )
-        ) : (
-          <Btn
-            variant="secondary"
-            icon={Pencil}
-            disabled={!!demandePendante}
-            onClick={openDemandeModal}
-            className="!border-brand-blue-bright/30 !text-brand-blue-bright hover:!bg-brand-blue-bright hover:!text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {demandePendante ? 'Demande en attente…' : 'Demander une modification'}
-          </Btn>
-        )}
-        {!isEditing && (
-          <Btn variant="danger" icon={LogOut} onClick={handleLogout}>
-            {t.logout}
-          </Btn>
-        )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <InfoField label="First Name" value={agent?.prenom} />
+              <InfoField label="Last Name" value={agent?.nom} />
+              <InfoField label="Phone Number" value={agent?.telephone} />
+            </div>
+          )}
+        </div>
+
+        {/* Address Section */}
+        <div className="p-6">
+          <SectionHeader
+            title="Address"
+            isEditing={editingSection === 'address'}
+            onEdit={() => {
+              setEditingSection('address');
+              setEditForm(prev => ({...prev, departement: agent.departement || '', poste: agent.poste || '', niveauAccreditation: agent.niveauAccreditation || agent.niveau || ''}));
+            }}
+            onCancel={() => setEditingSection(null)}
+            onSave={() => handleSaveProfile({ preventDefault: () => {} })}
+            loading={envoi}
+          />
+
+          {editingSection === 'address' ? (
+            <div className="space-y-4">
+              <InfoField label="Département">
+                <input
+                  type="text"
+                  value={editForm.departement}
+                  onChange={e => setEditForm(prev => ({ ...prev, departement: e.target.value }))}
+                  className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-blue transition-colors"
+                />
+              </InfoField>
+              <InfoField label="Poste">
+                <input
+                  type="text"
+                  value={editForm.poste}
+                  onChange={e => setEditForm(prev => ({ ...prev, poste: e.target.value }))}
+                  className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-blue transition-colors"
+                />
+              </InfoField>
+              <InfoField label="Accréditation">
+                <input
+                  type="text"
+                  value={editForm.niveauAccreditation}
+                  onChange={e => setEditForm(prev => ({ ...prev, niveauAccreditation: e.target.value }))}
+                  className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-blue transition-colors"
+                />
+              </InfoField>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <InfoField label="Département" value={agent?.departement} />
+              <InfoField label="Poste" value={agent?.poste} />
+              <InfoField label="Accréditation" value={agent?.niveauAccreditation || agent?.niveau} />
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* Error Messages */}
+      {erreurEnvoi && (
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 text-brand-red border border-brand-red-bright/20 rounded-lg text-sm font-bold flex items-center gap-2">
+          <XCircle size={16} /> {erreurEnvoi}
+        </div>
+      )}
+
+      {/* Pending Request Alert */}
+      {!loadingDemande && demandePendante && (
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+          <Clock size={18} className="text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Modification en attente</p>
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              Champs : {Object.keys(demandePendante.modifications || {}).join(', ')}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Logout Button */}
+      <div className="flex justify-end">
+        <Btn variant="danger" icon={LogOut} onClick={handleLogout}>
+          {t.logout}
+        </Btn>
       </div>
 
       {/* ── MODAL DE DEMANDE ───────────────────────────────── */}

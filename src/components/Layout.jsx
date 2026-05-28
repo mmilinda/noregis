@@ -1,47 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard, History, Settings, User as UserIcon,
-  Shield, Clock, Plus, Bell, Search, LogOut, HelpCircle } from 'lucide-react';
+  Shield, Plus, Bell, Search, LogOut, HelpCircle } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { RegistrationModal } from './RegistrationModal';
 import { TRANSLATIONS } from '../translations';
-
-/* ============================================
-   CLOCK
-============================================ */
-function LiveClock({ light }) {
-  const { state } = useApp();
-  const currentLang = state.settings?.language || 'fr';
-  const [time, setTime] = useState(new Date());
-  useEffect(() => {
-    const t = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  const locale = currentLang === 'ar' ? 'ar-EG' : (currentLang === 'en' ? 'en-US' : 'fr-FR');
-
-  return (
-    <div className="flex items-center gap-3">
-      <Clock size={16} className={light ? 'text-white/40' : 'text-slate-400'} />
-      <div className="flex flex-col">
-        <span className={`text-[9px] font-black uppercase tracking-widest ${light ? 'text-white/40' : 'text-slate-400'}`}>
-          {time.toLocaleDateString(locale, { day: '2-digit', month: 'short' })}
-        </span>
-        <span className={`text-sm font-black font-mono leading-none ${light ? 'text-white' : 'text-slate-900 dark:text-slate-100'}`}>
-          {time.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 /* ============================================
    DESKTOP SIDEBAR  — Persana-style light
 ============================================ */
 function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
   const { state, dispatch } = useApp();
-  const { agent, visitors } = state;
-  const present = visitors.filter(v => v.statut === 'present').length;
+  const { agent } = state;
 
   return (
     <aside className="w-[260px] bg-white dark:bg-[#161B22] flex flex-col h-screen sticky top-0 border-r border-slate-200 dark:border-slate-800 overflow-hidden z-[100]">
@@ -55,15 +25,6 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
             <p className="text-lg font-black text-slate-900 dark:text-white tracking-tight">NoRegis</p>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Registre Digital</p>
           </div>
-        </div>
-      </div>
-
-      {/* Live clock + presence */}
-      <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 space-y-3">
-        <LiveClock />
-        <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-900/20 p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-800/30">
-          <span className="w-2 h-2 rounded-full bg-brand-green-bright animate-pulse" />
-          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">{present} {t.present.toLowerCase()}</span>
         </div>
       </div>
 
@@ -94,22 +55,13 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
       {/* CTA */}
       {agent?.role !== 'ADMIN' && (
         <div className="px-4 pb-2">
-          <button
-            onClick={onNewEntry}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-blue-bright to-blue-600 text-white p-3 rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98] transition-all"
-          >
-            <Plus size={20} strokeWidth={2.5} />
-            {t.new_entry}
-          </button>
+         
         </div>
       )}
 
       {/* Help Center */}
       <div className="px-3 pb-1">
-        <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
-          <HelpCircle size={20} />
-          <span className="text-[13px] font-semibold">Centre d'aide</span>
-        </button>
+        
       </div>
 
       {/* Agent & Logout */}
@@ -127,13 +79,7 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
           </div>
         </div>
 
-        <button
-          onClick={() => dispatch({ type: 'LOGOUT' })}
-          className="w-full flex items-center gap-3 px-6 py-3.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors border-t border-slate-100 dark:border-slate-800 group"
-        >
-          <LogOut size={18} className="opacity-50 group-hover:opacity-100" />
-          <span className="text-xs font-bold uppercase tracking-widest">{t.logout}</span>
-        </button>
+       
       </div>
     </aside>
   );
@@ -156,7 +102,6 @@ function MobileHeader({ activeTab, navItems }) {
           <span className="text-xs font-bold text-slate-400">/ {tabLabel}</span>
         </div>
       </div>
-      <LiveClock />
     </header>
   );
 }
@@ -166,7 +111,6 @@ function MobileHeader({ activeTab, navItems }) {
 ============================================ */
 function BottomNav({ activeTab, onTabChange, onNewEntry, t, navItems }) {
   const { state } = useApp();
-  const present = state.visitors.filter(v => v.statut === 'present').length;
   const isAdmin = state.agent?.role === 'ADMIN';
 
   const renderItem = ({ id, label, icon: Icon }) => {
@@ -175,9 +119,6 @@ function BottomNav({ activeTab, onTabChange, onNewEntry, t, navItems }) {
       <button key={id} onClick={() => onTabChange(id)} className="flex-grow flex flex-col items-center gap-1.5 transition-all">
         <div className="relative">
           <Icon size={24} className={active ? 'text-brand-blue-bright' : 'text-slate-400'} />
-          {id === 'dashboard' && present > 0 && (
-            <span className="absolute -top-1.5 -right-2 bg-brand-green-bright text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg">{present}</span>
-          )}
         </div>
         <span className={`text-[8px] font-black uppercase tracking-tight ${active ? 'text-brand-blue-bright' : 'text-slate-400'}`}>{label}</span>
       </button>
@@ -246,8 +187,6 @@ function DesktopTopBar({ activeTab, navItems, t }) {
           <Bell size={20} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#161B22]" />
         </button>
-        <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
-        <LiveClock />
       </div>
     </header>
   );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Users, UserCheck, UserX, Car, Plus, RefreshCw, Search } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
-import { StatCard, Card, CardHeader, Btn, EmptyState, Modal } from '../../components/UI';
+import { DashboardStatCard, Card, CardHeader, Btn, EmptyState, Modal } from '../../components/UI';
 import { RegistrationModal } from '../../components/RegistrationModal';
 import { visitService } from '../../services/visitService';
 import { TRANSLATIONS } from '../../translations';
@@ -125,11 +125,35 @@ export default function AgentDashboard({ isMobile }) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-        <StatCard label={t.total_visitors} value={stats.total} icon={Users} color="#3B82F6" bg="#EFF6FF" />
-        <StatCard label={t.on_site} value={stats.present} icon={UserCheck} color="#10B981" bg="#D1FAE5" />
-        <StatCard label={t.total_exits} value={stats.sortis} icon={UserX} color="#6B7280" bg="#F1F5F9" />
-        <StatCard label={t.vehicle} value={stats.vehicules} icon={Car} color="#F59E0B" bg="#FEF3C7" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
+        <DashboardStatCard
+          title={t.total_visitors}
+          value={stats.total}
+          icon={Users}
+          gradientFrom="#eef2ff"
+          gradientTo="#c7d2fe"
+        />
+        <DashboardStatCard
+          title={t.on_site}
+          value={stats.present}
+          icon={UserCheck}
+          gradientFrom="#dcfce7"
+          gradientTo="#86efac"
+        />
+        <DashboardStatCard
+          title={t.total_exits}
+          value={stats.sortis}
+          icon={UserX}
+          gradientFrom="#f8fafc"
+          gradientTo="#cbd5e1"
+        />
+        <DashboardStatCard
+          title={t.vehicle}
+          value={stats.vehicules}
+          icon={Car}
+          gradientFrom="#fff7ed"
+          gradientTo="#fdba74"
+        />
       </div>
 
       {/* Main Registry Table Card */}
