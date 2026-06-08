@@ -4,6 +4,7 @@ import {
   Shield, Plus, Bell, Search, LogOut, HelpCircle } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { RegistrationModal } from './RegistrationModal';
+import { AppLogo } from './AppLogo';
 import { TRANSLATIONS } from '../translations';
 
 /* ============================================
@@ -17,15 +18,7 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
     <aside className="w-[260px] bg-white dark:bg-[#161B22] flex flex-col h-screen sticky top-0 border-r border-slate-200 dark:border-slate-800 overflow-hidden z-[100]">
       {/* Logo */}
       <div className="p-6 pb-5 border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-blue-bright to-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20">
-            <Shield size={22} className="text-white fill-white/20" />
-          </div>
-          <div>
-            <p className="text-lg font-black text-slate-900 dark:text-white tracking-tight">NoRegis</p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Registre Digital</p>
-          </div>
-        </div>
+        <AppLogo />
       </div>
 
       {/* Nav */}
@@ -94,13 +87,8 @@ function MobileHeader({ activeTab, navItems }) {
   return (
     <header className="sticky top-0 z-[100] bg-white dark:bg-[#161B22] p-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 shadow-sm">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-blue-bright to-blue-600 flex items-center justify-center">
-          <Shield size={18} className="text-white fill-white/20" />
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-base font-black text-slate-900 dark:text-white tracking-tight">NoRegis</span>
-          <span className="text-xs font-bold text-slate-400">/ {tabLabel}</span>
-        </div>
+        <AppLogo compact />
+        <span className="text-xs font-bold text-slate-400">/ {tabLabel}</span>
       </div>
     </header>
   );

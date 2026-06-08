@@ -112,11 +112,11 @@ export default function AgentDashboard({ isMobile }) {
   return (
     <div className="p-3 lg:p-6 w-full max-w-7xl mx-auto flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500" dir={settings?.language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Title bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white tracking-tight">{t.dashboard}</h1>
-          <p className="text-xs text-slate-500 font-bold mt-1">
-            {new Date().toLocaleDateString(currentLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <h1 className="text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tight">{t.dashboard}</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {t.tracking_desc}
           </p>
         </div>
         <Btn variant="primary" icon={Plus} onClick={() => setRegOpen(true)} size={isMobile ? 'md' : 'lg'} className="!rounded-lg">
@@ -126,50 +126,97 @@ export default function AgentDashboard({ isMobile }) {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
-        <DashboardStatCard
-          title={t.total_visitors}
-          value={stats.total}
-          icon={Users}
-          gradientFrom="#eef2ff"
-          gradientTo="#c7d2fe"
-        />
-        <DashboardStatCard
-          title={t.on_site}
-          value={stats.present}
-          icon={UserCheck}
-          gradientFrom="#dcfce7"
-          gradientTo="#86efac"
-        />
-        <DashboardStatCard
-          title={t.total_exits}
-          value={stats.sortis}
-          icon={UserX}
-          gradientFrom="#f8fafc"
-          gradientTo="#cbd5e1"
-        />
-        <DashboardStatCard
-          title={t.vehicle}
-          value={stats.vehicules}
-          icon={Car}
-          gradientFrom="#fff7ed"
-          gradientTo="#fdba74"
-        />
+        {/* Total Visitors Card */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center">
+                <Users size={24} className="text-blue-600 dark:text-blue-400" />
+              </div>
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Total Entrées</span>
+            </div>
+            <span className="px-2.5 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full text-[10px] font-black text-blue-600 dark:text-blue-400">↑ 12%</span>
+          </div>
+          <p className="text-4xl font-black text-slate-900 dark:text-white">{stats.total}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">{t.total_visitors}</p>
+        </div>
+
+        {/* On Site Card */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 flex items-center justify-center">
+                <UserCheck size={24} className="text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Actuellement</span>
+            </div>
+            <span className="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/30 rounded-full text-[10px] font-black text-emerald-600 dark:text-emerald-400">✓ {stats.present > 0 ? '99.8%' : '0%'}</span>
+          </div>
+          <p className="text-4xl font-black text-slate-900 dark:text-white">{stats.present}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">{t.on_site}</p>
+        </div>
+
+        {/* Exits Card */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-100 to-gray-100 dark:from-slate-800 dark:to-gray-700 flex items-center justify-center">
+                <UserX size={24} className="text-slate-600 dark:text-slate-400" />
+              </div>
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Sorties</span>
+            </div>
+            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black ${stats.sortis > stats.present ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+              {stats.sortis > 0 ? 'Complété' : 'En attente'}
+            </span>
+          </div>
+          <p className="text-4xl font-black text-slate-900 dark:text-white">{stats.sortis}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">{t.total_exits}</p>
+        </div>
+
+        {/* Vehicles Card */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 flex items-center justify-center">
+                <Car size={24} className="text-amber-600 dark:text-amber-400" />
+              </div>
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Véhicules</span>
+            </div>
+            <span className="px-2.5 py-1 bg-amber-100 dark:bg-amber-900/30 rounded-full text-[10px] font-black text-amber-600 dark:text-amber-400">↑ 3%</span>
+          </div>
+          <p className="text-4xl font-black text-slate-900 dark:text-white">{stats.vehicules}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">{t.vehicle}</p>
+        </div>
       </div>
 
       {/* Main Registry Table Card */}
-      <Card className="border-slate-200 dark:border-slate-800">
-        <CardHeader
-          title={`${t.dashboard} (${filtered.length})`}
-          subtitle={t.tracking_desc}
-          actions={
-            <Btn variant="ghost" size="sm" icon={RefreshCw} onClick={() => fetchVisitors(true)} loading={loading} className="text-[10px] font-black uppercase tracking-widest">
-              {!isMobile && t.refresh}
-            </Btn>
-          }
-        />
+      <Card className="border-slate-200 dark:border-slate-800 overflow-hidden">
+        {/* Tabs Header */}
+        <div className="px-6 pt-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <div className="flex gap-8">
+            {['all', 'person', 'vehicule'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setFilterType(tab)}
+                className={`pb-4 text-sm font-bold transition-all border-b-2 ${
+                  filterType === tab
+                    ? 'text-brand-blue-bright dark:text-blue-400 border-brand-blue-bright dark:border-blue-400'
+                    : 'text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-600 dark:hover:text-slate-300'
+                }`}
+              >
+                {tab === 'all' && t.all}
+                {tab === 'person' && t.person}
+                {tab === 'vehicule' && t.vehicle}
+              </button>
+            ))}
+          </div>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">
+            {t.showing} 1-10 {t.of} {filtered.length} {t.records}
+          </span>
+        </div>
 
         {/* Filters & Actions bar */}
-        <div className="p-4 bg-slate-50/50 dark:bg-white/[0.01] border-b border-slate-50 dark:border-slate-800 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
+        <div className="p-6 bg-slate-50/50 dark:bg-slate-900/30 border-b border-slate-200 dark:border-slate-700 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
           <div className="relative flex-1 group">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue-bright transition-colors" />
             <input
@@ -177,7 +224,7 @@ export default function AgentDashboard({ isMobile }) {
               placeholder={t.search}
               value={searchQuery}
               onChange={e => dispatch({ type: 'SET_SEARCH', payload: e.target.value })}
-              className="w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 focus:border-brand-blue-bright/20 rounded-lg py-2 pl-10 pr-4 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"
+              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-brand-blue-bright focus:ring-2 focus:ring-brand-blue-bright/20 dark:focus:bg-slate-700 rounded-lg py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"
             />
           </div>
 
@@ -185,21 +232,11 @@ export default function AgentDashboard({ isMobile }) {
             <select
               value={filterStatus}
               onChange={e => dispatch({ type: 'SET_FILTER_STATUS', payload: e.target.value })}
-              className="px-4 py-2.5 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-lg text-xs font-black text-slate-700 dark:text-slate-300 outline-none cursor-pointer hover:border-slate-200 transition-colors appearance-none pr-8 relative bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%2394A3B8%22%20stroke-width%3D%221.66667%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E')] bg-[length:16px_16px] bg-[right_8px_center] bg-no-repeat"
+              className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 outline-none cursor-pointer hover:border-slate-300 dark:hover:border-slate-600 transition-colors appearance-none pr-8 relative"
             >
               <option value="all">{t.all} ({t.status})</option>
               <option value="present">{t.present}</option>
               <option value="sorti">{t.exited}</option>
-            </select>
-
-            <select
-              value={filterType}
-              onChange={e => setFilterType(e.target.value)}
-              className="px-4 py-2.5 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-lg text-xs font-black text-slate-700 dark:text-slate-300 outline-none cursor-pointer hover:border-slate-200 transition-colors appearance-none pr-8 relative bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%2394A3B8%22%20stroke-width%3D%221.66667%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E')] bg-[length:16px_16px] bg-[right_8px_center] bg-no-repeat"
-            >
-              <option value="all">{t.all} ({t.filter_by})</option>
-              <option value="person">{t.person}</option>
-              <option value="vehicule">{t.vehicle}</option>
             </select>
           </div>
         </div>
