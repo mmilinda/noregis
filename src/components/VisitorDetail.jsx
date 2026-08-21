@@ -100,6 +100,10 @@ export default function VisitorDetail({ visitor: initialVisitor, onClose, onChec
             {(visitor.dateNaissance || visitor.visiteur?.dateNaissance || visitor.visitor?.dateNaissance || visitor.visiteurId?.dateNaissance) && (
               <Row label={t.birth_date} value={fetching ? '...' : formatBackendDate(visitor.dateNaissance || visitor.visiteur?.dateNaissance || visitor.visitor?.dateNaissance || visitor.visiteurId?.dateNaissance)} />
             )}
+            {/* NIN — Backend v2 */}
+            {(visitor.nin || visitor.visiteur?.nin || visitor.visiteurId?.nin) && (
+              <Row label="NIN" value={fetching ? '...' : (visitor.nin || visitor.visiteur?.nin || visitor.visiteurId?.nin)} mono />
+            )}
           </>
         )}
         <Row label={t.host_name} value={visitor.personneVisitee || visitor.hote || visitor.visitedPerson} />

@@ -107,6 +107,17 @@ export default function AgentDashboard({ isMobile }) {
     }
   };
 
+  // Backend v2 — Suppression de visite
+  const handleDeleteVisit = async (id) => {
+    try {
+      await visitService.deleteVisit(id);
+      dispatch({ type: 'DELETE_VISIT', payload: id });
+      notify('success', 'Visite supprimée.');
+    } catch (err) {
+      notify('error', (t.error_prefix || 'Erreur') + ': ' + err.message);
+    }
+  };
+
   const currentLocale = settings?.language === 'ar' ? 'ar-EG' : (settings?.language === 'en' ? 'en-US' : 'fr-FR');
 
   return (
@@ -196,6 +207,7 @@ export default function AgentDashboard({ isMobile }) {
             visitors={filtered}
             onView={setDetailVisitor}
             onCheckout={handleCheckout}
+            onDelete={handleDeleteVisit}
             compact={isMobile}
           />
         )}

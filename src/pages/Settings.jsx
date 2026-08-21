@@ -3,7 +3,7 @@ import {
   Moon, Sun, Globe, Bell, Smartphone, Volume2,
   LifeBuoy, Bug, Info, ShieldAlert,
   Camera, Building, Phone, Mail, Calendar, BadgeCheck,
-  LogOut, Pencil, Send, Clock, XCircle, Plus, Minus,
+  LogOut, Pencil, Send, Clock, XCircle, Plus, Minus, QrCode,
 } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { Card, Toggle, Btn, Modal } from '../components/UI';
@@ -157,6 +157,31 @@ export function ProfilAgent() {
   const [demandeModal, setDemandeModal]       = useState(false);
   const [demandePendante, setDemandePendante] = useState(null);
   const [loadingDemande, setLoadingDemande]   = useState(true);
+
+  // Backend v2 — QR Code agent
+  const [qrLoading, setQrLoading] = useState(false);
+
+  const handleDownloadQr = async () => {
+    const id = agent?.id || agent?._id;
+    if (!id) return;
+    setQrLoading(true);
+    try {
+      const res = await authService.getAgentQr(id);
+      // Le backend retourne { qr: 'data:image/png;base64,...' } ou { qrCode: '...' }
+      const qrData = res.qr || res.qrCode || res.data;
+      if (!qrData) throw new Error('QR Code non disponible');
+      // Téléchargement automatique
+      const a = document.createElement('a');
+      a.href = qrData.startsWith('data:') ? qrData : `data:image/png;base64,${qrData}`;
+      a.download = `qr-agent-${agent?.prenom || 'agent'}.png`;
+      a.click();
+      notify('success', '📲 QR Code téléchargé avec succès.');
+    } catch (err) {
+      notify('error', err.message || 'Erreur lors de la génération du QR Code.');
+    } finally {
+      setQrLoading(false);
+    }
+  };
 
   // Formulaire de demande
   const [champsSelectionnes, setChampsSelectionnes] = useState([CHAMPS_DEMANDE[0].key]);
@@ -338,6 +363,16 @@ export function ProfilAgent() {
             <span className="bg-white/5 px-4 py-1.5 rounded-full text-xs font-mono font-bold text-slate-300 border border-white/5">
               {agent?.matricule}
             </span>
+            {/* Bouton QR Code — Backend v2 */}
+            <button
+              onClick={handleDownloadQr}
+              disabled={qrLoading}
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 border border-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Télécharger mon QR Code d'agent"
+            >
+              <QrCode size={14} className="text-green-400" />
+              {qrLoading ? 'Génération...' : 'Mon QR Code'}
+            </button>
           </div>
           <p className="text-sm opacity-70 mt-5 flex items-center gap-2 justify-center lg:justify-start">
             <Building size={14} /> {agent?.poste || t.poste_undef}

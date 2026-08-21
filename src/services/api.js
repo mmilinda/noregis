@@ -66,6 +66,24 @@ const api = {
     }
     return response.json();
   },
+
+  delete: async (endpoint) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'API Error');
+    }
+    // Certains DELETE retournent 204 sans corps
+    const text = await response.text();
+    return text ? JSON.parse(text) : { success: true };
+  },
 };
 
 export default api;

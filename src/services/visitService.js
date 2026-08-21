@@ -15,5 +15,10 @@ export const visitService = {
 
   recordExit: async (visitId) => {
     return api.post(`/api/visites/sortie/${visitId}`);
-  }
+  },
+
+  // Nouvelle méthode — Backend v2
+  deleteVisit: async (visitId) => {
+    return api.delete(`/api/visites/${visitId}`);
+  },
 };

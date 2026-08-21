@@ -68,4 +68,9 @@ export const authService = {
       dateArrivee,
     });
   },
+
+  // Nouvelle méthode — Backend v2 : génération QR code agent
+  getAgentQr: async (id) => {
+    return api.get(`/api/auth/users/${id}/qr`);
+  },
 };

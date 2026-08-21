@@ -19,5 +19,10 @@ export const visitorService = {
 
   search: async (query) => {
     return api.get(`/api/search?query=${encodeURIComponent(query)}`);
-  }
+  },
+
+  // Nouvelle méthode — Backend v2
+  deleteVisitor: async (id) => {
+    return api.delete(`/api/visiteurs/${id}`);
+  },
 };

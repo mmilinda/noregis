@@ -113,6 +113,42 @@ export function reducer(state, action) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       return { ...state, isAuthenticated: false, agent: null };
+
+    // ── Backend v2 — Suppressions ──────────────────────────────
+    case 'DELETE_VISIT':
+      return {
+        ...state,
+        visitors: state.visitors.filter(v =>
+          v._id !== action.payload && v.id !== action.payload
+        ),
+      };
+    case 'DELETE_VISITOR':
+      return {
+        ...state,
+        visitors: state.visitors.filter(v => {
+          const vid = v.visiteurId?._id || v.visiteurId || v.visiteur?._id;
+          return vid !== action.payload;
+        }),
+      };
+
+    // ── Backend v2 — Socket.IO temps réel ─────────────────────
+    case 'ADD_VISIT_REALTIME': {
+      // Évite les doublons si la visite existe déjà
+      const exists = state.visitors.some(
+        v => v._id === action.payload._id || v.id === action.payload._id
+      );
+      if (exists) return state;
+      return { ...state, visitors: [action.payload, ...state.visitors] };
+    }
+    case 'UPDATE_VISIT_REALTIME': {
+      const updated = state.visitors.map(v =>
+        (v._id === action.payload._id || v.id === action.payload._id)
+          ? { ...v, ...action.payload }
+          : v
+      );
+      return { ...state, visitors: updated };
+    }
+
     default:
       return state;
   }

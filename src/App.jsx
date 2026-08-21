@@ -8,6 +8,7 @@ import { Parametres, ProfilAgent } from './pages/Settings';
 import { Login } from './pages/Login';
 import { visitService } from './services/visitService';
 import { PublicScan } from './pages/PublicScan';
+import { connectSocket, disconnectSocket } from './services/socketService';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -59,6 +60,16 @@ function AppInner() {
       }
     })();
     return () => { cancelled = true; };
+  }, [state.isAuthenticated, dispatch]);
+
+  // Socket.IO — connexion temps réel après authentification (Backend v2)
+  useEffect(() => {
+    if (!state.isAuthenticated) {
+      disconnectSocket();
+      return;
+    }
+    connectSocket(dispatch);
+    return () => { disconnectSocket(); };
   }, [state.isAuthenticated, dispatch]);
 
   // Public scan route should be reachable sans login.
