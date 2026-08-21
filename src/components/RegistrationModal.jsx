@@ -36,6 +36,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   const [form, setForm] = useState({
     nom: initial.nom || '',
     prenom: initial.prenom || '',
+    nin: initial.nin || '',
     dateNaissance: initial.dateNaissance || '',
     sexe: initial.sexe || '',
     taille: initial.taille || '',
@@ -87,6 +88,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
       ...prev,
       nom: data.nom ?? prev.nom,
       prenom: data.prenom ?? prev.prenom,
+      nin: data.nin ?? prev.nin,
       numeroPiece: data.numeroPiece ?? prev.numeroPiece,
       typePiece: data.typePiece ? normalizeTypePiece(data.typePiece) : prev.typePiece,
       dateNaissance: data.dateNaissance ?? prev.dateNaissance,
@@ -182,6 +184,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
           </div>
           <FormInput label="Centre d'enregistrement" id="centreEnregistrement" value={form.centreEnregistrement} onChange={set('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
           <FormInput label="Adresse du domicile" id="adresseDomicile" value={form.adresseDomicile} onChange={set('adresseDomicile')} icon={MapPinned} placeholder="Adresse domicile" />
+          <FormInput label="NIN (Numéro d'Identification Nationale)" id="nin" value={form.nin} onChange={set('nin')} icon={CreditCard} placeholder="Ex: 1 890 1999 12345" />
         </div>
 
         {/* Destination */}

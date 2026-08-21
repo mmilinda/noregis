@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Users, UserCheck, UserX, Car, Plus, RefreshCw, Search } from 'lucide-react';
+import { Users, UserCheck, UserX, Car, Plus, RefreshCw, Search, Camera } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
 import { StatCard, Card, CardHeader, Btn, EmptyState, Modal } from '../../components/UI';
 import { RegistrationModal } from '../../components/RegistrationModal';
@@ -219,6 +219,19 @@ export default function AgentDashboard({ isMobile }) {
       <Modal isOpen={!!detailVisitor} onClose={() => setDetailVisitor(null)} title={t.profile} size="md">
         <VisitorDetail visitor={detailVisitor} onClose={() => setDetailVisitor(null)} onCheckout={handleCheckout} />
       </Modal>
+
+      {/* Bouton Flottant (FAB) - Scan & Entrée directe */}
+      <button
+        onClick={() => setRegOpen(true)}
+        className="fixed bottom-6 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-gradient-to-tr from-brand-blue-bright to-blue-500 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-40 group cursor-pointer border-2 border-white/20"
+        title="Scanner une pièce d'identité (Recto / Verso)"
+      >
+        <Camera size={26} className="group-hover:rotate-12 transition-transform" />
+        <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-green-bright opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-brand-green-bright border-2 border-white"></span>
+        </span>
+      </button>
     </div>
   );
 }
