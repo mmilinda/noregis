@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Camera, Upload, X, RotateCcw, CheckCircle2, Loader2, Car, WifiOff, Zap, ZapOff, ArrowRight, SkipForward, Layers } from 'lucide-react';
 import { Btn } from './UI';
 import { useApp } from '../context/useAppState';
@@ -18,22 +18,35 @@ function base64ToFile(base64, filename = 'scan.jpg') {
 }
 
 /* ===========================================
-   PRÉTRAITEMENT IMAGE (Canvas)
+   PRÉTRAITEMENT & COMPRESSION ULTRA-RAPIDE (Canvas)
 =========================================== */
 function preparerImageOCR(base64) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
+      const MAX = 1024;
+      let w = img.width;
+      let h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) {
+          h = Math.round((h * MAX) / w);
+          w = MAX;
+        } else {
+          w = Math.round((w * MAX) / h);
+          h = MAX;
+        }
+      }
+
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext('2d');
 
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, 0, 0, w, h);
 
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, w, h);
       const data = imageData.data;
-      const facteurContraste = 1.4;
+      const facteurContraste = 1.35;
 
       for (let i = 0; i < data.length; i += 4) {
         const gris = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
@@ -41,7 +54,8 @@ function preparerImageOCR(base64) {
         data[i] = data[i + 1] = data[i + 2] = contraste;
       }
       ctx.putImageData(imageData, 0, 0);
-      resolve(canvas.toDataURL('image/jpeg', 0.95));
+      // Compression JPEG 0.82 (taille divisée par 5 sans perte de lisibilité OCR)
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
     };
     img.onerror = () => resolve(base64);
     img.src = base64;
@@ -147,11 +161,11 @@ function LiveCamera({ currentSide = 'recto', onCapture, onClose, t }) {
   const capture = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    const MAX = 1280;
-    let w = video.videoWidth || 1280;
-    let h = video.videoHeight || 720;
-    if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
-    if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+    const MAX = 1024;
+    let w = video.videoWidth || 1024;
+    let h = video.videoHeight || 600;
+    if (w > MAX) { h = Math.round((h * MAX) / w); w = MAX; }
+    if (h > MAX) { w = Math.round((w * MAX) / h); h = MAX; }
 
     const canvas = document.createElement('canvas');
     canvas.width = w;
@@ -163,7 +177,7 @@ function LiveCamera({ currentSide = 'recto', onCapture, onClose, t }) {
       track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
     }
 
-    onCapture(canvas.toDataURL('image/jpeg', 0.95));
+    onCapture(canvas.toDataURL('image/jpeg', 0.85));
   }, [flashOn, onCapture]);
 
   const handleClose = useCallback(() => {
