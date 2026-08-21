@@ -1,5 +1,5 @@
-﻿// Service de scan public — ne nécessite pas de token JWT
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://noregisbackend.onrender.com';
+// Service de scan public — ne nécessite pas de token JWT
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://noregisbackend-h9l7.onrender.com';
 
 export const scanPublicService = {
   /**

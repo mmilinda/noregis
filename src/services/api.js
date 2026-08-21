@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://noregisbackend.onrender.com';
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://noregisbackend-h9l7.onrender.com';
 
 const api = {
   get: async (endpoint) => {
