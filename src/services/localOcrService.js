@@ -1,5 +1,46 @@
 import { createWorker } from 'tesseract.js';
 
+export function normaliserDonneesOCR(res) {
+  if (!res) return {};
+  const data = res.infosExtraites || res.donnees || res.data || res.result || res.extracted || res;
+
+  const getVal = (...keys) => {
+    for (const key of keys) {
+      if (data && data[key] !== undefined && data[key] !== null && data[key] !== '') {
+        const val = String(data[key]).trim();
+        if (val && val.toLowerCase() !== 'null' && val.toLowerCase() !== 'undefined') return val;
+      }
+    }
+    return '';
+  };
+
+  const nom = getVal('nom', 'lastName', 'last_name', 'surname', 'family_name', 'nomFamille');
+  const prenom = getVal('prenom', 'firstName', 'first_name', 'given_name', 'prenoms');
+  const numeroPiece = getVal('numeroPiece', 'numero_piece', 'idNumber', 'id_number', 'card_number', 'cni', 'numPiece', 'numero');
+  const nin = getVal('nin', 'ninNumber', 'nin_number', 'nationalId', 'national_id', 'numNational', 'codeNational');
+  const dateNaissance = getVal('dateNaissance', 'date_naissance', 'birthDate', 'birth_date', 'dob');
+  const sexe = getVal('sexe', 'sex', 'gender');
+  const typePiece = getVal('typePiece', 'type_piece', 'documentType', 'docType');
+  const lieuNaissance = getVal('lieuNaissance', 'lieu_naissance', 'birthPlace', 'pob');
+  const dateDelivrance = getVal('dateDelivrance', 'date_delivrance', 'issueDate', 'issued_date');
+  const dateExpiration = getVal('dateExpiration', 'date_expiration', 'expiryDate', 'expirationDate');
+  const adresseDomicile = getVal('adresseDomicile', 'adresse', 'address');
+
+  return {
+    nom,
+    prenom,
+    numeroPiece,
+    nin,
+    dateNaissance,
+    sexe: sexe ? sexe.toUpperCase().slice(0, 1) : '',
+    typePiece: typePiece || (numeroPiece ? 'CNI' : ''),
+    lieuNaissance,
+    dateDelivrance,
+    dateExpiration,
+    adresseDomicile,
+  };
+}
+
 export function parseIDText(text) {
   if (!text) return {};
   const cleanText = text.replace(/\r\n/g, '\n');

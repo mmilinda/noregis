@@ -4,7 +4,8 @@ import { Btn } from './UI';
 import { useApp } from '../context/useAppState';
 import { TRANSLATIONS } from '../translations';
 import api from '../services/api';
-import { runLocalOCR } from '../services/localOcrService';
+import { runLocalOCR, normaliserDonneesOCR } from '../services/localOcrService';
+
 
 
 /* ===========================================
@@ -329,7 +330,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
       fd.append('mode', mode);
 
       const res = await api.postForm('/api/scan', fd);
-      extracted = res.infosExtraites || res.donnees || {};
+      extracted = normaliserDonneesOCR(res);
 
       if (!extracted.nin && res.texteBrut) {
         const foundNIN = extraireNINLocal(res.texteBrut);
@@ -345,7 +346,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
       setLoadingMsg('Analyse Tesseract.js locale (mode secours)...');
       try {
         const localRes = await runLocalOCR(image);
-        extracted = { ...localRes.extracted, ...extracted };
+        extracted = normaliserDonneesOCR({ ...localRes.extracted, ...extracted });
       } catch (lErr) {
         console.error('Erreur OCR local:', lErr);
       }
@@ -375,7 +376,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
       fd.append('mode', 'verso');
 
       const res = await api.postForm('/api/scan', fd);
-      extracted = res.infosExtraites || res.donnees || {};
+      extracted = normaliserDonneesOCR(res);
 
       if (!extracted.nin && res.texteBrut) {
         const foundNIN = extraireNINLocal(res.texteBrut);
@@ -390,8 +391,9 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
       setLoadingMsg('Analyse NIN Tesseract.js locale...');
       try {
         const localRes = await runLocalOCR(image);
-        if (localRes.extracted.nin) extracted.nin = localRes.extracted.nin;
-        extracted = { ...localRes.extracted, ...extracted };
+        const normLocal = normaliserDonneesOCR(localRes.extracted);
+        if (normLocal.nin) extracted.nin = normLocal.nin;
+        extracted = normaliserDonneesOCR({ ...normLocal, ...extracted });
       } catch (lErr) {
         console.error('Erreur OCR local verso:', lErr);
       }
