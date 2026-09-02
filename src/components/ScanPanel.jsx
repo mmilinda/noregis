@@ -321,9 +321,9 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     let isLocalFallback = false;
 
     try {
-      const imgPrep = await preparerImageOCR(image);
+      const fileToSend = image instanceof File ? image : base64ToFile(image, 'recto.jpg');
       const fd = new FormData();
-      fd.append('image', base64ToFile(imgPrep, 'recto.jpg'));
+      fd.append('image', fileToSend);
       fd.append('mode', mode);
 
       const res = await api.postForm('/api/scan', fd);
@@ -367,9 +367,9 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     let isLocalFallback = false;
 
     try {
-      const imgPrep = await preparerImageOCR(image);
+      const fileToSend = image instanceof File ? image : base64ToFile(image, 'verso.jpg');
       const fd = new FormData();
-      fd.append('image', base64ToFile(imgPrep, 'verso.jpg'));
+      fd.append('image', fileToSend);
       fd.append('mode', 'verso');
 
       const res = await api.postForm('/api/scan', fd);
