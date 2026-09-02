@@ -1,4 +1,15 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://noregisbackend-h9l7.onrender.com';
+const BASE_URL = (import.meta.env.VITE_API_URL || 'https://noregisbackend-h9l7.onrender.com').replace(/\/+$/, '');
+
+const handleResponse = async (response) => {
+  if (response.status === 401) {
+    localStorage.removeItem('token');
+  }
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Erreur API (' + response.status + ')');
+  }
+  return response;
+};
 
 const api = {
   get: async (endpoint) => {
@@ -9,10 +20,7 @@ const api = {
         'Content-Type': 'application/json',
       },
     });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'API Error');
-    }
+    await handleResponse(response);
     return response.json();
   },
   
@@ -26,10 +34,7 @@ const api = {
       },
       body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'API Error');
-    }
+    await handleResponse(response);
     return response.json();
   },
 
@@ -39,14 +44,10 @@ const api = {
       method: 'POST',
       headers: {
         'Authorization': token ? `Bearer ${token}` : '',
-        // Content-Type is deliberately omitted so the browser automatically sets the correct multipart boundary
       },
       body: formData,
     });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'API Error');
-    }
+    await handleResponse(response);
     return response.json();
   },
 
@@ -60,10 +61,7 @@ const api = {
       },
       body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'API Error');
-    }
+    await handleResponse(response);
     return response.json();
   },
 
@@ -76,11 +74,7 @@ const api = {
         'Content-Type': 'application/json',
       },
     });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'API Error');
-    }
-    // Certains DELETE retournent 204 sans corps
+    await handleResponse(response);
     const text = await response.text();
     return text ? JSON.parse(text) : { success: true };
   },

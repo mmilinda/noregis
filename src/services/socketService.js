@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'https://noregisbackend-h9l7.onrender.com';
+const SOCKET_URL = (import.meta.env.VITE_API_URL || 'https://noregisbackend-h9l7.onrender.com').replace(/\/+$/, '');
 
 let socket = null;
 
@@ -12,7 +12,7 @@ export function connectSocket(dispatch) {
   if (socket?.connected) return;
 
   socket = io(SOCKET_URL, {
-    transports: ['websocket'],
+    transports: ['polling', 'websocket'],
     autoConnect: true,
   });
 
