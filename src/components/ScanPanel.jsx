@@ -26,7 +26,7 @@ function preparerImageOCR(base64) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const MAX = 1024;
+      const MAX = 1280; // Résolution optimale pour Gemini Vision IA
       let w = img.width;
       let h = img.height;
       if (w > MAX || h > MAX) {
@@ -44,20 +44,11 @@ function preparerImageOCR(base64) {
       canvas.height = h;
       const ctx = canvas.getContext('2d');
 
+      // Dessin direct en couleur sans détruire la saturation RGB (Gemini lit mieux les photos couleur)
       ctx.drawImage(img, 0, 0, w, h);
 
-      const imageData = ctx.getImageData(0, 0, w, h);
-      const data = imageData.data;
-      const facteurContraste = 1.35;
-
-      for (let i = 0; i < data.length; i += 4) {
-        const gris = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-        const contraste = Math.min(255, Math.max(0, (gris - 128) * facteurContraste + 128));
-        data[i] = data[i + 1] = data[i + 2] = contraste;
-      }
-      ctx.putImageData(imageData, 0, 0);
-      // Compression JPEG 0.82 (taille divisée par 5 sans perte de lisibilité OCR)
-      resolve(canvas.toDataURL('image/jpeg', 0.82));
+      // Compression JPEG 0.85 (excellente lisibilité pour l'IA Gemini Vision)
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
     };
     img.onerror = () => resolve(base64);
     img.src = base64;
