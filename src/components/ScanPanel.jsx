@@ -426,24 +426,34 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     fileInputRef.current?.click();
   };
 
-  // Validation finale
+  // Validation finale (fusion sécurisée sans écraser le Recto par le Verso)
   const handleFinalValidation = () => {
-    const merged = {
-      ...rectoData,
-      ...versoData,
-      nin: versoData.nin || rectoData.nin || '',
-      nom: rectoData.nom || versoData.nom || '',
-      prenom: rectoData.prenom || versoData.prenom || '',
-      numeroPiece: rectoData.numeroPiece || versoData.numeroPiece || '',
-      photo: rectoImg,
-      photoVerso: versoImg,
-    };
+    const merged = { ...rectoData };
+    
+    // Importer uniquement les champs valides et non vides issus du Verso (ex: NIN, adresse)
+    for (const [key, val] of Object.entries(versoData || {})) {
+      if (val !== undefined && val !== null && String(val).trim() !== '') {
+        merged[key] = val;
+      }
+    }
+
+    // Préservation garantie des 4 champs clés du Recto
+    merged.nom = rectoData.nom || versoData.nom || merged.nom || '';
+    merged.prenom = rectoData.prenom || versoData.prenom || merged.prenom || '';
+    merged.dateNaissance = rectoData.dateNaissance || versoData.dateNaissance || merged.dateNaissance || '';
+    merged.lieuNaissance = rectoData.lieuNaissance || versoData.lieuNaissance || merged.lieuNaissance || '';
+    merged.numeroPiece = rectoData.numeroPiece || versoData.numeroPiece || merged.numeroPiece || '';
+    merged.nin = versoData.nin || rectoData.nin || merged.nin || '';
+    merged.photo = rectoImg;
+    merged.photoVerso = versoImg;
+
     onDataExtracted(merged, rectoImg);
   };
 
   const combinedSummary = {
     ...rectoData,
     ...(versoData.nin ? { nin: versoData.nin } : {}),
+    ...(versoData.adresseDomicile ? { adresseDomicile: versoData.adresseDomicile } : {}),
   };
 
   return (
