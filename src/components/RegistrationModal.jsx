@@ -80,26 +80,26 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     }
   };
 
-  // ✅ Correction : mapping direct des clés camelCase renvoyées par le backend
+  // ✅ Correction : mapping direct et sécurisé des clés renvoyées par le backend OCR
   const handleScanData = (data, img) => {
     const scanTime = new Date();
     setDocImage(img);
     setForm(prev => ({
       ...prev,
-      nom: data.nom ?? prev.nom,
-      prenom: data.prenom ?? prev.prenom,
-      nin: data.nin ?? prev.nin,
-      numeroPiece: data.numeroPiece ?? prev.numeroPiece,
+      nom: (data.nom && String(data.nom).trim()) || prev.nom,
+      prenom: (data.prenom && String(data.prenom).trim()) || prev.prenom,
+      nin: (data.nin && String(data.nin).trim()) || prev.nin,
+      numeroPiece: (data.numeroPiece && String(data.numeroPiece).trim()) || prev.numeroPiece,
       typePiece: data.typePiece ? normalizeTypePiece(data.typePiece) : prev.typePiece,
-      dateNaissance: data.dateNaissance ?? prev.dateNaissance,
-      sexe: data.sexe ?? prev.sexe,
-      taille: data.taille ?? prev.taille,
-      lieuNaissance: data.lieuNaissance ?? prev.lieuNaissance,
-      dateDelivrance: data.dateDelivrance ?? prev.dateDelivrance,
-      dateExpiration: data.dateExpiration ?? prev.dateExpiration,
-      centreEnregistrement: data.centreEnregistrement ?? prev.centreEnregistrement,
-      adresseDomicile: data.adresseDomicile ?? prev.adresseDomicile,
-      profession: data.profession ?? prev.profession,
+      dateNaissance: (data.dateNaissance && String(data.dateNaissance).trim()) || prev.dateNaissance,
+      sexe: (data.sexe && String(data.sexe).trim()) || prev.sexe,
+      taille: (data.taille && String(data.taille).trim()) || prev.taille,
+      lieuNaissance: (data.lieuNaissance && String(data.lieuNaissance).trim()) || prev.lieuNaissance,
+      dateDelivrance: (data.dateDelivrance && String(data.dateDelivrance).trim()) || prev.dateDelivrance,
+      dateExpiration: (data.dateExpiration && String(data.dateExpiration).trim()) || prev.dateExpiration,
+      centreEnregistrement: (data.centreEnregistrement && String(data.centreEnregistrement).trim()) || prev.centreEnregistrement,
+      adresseDomicile: (data.adresseDomicile && String(data.adresseDomicile).trim()) || prev.adresseDomicile,
+      profession: (data.profession && String(data.profession).trim()) || prev.profession,
       heureEntree: scanTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
       date: scanTime.toLocaleDateString('fr-FR'),
     }));

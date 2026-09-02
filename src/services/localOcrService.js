@@ -16,14 +16,14 @@ export function normaliserDonneesOCR(res) {
 
   const nom = getVal('nom', 'lastName', 'last_name', 'surname', 'family_name', 'nomFamille');
   const prenom = getVal('prenom', 'firstName', 'first_name', 'given_name', 'prenoms');
-  const numeroPiece = getVal('numeroPiece', 'numero_piece', 'idNumber', 'id_number', 'card_number', 'cni', 'numPiece', 'numero');
-  const nin = getVal('nin', 'ninNumber', 'nin_number', 'nationalId', 'national_id', 'numNational', 'codeNational');
+  const numeroPiece = getVal('numeroPiece', 'numero_piece', 'documentNumber', 'document_number', 'card_number', 'cni', 'numPiece', 'numero');
+  const nin = getVal('nin', 'ninNumber', 'nin_number', 'idNumber', 'id_number', 'nationalId', 'national_id', 'numNational', 'codeNational');
   const dateNaissance = getVal('dateNaissance', 'date_naissance', 'birthDate', 'birth_date', 'dob');
   const sexe = getVal('sexe', 'sex', 'gender');
   const typePiece = getVal('typePiece', 'type_piece', 'documentType', 'docType');
   const lieuNaissance = getVal('lieuNaissance', 'lieu_naissance', 'birthPlace', 'pob');
-  const dateDelivrance = getVal('dateDelivrance', 'date_delivrance', 'issueDate', 'issued_date');
-  const dateExpiration = getVal('dateExpiration', 'date_expiration', 'expiryDate', 'expirationDate');
+  const dateDelivrance = getVal('dateDelivrance', 'date_delivrance', 'issueDate', 'issued_date', 'issuedAt');
+  const dateExpiration = getVal('dateExpiration', 'date_expiration', 'expiryDate', 'expirationDate', 'expiresAt');
   const adresseDomicile = getVal('adresseDomicile', 'adresse', 'address');
 
   return {
