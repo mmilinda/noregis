@@ -4,6 +4,8 @@ import { Btn } from './UI';
 import { useApp } from '../context/useAppState';
 import { TRANSLATIONS } from '../translations';
 import api from '../services/api';
+import { runLocalOCR } from '../services/localOcrService';
+
 
 /* ===========================================
    HELPER: base64 -> File (pour FormData)
@@ -326,6 +328,9 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
   const runRectoOCR = async (image) => {
     setLoadingMsg('Analyse du RECTO en cours...');
     setPhase('recto_ocr');
+    let extracted = {};
+    let isLocalFallback = false;
+
     try {
       const imgPrep = await preparerImageOCR(image);
       const fd = new FormData();
@@ -333,29 +338,34 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
       fd.append('mode', mode);
 
       const res = await api.postForm('/api/scan', fd);
-      const extracted = res.infosExtraites || res.donnees || {};
-      
-      // Extraction locale complémentaire (NIN éventuel)
+      extracted = res.infosExtraites || res.donnees || {};
+
       if (!extracted.nin && res.texteBrut) {
         const foundNIN = extraireNINLocal(res.texteBrut);
         if (foundNIN) extracted.nin = foundNIN;
       }
-
-      setRectoData(extracted);
-      setRectoImg(image);
-
-      if (mode === 'vehicule') {
-        // Pour les véhicules, le recto suffit généralement
-        onDataExtracted(extracted, image);
-      } else {
-        // Pour les personnes, proposer le Verso pour le NIN
-        setPhase('verso_prompt');
-      }
     } catch (err) {
-      console.error('Erreur scan recto:', err);
-      // Fallback
-      setRectoData({});
-      setRectoImg(image);
+      console.warn('Backend API scan indisponible ou erreur 401, bascule sur OCR local Tesseract:', err);
+      isLocalFallback = true;
+    }
+
+    // Si le serveur a échoué ou n'a renvoyé aucune donnée essentielle
+    if (isLocalFallback || (!extracted.nom && !extracted.prenom && !extracted.nin && !extracted.numeroPiece)) {
+      setLoadingMsg('Analyse Tesseract.js locale (mode secours)...');
+      try {
+        const localRes = await runLocalOCR(image);
+        extracted = { ...localRes.extracted, ...extracted };
+      } catch (lErr) {
+        console.error('Erreur OCR local:', lErr);
+      }
+    }
+
+    setRectoData(extracted);
+    setRectoImg(image);
+
+    if (mode === 'vehicule') {
+      onDataExtracted(extracted, image);
+    } else {
       setPhase('verso_prompt');
     }
   };
@@ -364,6 +374,9 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
   const runVersoOCR = async (image) => {
     setLoadingMsg('Analyse du VERSO (extraction NIN)...');
     setPhase('verso_ocr');
+    let extracted = {};
+    let isLocalFallback = false;
+
     try {
       const imgPrep = await preparerImageOCR(image);
       const fd = new FormData();
@@ -371,22 +384,31 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
       fd.append('mode', 'verso');
 
       const res = await api.postForm('/api/scan', fd);
-      const extracted = res.infosExtraites || res.donnees || {};
+      extracted = res.infosExtraites || res.donnees || {};
 
       if (!extracted.nin && res.texteBrut) {
         const foundNIN = extraireNINLocal(res.texteBrut);
         if (foundNIN) extracted.nin = foundNIN;
       }
-
-      setVersoData(extracted);
-      setVersoImg(image);
-      setPhase('summary');
     } catch (err) {
-      console.error('Erreur scan verso:', err);
-      setVersoData({});
-      setVersoImg(image);
-      setPhase('summary');
+      console.warn('Backend API scan verso indisponible, bascule sur OCR local:', err);
+      isLocalFallback = true;
     }
+
+    if (isLocalFallback || !extracted.nin) {
+      setLoadingMsg('Analyse NIN Tesseract.js locale...');
+      try {
+        const localRes = await runLocalOCR(image);
+        if (localRes.extracted.nin) extracted.nin = localRes.extracted.nin;
+        extracted = { ...localRes.extracted, ...extracted };
+      } catch (lErr) {
+        console.error('Erreur OCR local verso:', lErr);
+      }
+    }
+
+    setVersoData(extracted);
+    setVersoImg(image);
+    setPhase('summary');
   };
 
   // Passer le verso
