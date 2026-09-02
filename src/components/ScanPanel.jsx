@@ -27,7 +27,7 @@ function preparerImageOCR(base64) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const MAX = 1000; // Résolution optimale sub-seconde (< 1s) pour Gemini Vision IA
+      const MAX = 1920; // Haute Définition HD pour une lisibilité parfaite des petits caractères
       let w = img.width;
       let h = img.height;
       if (w > MAX || h > MAX) {
@@ -46,7 +46,7 @@ function preparerImageOCR(base64) {
       const ctx = canvas.getContext('2d');
 
       ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', 0.75));
+      resolve(canvas.toDataURL('image/jpeg', 0.95));
     };
     img.onerror = () => resolve(base64);
     img.src = base64;
