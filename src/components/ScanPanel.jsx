@@ -27,7 +27,7 @@ function preparerImageOCR(base64) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const MAX = 1280; // Résolution optimale pour Gemini Vision IA
+      const MAX = 1000; // Résolution optimale sub-seconde (< 1s) pour Gemini Vision IA
       let w = img.width;
       let h = img.height;
       if (w > MAX || h > MAX) {
@@ -45,11 +45,8 @@ function preparerImageOCR(base64) {
       canvas.height = h;
       const ctx = canvas.getContext('2d');
 
-      // Dessin direct en couleur sans détruire la saturation RGB (Gemini lit mieux les photos couleur)
       ctx.drawImage(img, 0, 0, w, h);
-
-      // Compression JPEG 0.85 (excellente lisibilité pour l'IA Gemini Vision)
-      resolve(canvas.toDataURL('image/jpeg', 0.85));
+      resolve(canvas.toDataURL('image/jpeg', 0.75));
     };
     img.onerror = () => resolve(base64);
     img.src = base64;
@@ -341,8 +338,8 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
       isLocalFallback = true;
     }
 
-    // Si le serveur a échoué ou n'a renvoyé aucune donnée essentielle
-    if (isLocalFallback || (!extracted.nom && !extracted.prenom && !extracted.nin && !extracted.numeroPiece)) {
+    // Ne lancer Tesseract local que si le serveur backend est totalement hors ligne (fallback réseau)
+    if (isLocalFallback) {
       setLoadingMsg('Analyse Tesseract.js locale (mode secours)...');
       try {
         const localRes = await runLocalOCR(image);
@@ -387,7 +384,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
       isLocalFallback = true;
     }
 
-    if (isLocalFallback || !extracted.nin) {
+    if (isLocalFallback) {
       setLoadingMsg('Analyse NIN Tesseract.js locale...');
       try {
         const localRes = await runLocalOCR(image);
