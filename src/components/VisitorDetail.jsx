@@ -104,6 +104,9 @@ export default function VisitorDetail({ visitor: initialVisitor, onClose, onChec
             {(visitor.nin || visitor.visiteur?.nin || visitor.visiteurId?.nin) && (
               <Row label="NIN" value={fetching ? '...' : (visitor.nin || visitor.visiteur?.nin || visitor.visiteurId?.nin)} mono />
             )}
+            {(visitor.dateExpiration || visitor.visiteur?.dateExpiration || visitor.visitor?.dateExpiration || visitor.visiteurId?.dateExpiration) && (
+              <Row label={t.expiration_date || "Date d'expiration"} value={fetching ? '...' : formatBackendDate(visitor.dateExpiration || visitor.visiteur?.dateExpiration || visitor.visitor?.dateExpiration || visitor.visiteurId?.dateExpiration)} />
+            )}
           </>
         )}
         <Row label={t.host_name} value={visitor.personneVisitee || visitor.hote || visitor.visitedPerson} />

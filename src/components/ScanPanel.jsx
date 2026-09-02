@@ -701,6 +701,13 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
                   <span className="text-xs font-bold text-slate-900 dark:text-white">{combinedSummary.sexe}</span>
                 </div>
               )}
+
+              {combinedSummary.dateExpiration && (
+                <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-700/50">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Expiration</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">{combinedSummary.dateExpiration}</span>
+                </div>
+              )}
             </div>
 
             {/* Boutons d'action */}
