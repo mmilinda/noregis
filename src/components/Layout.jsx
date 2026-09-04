@@ -159,66 +159,21 @@ function MobileHeader({ activeTab, navItems }) {
 /* ============================================
    MOBILE BOTTOM NAV
 ============================================ */
-function BottomNav({ activeTab, onTabChange, onNewEntry, t, navItems }) {
+function BottomNav({ activeTab, onTabChange, t, navItems }) {
   const { state } = useApp();
   const present = state.visitors.filter(v => v.statut === 'present').length;
-  const isAdmin = state.agent?.role === 'ADMIN';
-
-  if (isAdmin) {
-    return (
-      <nav className="fixed bottom-0 left-0 right-0 bg-brand-navy border-t border-white/10 flex items-center justify-around px-2 pb-safe-area z-[100] h-20">
-        {navItems.map(({ id, label, icon: Icon }) => {
-          const active = activeTab === id;
-          return (
-            <button key={id} onClick={() => onTabChange(id)} className="flex-grow flex flex-col items-center gap-1.5 transition-all">
-              <div className="relative">
-                <Icon size={24} className={active ? 'text-brand-blue-bright' : 'text-white/30'} />
-              </div>
-              <span className={`text-[8px] font-black uppercase tracking-tight ${active ? 'text-brand-blue-bright' : 'text-white/30'}`}>{label}</span>
-            </button>
-          );
-        })}
-      </nav>
-    );
-  }
-
-  const midIndex = Math.ceil(navItems.length / 2);
-  const leftItems = navItems.slice(0, midIndex);
-  const rightItems = navItems.slice(midIndex);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-brand-navy border-t border-white/10 flex items-center justify-around px-2 pb-safe-area z-[100] h-20">
-      {leftItems.map(({ id, label, icon: Icon }) => {
+    <nav className="fixed bottom-0 left-0 right-0 bg-brand-navy border-t border-white/10 flex items-center justify-around px-2 pb-safe-area z-[100] h-16">
+      {navItems.map(({ id, label, icon: Icon }) => {
         const active = activeTab === id;
         return (
           <button key={id} onClick={() => onTabChange(id)} className="flex-grow flex flex-col items-center gap-1.5 transition-all">
             <div className="relative">
-              <Icon size={24} className={active ? 'text-brand-blue-bright' : 'text-white/30'} />
+              <Icon size={22} className={active ? 'text-brand-blue-bright' : 'text-white/30'} />
               {id === 'dashboard' && present > 0 && (
                 <span className="absolute -top-1.5 -right-2 bg-brand-green-bright text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg">{present}</span>
               )}
-            </div>
-            <span className={`text-[8px] font-black uppercase tracking-tight ${active ? 'text-brand-blue-bright' : 'text-white/30'}`}>{label}</span>
-          </button>
-        );
-      })}
-
-      {/* FAB */}
-      <div className="relative -top-6 px-2 shrink-0">
-        <button 
-          onClick={onNewEntry}
-          className="w-16 h-16 rounded-xl bg-gradient-to-br from-brand-blue-bright to-brand-blue text-white flex items-center justify-center border-4 border-brand-navy active:scale-90 transition-transform"
-        >
-          <Plus size={32} strokeWidth={3} />
-        </button>
-      </div>
-
-      {rightItems.map(({ id, label, icon: Icon }) => {
-        const active = activeTab === id;
-        return (
-          <button key={id} onClick={() => onTabChange(id)} className="flex-grow flex flex-col items-center gap-1.5 transition-all">
-            <div className="relative">
-              <Icon size={24} className={active ? 'text-brand-blue-bright' : 'text-white/30'} />
             </div>
             <span className={`text-[8px] font-black uppercase tracking-tight ${active ? 'text-brand-blue-bright' : 'text-white/30'}`}>{label}</span>
           </button>
