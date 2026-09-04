@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Users, UserCheck, UserX, Car, Plus, RefreshCw, Search, Camera } from 'lucide-react';
+import { Users, UserCheck, UserX, Car, Plus, RefreshCw, Search, Camera, Phone } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
 import { StatCard, Card, CardHeader, Btn, EmptyState, Modal } from '../../components/UI';
 import { RegistrationModal } from '../../components/RegistrationModal';
@@ -14,6 +14,7 @@ export default function AgentDashboard({ isMobile }) {
   const t = TRANSLATIONS[settings?.language || 'fr'];
   
   const [regOpen, setRegOpen] = useState(false);
+  const [regMode, setRegMode] = useState(null);
   const [detailVisitor, setDetailVisitor] = useState(null);
   const [filterType, setFilterType] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -130,9 +131,26 @@ export default function AgentDashboard({ isMobile }) {
             {new Date().toLocaleDateString(currentLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
-        <Btn variant="primary" icon={Plus} onClick={() => setRegOpen(true)} size={isMobile ? 'md' : 'lg'} className="!rounded-lg">
-          {t.new_entry}
-        </Btn>
+        <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+          <Btn
+            variant="secondary"
+            icon={Phone}
+            onClick={() => { setRegMode('phone_search'); setRegOpen(true); }}
+            size={isMobile ? 'md' : 'lg'}
+            className="!rounded-lg text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+          >
+            {isMobile ? 'Recherche Tél' : 'Recherche par Téléphone'}
+          </Btn>
+          <Btn
+            variant="primary"
+            icon={Plus}
+            onClick={() => { setRegMode(null); setRegOpen(true); }}
+            size={isMobile ? 'md' : 'lg'}
+            className="!rounded-lg"
+          >
+            {t.new_entry}
+          </Btn>
+        </div>
       </div>
 
       {/* Stats */}
@@ -213,7 +231,7 @@ export default function AgentDashboard({ isMobile }) {
       </Card>
 
       {/* Modals */}
-      <RegistrationModal isOpen={regOpen} onClose={() => setRegOpen(false)} />
+      <RegistrationModal isOpen={regOpen} onClose={() => { setRegOpen(false); setRegMode(null); }} initialMode={regMode} />
 
       <Modal isOpen={!!detailVisitor} onClose={() => setDetailVisitor(null)} title={t.profile} size="md">
         <VisitorDetail visitor={detailVisitor} onClose={() => setDetailVisitor(null)} onCheckout={handleCheckout} />

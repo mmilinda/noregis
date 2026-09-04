@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   User, Car, CreditCard, Building,
   Clock, Calendar, Camera, CheckCircle2,
-  ChevronRight, FileText, Ruler, MapPin, CalendarDays, Home, MapPinned, Phone
+  ChevronRight, FileText, Ruler, MapPin, CalendarDays, Home, MapPinned, Phone, Search, UserX
 } from 'lucide-react';
 import { FormInput, FormSelect, Btn, Modal } from './UI';
 import { ScanPanel } from './ScanPanel';
@@ -407,12 +407,279 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   );
 }
 
-// ========== MODAL D’ENREGISTREMENT ==========
-export function RegistrationModal({ isOpen, onClose }) {
+// ========== FORMULAIRE RECHERCHE PAR TÉLÉPHONE (VISITEUR EXISTANT) ==========
+function PhoneSearchForm({ onSelectVisitor, onCancel, t }) {
+  const { state } = useApp();
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searched, setSearched] = useState(false);
+  const [selectedVisitor, setSelectedVisitor] = useState(null);
+
+  const [destinationForm, setDestinationForm] = useState({
+    personneVisitee: '',
+    service: '',
+    motif: '',
+  });
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSearch = async (e) => {
+    if (e) e.preventDefault();
+    const query = phoneNumber.trim().toLowerCase();
+    if (!query) return;
+
+    setSearching(true);
+    setSearched(true);
+    setSelectedVisitor(null);
+
+    try {
+      const mappedVisitors = new Map();
+
+      // 1. Chercher dans l'état local (visitors)
+      state.visitors.forEach(v => {
+        const visObj = v.visiteur || v.visitor || v.visiteurId || v;
+        const id = visObj._id || visObj.id || v.visiteurId || v._id || v.id;
+        const phone = String(visObj.telephone || v.telephone || '').toLowerCase();
+        const nom = String(visObj.nom || v.nom || '').toLowerCase();
+        const prenom = String(visObj.prenom || v.prenom || '').toLowerCase();
+        const piece = String(visObj.numeroPiece || v.numeroPiece || '').toLowerCase();
+
+        if (phone.includes(query) || (query.length >= 3 && (`${nom} ${prenom}`.includes(query) || piece.includes(query)))) {
+          if (id && !mappedVisitors.has(id)) {
+            mappedVisitors.set(id, {
+              _id: id,
+              id: id,
+              nom: visObj.nom || v.nom || '—',
+              prenom: visObj.prenom || v.prenom || '',
+              telephone: visObj.telephone || v.telephone || '—',
+              numeroPiece: visObj.numeroPiece || v.numeroPiece || '—',
+              typePiece: visObj.typePiece || v.typePiece || 'CNI',
+              nin: visObj.nin || v.nin || '',
+              dateNaissance: visObj.dateNaissance || v.dateNaissance || '',
+              sexe: visObj.sexe || v.sexe || '',
+              adresseDomicile: visObj.adresseDomicile || v.adresseDomicile || '',
+              photo: visObj.photo || v.photo || null,
+            });
+          }
+        }
+      });
+
+      // 2. Chercher dans l'API backend
+      try {
+        const apiRes = await visitorService.search(query);
+        const apiList = apiRes?.visiteurs || apiRes?.results || (Array.isArray(apiRes) ? apiRes : []);
+        apiList.forEach(vis => {
+          const id = vis._id || vis.id;
+          if (id && !mappedVisitors.has(id)) {
+            mappedVisitors.set(id, vis);
+          }
+        });
+      } catch (err) {
+        console.warn("Recherche API téléphone:", err);
+      }
+
+      setSearchResults(Array.from(mappedVisitors.values()));
+    } catch (err) {
+      console.error("Erreur lors de la recherche par téléphone:", err);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleValidateVisit = async (e) => {
+    e.preventDefault();
+    if (!selectedVisitor) return;
+
+    const eObj = {};
+    if (!destinationForm.personneVisitee.trim()) eObj.personneVisitee = t.required_field;
+    if (!destinationForm.service) eObj.service = t.select_service;
+    setErrors(eObj);
+    if (Object.keys(eObj).length > 0) return;
+
+    setSubmitting(true);
+    try {
+      await onSelectVisitor({
+        ...selectedVisitor,
+        visiteurId: selectedVisitor._id || selectedVisitor.id,
+        personneVisitee: destinationForm.personneVisitee,
+        service: destinationForm.service,
+        motif: destinationForm.motif || t.standard_visit,
+        type: 'person',
+        statut: 'present',
+        heureSortie: null,
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-5 py-1 animate-in fade-in duration-300">
+      {/* Explication */}
+      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-500/30 p-4 rounded-xl flex items-center gap-3">
+        <div className="w-10 h-10 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0">
+          <Phone size={20} />
+        </div>
+        <div>
+          <h4 className="text-xs font-black text-amber-700 dark:text-amber-300 uppercase tracking-wider">
+            Recherche par numéro de téléphone
+          </h4>
+          <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 mt-0.5">
+            Retrouvez rapidement un visiteur déjà enregistré lors d'une précédente visite sans re-scanner sa pièce.
+          </p>
+        </div>
+      </div>
+
+      {/* Barre de recherche */}
+      <form onSubmit={handleSearch} className="flex gap-2">
+        <div className="relative flex-1">
+          <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Entrez le numéro de téléphone (ex: 77 123 45 67)..."
+            value={phoneNumber}
+            onChange={e => setPhoneNumber(e.target.value)}
+            className="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl py-2.5 pl-10 pr-3 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"
+            autoFocus
+          />
+        </div>
+        <Btn variant="primary" type="submit" loading={searching} icon={Search} className="!rounded-xl bg-amber-600 hover:bg-amber-700 text-white border-none text-xs">
+          Rechercher
+        </Btn>
+      </form>
+
+      {/* Résultats de recherche */}
+      {searched && !selectedVisitor && (
+        <div className="space-y-3">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            Résultats ({searchResults.length})
+          </p>
+
+          {searchResults.length === 0 ? (
+            <div className="p-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl text-center border border-slate-100 dark:border-slate-800">
+              <UserX className="mx-auto text-slate-400 mb-2" size={32} />
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Aucun visiteur trouvé avec ce numéro</p>
+              <p className="text-[10px] text-slate-400 mt-1">Vérifiez le numéro ou effectuez un premier enregistrement avec pièce d'identité.</p>
+            </div>
+          ) : (
+            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+              {searchResults.map(vis => (
+                <div
+                  key={vis._id || vis.id}
+                  onClick={() => setSelectedVisitor(vis)}
+                  className="p-3 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 hover:border-amber-500 rounded-xl flex items-center justify-between cursor-pointer transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-600 flex items-center justify-center text-xs font-black shrink-0 overflow-hidden">
+                      {vis.photo ? <img src={vis.photo} alt="" className="w-full h-full object-cover" /> : ((vis.prenom?.[0] || '') + (vis.nom?.[0] || 'V')).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-slate-900 dark:text-white group-hover:text-amber-600 transition-colors">
+                        {vis.prenom} {vis.nom}
+                      </p>
+                      <p className="text-[10px] font-mono text-slate-500">
+                        {vis.telephone || '—'} · {vis.numeroPiece ? `N° ${vis.numeroPiece}` : ''} {vis.nin ? `(NIN: ${vis.nin})` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase rounded-lg group-hover:bg-amber-500 group-hover:text-white transition-all">
+                    Sélectionner
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Visiteur Sélectionné & Formulaire Destination */}
+      {selectedVisitor && (
+        <form onSubmit={handleValidateVisit} className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="p-4 bg-brand-green-light/20 dark:bg-brand-green-bright/10 border-2 border-brand-green-bright/30 rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="text-brand-green-bright shrink-0" size={24} />
+              <div>
+                <p className="text-xs font-black text-brand-green-bright uppercase">Visiteur Sélectionné</p>
+                <p className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
+                  {selectedVisitor.prenom} {selectedVisitor.nom}
+                </p>
+                <p className="text-[10px] font-mono text-slate-500">
+                  {selectedVisitor.telephone} · {selectedVisitor.numeroPiece}
+                </p>
+              </div>
+            </div>
+            <Btn variant="ghost" size="sm" onClick={() => setSelectedVisitor(null)} className="text-[10px] font-black uppercase">
+              Changer
+            </Btn>
+          </div>
+
+          {/* Saisie destination */}
+          <div className="space-y-4 pt-2">
+            <p className="text-[10px] font-black text-slate-400 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2 ml-1">
+              <Building size={14} /> Destination de la visite
+            </p>
+            <FormInput
+              label={t.host_name}
+              id="personneVisitee"
+              required
+              value={destinationForm.personneVisitee}
+              onChange={e => setDestinationForm(f => ({ ...f, personneVisitee: e.target.value }))}
+              error={errors.personneVisitee}
+              icon={User}
+              placeholder={t.host_placeholder}
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormSelect
+                label={t.service_dept}
+                id="service"
+                required
+                value={destinationForm.service}
+                onChange={e => setDestinationForm(f => ({ ...f, service: e.target.value }))}
+                options={SERVICES}
+                placeholder={t.select}
+                error={errors.service}
+                icon={Building}
+              />
+              <FormInput
+                label={t.visit_reason}
+                id="motif"
+                required
+                value={destinationForm.motif}
+                onChange={e => setDestinationForm(f => ({ ...f, motif: e.target.value }))}
+                placeholder={t.reason_placeholder}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Btn variant="secondary" onClick={() => setSelectedVisitor(null)} fullWidth>{t.cancel}</Btn>
+            <Btn variant="success" type="submit" icon={CheckCircle2} fullWidth loading={submitting}>{t.validate_entry}</Btn>
+          </div>
+        </form>
+      )}
+
+      {!selectedVisitor && (
+        <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+          <Btn variant="secondary" onClick={onCancel}>{t.cancel}</Btn>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function RegistrationModal({ isOpen, onClose, initialMode = null }) {
   const { state, dispatch, notify } = useApp();
   const t = TRANSLATIONS[state.settings?.language || 'fr'];
-  const [mode, setMode] = useState(null);
+  const [mode, setMode] = useState(initialMode);
   const [loading, setLoading] = useState(false);
+
+  // Synchroniser le mode initial lorsque la modal s'ouvre
+  useEffect(() => {
+    setMode(initialMode);
+  }, [isOpen, initialMode]);
 
   const handleSubmit = async (data) => {
     setLoading(true);
@@ -462,13 +729,39 @@ export function RegistrationModal({ isOpen, onClose }) {
     }
   };
 
+  const handleExistingVisitorSubmit = async (data) => {
+    setLoading(true);
+    try {
+      const visitorId = data.visiteurId || data._id || data.id;
+      if (!visitorId) throw new Error('Identifiant du visiteur introuvable');
+
+      await visitService.recordEntry({
+        visiteurId: visitorId,
+        personneVisitee: data.personneVisitee,
+        service: data.service,
+        motif: data.motif || t.standard_visit,
+      });
+
+      notify('success', `Bienvenue ! Entrée enregistrée pour ${data.prenom || ''} ${data.nom || ''}`);
+      dispatch({ type: 'ADD_VISITOR', payload: { ...data, id: visitorId } });
+      setMode(null);
+      onClose();
+    } catch (err) {
+      console.error('❌ Erreur entrée visiteur existant :', err);
+      notify('error', `${t.error_prefix}: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => { setMode(null); onClose(); }}
       title={
         mode === 'person' ? t.person_entry :
         mode === 'vehicule' ? t.vehicle_entry :
+        mode === 'phone_search' ? 'Recherche Visiteur Existant' :
         t.new_entry_title
       }
       size="md"
@@ -495,6 +788,20 @@ export function RegistrationModal({ isOpen, onClose }) {
           </button>
 
           <button
+            onClick={() => setMode('phone_search')}
+            className="group relative p-4 rounded-xl border-2 border-amber-200 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/10 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-all duration-300 flex items-center gap-4 text-left shadow-sm active:scale-[0.98]"
+          >
+            <div className="w-12 h-12 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Phone size={24} />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">Visiteur existant (Téléphone)</h4>
+              <p className="text-[9px] font-bold text-amber-600/80 dark:text-amber-400/80 uppercase tracking-tighter mt-1 opacity-80 group-hover:opacity-100">Recherche rapide par numéro si déjà enregistré</p>
+            </div>
+            <ChevronRight className={`text-slate-300 group-hover:text-amber-500 transition-all ${state.settings?.language === 'ar' ? 'rotate-180 group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} size={16} />
+          </button>
+
+          <button
             onClick={() => setMode('vehicule')}
             className="group relative p-4 rounded-xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-brand-green-bright/30 hover:bg-brand-green-light/5 dark:hover:bg-brand-green-bright/5 transition-all duration-300 flex items-center gap-4 text-left shadow-sm active:scale-[0.98]"
           >
@@ -510,6 +817,8 @@ export function RegistrationModal({ isOpen, onClose }) {
         </div>
       ) : mode === 'person' ? (
         <PersonForm onSubmit={handleSubmit} onCancel={() => setMode(null)} loading={loading} t={t} />
+      ) : mode === 'phone_search' ? (
+        <PhoneSearchForm onSelectVisitor={handleExistingVisitorSubmit} onCancel={() => setMode(null)} t={t} />
       ) : (
         <VehiculeForm onSubmit={handleSubmit} onCancel={() => setMode(null)} loading={loading} t={t} />
       )}
