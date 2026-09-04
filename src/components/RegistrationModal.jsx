@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   User, Car, CreditCard, Building,
   Clock, Calendar, Camera, CheckCircle2,
-  ChevronRight, FileText, Ruler, MapPin, CalendarDays, Home, MapPinned
+  ChevronRight, FileText, Ruler, MapPin, CalendarDays, Home, MapPinned, Phone
 } from 'lucide-react';
 import { FormInput, FormSelect, Btn, Modal } from './UI';
 import { ScanPanel } from './ScanPanel';
@@ -45,6 +45,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     typePiece: initial.typePiece || '',
     dateDelivrance: initial.dateDelivrance || '',
     dateExpiration: initial.dateExpiration || '',
+    telephone: initial.telephone || '',
     centreEnregistrement: initial.centreEnregistrement || '',
     adresseDomicile: initial.adresseDomicile || '',
     personneVisitee: initial.personneVisitee || '',
@@ -97,6 +98,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
       lieuNaissance: (data.lieuNaissance && String(data.lieuNaissance).trim()) || prev.lieuNaissance,
       dateDelivrance: (data.dateDelivrance && String(data.dateDelivrance).trim()) || prev.dateDelivrance,
       dateExpiration: (data.dateExpiration && String(data.dateExpiration).trim()) || prev.dateExpiration,
+      telephone: (data.telephone && String(data.telephone).trim()) || prev.telephone,
       centreEnregistrement: (data.centreEnregistrement && String(data.centreEnregistrement).trim()) || prev.centreEnregistrement,
       adresseDomicile: (data.adresseDomicile && String(data.adresseDomicile).trim()) || prev.adresseDomicile,
       profession: (data.profession && String(data.profession).trim()) || prev.profession,
@@ -182,6 +184,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
             <FormInput label="Date de délivrance" id="dateDelivrance" type="date" value={form.dateDelivrance} onChange={set('dateDelivrance')} icon={CalendarDays} />
             <FormInput label="Date d'expiration" id="dateExpiration" type="date" value={form.dateExpiration} onChange={set('dateExpiration')} icon={CalendarDays} />
           </div>
+          <FormInput label="Numéro de Téléphone" id="telephone" value={form.telephone} onChange={set('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
           <FormInput label="Centre d'enregistrement" id="centreEnregistrement" value={form.centreEnregistrement} onChange={set('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
           <FormInput label="Adresse du domicile" id="adresseDomicile" value={form.adresseDomicile} onChange={set('adresseDomicile')} icon={MapPinned} placeholder="Adresse domicile" />
           <FormInput label="NIN (Numéro d'Identification Nationale)" id="nin" value={form.nin} onChange={set('nin')} icon={CreditCard} placeholder="Ex: 1 890 1999 12345" />
@@ -428,6 +431,7 @@ export function RegistrationModal({ isOpen, onClose }) {
         lieuNaissance: data.lieuNaissance,
         dateDelivrance: data.dateDelivrance,
         dateExpiration: data.dateExpiration,
+        telephone: data.telephone,
         centreEnregistrement: data.centreEnregistrement,
         adresseDomicile: data.adresseDomicile,
         profession: data.profession,

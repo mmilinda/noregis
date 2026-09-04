@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Calendar, Building2, User, CreditCard, CheckCircle2, Camera, Clock, MapPin, Ruler, CalendarDays, UserRound, FileText, Home, MapPinned } from 'lucide-react';
+import { Calendar, Building2, User, CreditCard, CheckCircle2, Camera, Clock, MapPin, Ruler, CalendarDays, UserRound, FileText, Home, MapPinned, Phone } from 'lucide-react';
 import { Btn, Input, Select, Modal } from './UI';
 import { ScanPanel } from './ScanPanel';
 import { useApp } from '../context/useAppState';
@@ -27,6 +27,7 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
     typePiece: initial.typePiece || '',
     dateDelivrance: initial.dateDelivrance || '',
     dateExpiration: initial.dateExpiration || '',
+    telephone: initial.telephone || '',
     centreEnregistrement: initial.centreEnregistrement || '',
     adresseDomicile: initial.adresseDomicile || '',
     personneVisitee: initial.personneVisitee || '',
@@ -85,6 +86,7 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
       lieuNaissance: data.lieuNaissance ?? prev.lieuNaissance,
       dateDelivrance: data.dateDelivrance ?? prev.dateDelivrance,
       dateExpiration: data.dateExpiration ?? prev.dateExpiration,
+      telephone: data.telephone ?? prev.telephone,
       centreEnregistrement: data.centreEnregistrement ?? prev.centreEnregistrement,
       adresseDomicile: data.adresseDomicile ?? prev.adresseDomicile,
     }));
@@ -157,6 +159,7 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
             <Input label="Date de délivrance" id="dateDelivrance" type="date" value={formData.dateDelivrance} onChange={handleChange('dateDelivrance')} icon={CalendarDays} />
             <Input label="Date d'expiration" id="dateExpiration" type="date" value={formData.dateExpiration} onChange={handleChange('dateExpiration')} icon={CalendarDays} />
           </div>
+          <Input label="Numéro de Téléphone" id="telephone" value={formData.telephone} onChange={handleChange('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
           <Input label="Centre d'enregistrement" id="centreEnregistrement" value={formData.centreEnregistrement} onChange={handleChange('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
           <Input label="Adresse du domicile" id="adresseDomicile" value={formData.adresseDomicile} onChange={handleChange('adresseDomicile')} icon={MapPinned} placeholder="Adresse domicile" />
         </div>

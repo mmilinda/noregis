@@ -107,6 +107,9 @@ export default function VisitorDetail({ visitor: initialVisitor, onClose, onChec
             {(visitor.dateExpiration || visitor.visiteur?.dateExpiration || visitor.visitor?.dateExpiration || visitor.visiteurId?.dateExpiration) && (
               <Row label={t.expiration_date || "Date d'expiration"} value={fetching ? '...' : formatBackendDate(visitor.dateExpiration || visitor.visiteur?.dateExpiration || visitor.visitor?.dateExpiration || visitor.visiteurId?.dateExpiration)} />
             )}
+            {(visitor.telephone || visitor.visiteur?.telephone || visitor.visitor?.telephone || visitor.visiteurId?.telephone) && (
+              <Row label={t.phone || "Téléphone"} value={fetching ? '...' : (visitor.telephone || visitor.visiteur?.telephone || visitor.visitor?.telephone || visitor.visiteurId?.telephone)} mono />
+            )}
           </>
         )}
         <Row label={t.host_name} value={visitor.personneVisitee || visitor.hote || visitor.visitedPerson} />

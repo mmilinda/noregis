@@ -42,6 +42,7 @@ export function normaliserDonneesOCR(res) {
   const rawDateDelivrance = getVal('dateDelivrance', 'date_delivrance', 'issueDate', 'issued_date', 'issuedAt');
   const rawDateExpiration = getVal('dateExpiration', 'date_expiration', 'expiryDate', 'expirationDate', 'expiresAt', 'exp', 'validUntil', 'dateExp', 'expiration');
   const adresseDomicile = getVal('adresseDomicile', 'adresse', 'address');
+  const telephone = getVal('telephone', 'phone', 'phoneNumber', 'phone_number', 'tel', 'mobile');
 
   return {
     nom,
@@ -55,6 +56,7 @@ export function normaliserDonneesOCR(res) {
     dateDelivrance: toISODate(rawDateDelivrance),
     dateExpiration: toISODate(rawDateExpiration),
     adresseDomicile,
+    telephone,
   };
 }
 
@@ -106,6 +108,12 @@ export function parseIDText(text) {
   let sexeMatch = cleanText.match(/\b(?:SEXE|SEX)[\s:]*([MF])\b/i);
   if (sexeMatch) {
     result.sexe = sexeMatch[1].toUpperCase();
+  }
+
+  // 7. Téléphone
+  let phoneMatch = cleanText.match(/(?:TEL|PHONE|TELEPHONE|MOBILE)[\s:]*([+\d\s]{8,18})/i);
+  if (phoneMatch) {
+    result.telephone = phoneMatch[1].trim();
   }
 
   // 7. Nom & Prénom

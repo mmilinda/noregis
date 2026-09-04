@@ -26,10 +26,11 @@ export default function AgentHistorique({ isMobile }) {
   const handleExport = () => {
     if (all.length === 0) return notify('warning', t.no_results);
     
-    const headers = ["Nom", "Prenom", "Piece", "Type", "Hote", "Service", "Entree", "Sortie", "Statut"];
+    const headers = ["Nom", "Prenom", "Telephone", "Piece", "Type", "Hote", "Service", "Entree", "Sortie", "Statut"];
     const rows = all.map(v => [
       v.nom || v.visiteur?.nom || v.visitor?.nom || '',
       v.prenom || v.visiteur?.prenom || v.visitor?.prenom || '',
+      v.telephone || v.visiteur?.telephone || v.visitor?.telephone || '',
       v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || '',
       v.type || 'personne',
       v.personneVisitee || v.hote || v.visitedPerson || '',

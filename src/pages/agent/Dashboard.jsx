@@ -83,11 +83,11 @@ export default function AgentDashboard({ isMobile }) {
     const matchType = filterType === 'all' || visitorType === filterType;
     
     const matchSearch = !q || [
-      v.nom, v.prenom, v.numeroPiece, v.typePiece, v.immatriculation,
-      v.visiteur?.nom, v.visiteur?.prenom, v.visiteur?.numeroPiece, v.visiteur?.typePiece,
-      v.visitor?.nom, v.visitor?.prenom, v.visitor?.numeroPiece, v.visitor?.typePiece,
-      v.visiteurId?.nom, v.visiteurId?.prenom, v.visiteurId?.numeroPiece, v.visiteurId?.typePiece,
-      v.visitorId?.nom, v.visitorId?.prenom, v.visitorId?.numeroPiece, v.visitorId?.typePiece,
+      v.nom, v.prenom, v.telephone, v.numeroPiece, v.typePiece, v.immatriculation,
+      v.visiteur?.nom, v.visiteur?.prenom, v.visiteur?.telephone, v.visiteur?.numeroPiece, v.visiteur?.typePiece,
+      v.visitor?.nom, v.visitor?.prenom, v.visitor?.telephone, v.visitor?.numeroPiece, v.visitor?.typePiece,
+      v.visiteurId?.nom, v.visiteurId?.prenom, v.visiteurId?.telephone, v.visiteurId?.numeroPiece, v.visiteurId?.typePiece,
+      v.visitorId?.nom, v.visitorId?.prenom, v.visitorId?.telephone, v.visitorId?.numeroPiece, v.visitorId?.typePiece,
       v.vehicule?.immatriculation, v.vehicule?.marque, v.vehicule?.modele, v.vehicule?.couleur,
       v.personneVisitee, v.hote, v.visitedPerson,
       v.service, v.departement,
