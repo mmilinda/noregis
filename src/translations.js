@@ -164,7 +164,6 @@ export const TRANSLATIONS = {
       license: "Permis de Conduire",
       residence: "Carte de Séjour",
       consular: "Carte Consulaire",
-      birth: "Acte de Naissance",
       other: "Autre Document Officiel",
       carte_grise: "Carte Grise"
     },
@@ -341,7 +340,6 @@ export const TRANSLATIONS = {
       license: "Driver's License",
       residence: "Residence Card",
       consular: "Consular Card",
-      birth: "Birth Certificate",
       other: "Other Official Doc",
       carte_grise: "Vehicle Registration"
     },
@@ -517,7 +515,6 @@ export const TRANSLATIONS = {
       license: "رخصة سياقة",
       residence: "بطاقة إقامة",
       consular: "بطاقة قنصلية",
-      birth: "شهادة ميلاد",
       other: "وثيقة رسمية أخرى",
       carte_grise: "البطاقة الرمادية"
     },
