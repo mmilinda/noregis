@@ -1,5 +1,22 @@
 import { createWorker } from 'tesseract.js';
 
+export function toISODate(dateStr) {
+  if (!dateStr) return '';
+  const s = String(dateStr).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/^(\d{2})[/.-](\d{2})[/.-](\d{4})$/);
+  if (m) {
+    const [, day, month, year] = m;
+    return `${year}-${month}-${day}`;
+  }
+  const m2 = s.match(/^(\d{4})[/.-](\d{2})[/.-](\d{2})$/);
+  if (m2) {
+    const [, year, month, day] = m2;
+    return `${year}-${month}-${day}`;
+  }
+  return s;
+}
+
 export function normaliserDonneesOCR(res) {
   if (!res) return {};
   const data = res.infosExtraites || res.donnees || res.data || res.result || res.extracted || res;
@@ -18,12 +35,12 @@ export function normaliserDonneesOCR(res) {
   const prenom = getVal('prenom', 'firstName', 'first_name', 'given_name', 'prenoms');
   const numeroPiece = getVal('numeroPiece', 'numero_piece', 'documentNumber', 'document_number', 'card_number', 'cni', 'numPiece', 'numero');
   const nin = getVal('nin', 'ninNumber', 'nin_number', 'idNumber', 'id_number', 'nationalId', 'national_id', 'numNational', 'codeNational');
-  const dateNaissance = getVal('dateNaissance', 'date_naissance', 'birthDate', 'birth_date', 'dob');
+  const rawDateNaissance = getVal('dateNaissance', 'date_naissance', 'birthDate', 'birth_date', 'dob');
   const sexe = getVal('sexe', 'sex', 'gender');
   const typePiece = getVal('typePiece', 'type_piece', 'documentType', 'docType');
   const lieuNaissance = getVal('lieuNaissance', 'lieu_naissance', 'birthPlace', 'pob');
-  const dateDelivrance = getVal('dateDelivrance', 'date_delivrance', 'issueDate', 'issued_date', 'issuedAt');
-  const dateExpiration = getVal('dateExpiration', 'date_expiration', 'expiryDate', 'expirationDate', 'expiresAt');
+  const rawDateDelivrance = getVal('dateDelivrance', 'date_delivrance', 'issueDate', 'issued_date', 'issuedAt');
+  const rawDateExpiration = getVal('dateExpiration', 'date_expiration', 'expiryDate', 'expirationDate', 'expiresAt', 'exp', 'validUntil', 'dateExp', 'expiration');
   const adresseDomicile = getVal('adresseDomicile', 'adresse', 'address');
 
   return {
@@ -31,12 +48,12 @@ export function normaliserDonneesOCR(res) {
     prenom,
     numeroPiece,
     nin,
-    dateNaissance,
+    dateNaissance: toISODate(rawDateNaissance),
     sexe: sexe ? sexe.toUpperCase().slice(0, 1) : '',
     typePiece: typePiece || (numeroPiece ? 'CNI' : ''),
     lieuNaissance,
-    dateDelivrance,
-    dateExpiration,
+    dateDelivrance: toISODate(rawDateDelivrance),
+    dateExpiration: toISODate(rawDateExpiration),
     adresseDomicile,
   };
 }
@@ -71,13 +88,27 @@ export function parseIDText(text) {
     result.dateNaissance = dateMatch[1].replace(/[-.]/g, '/');
   }
 
-  // 4. Sexe
+  // 4. Date d'expiration
+  let expiryMatch = cleanText.match(/(?:EXPIRATION|EXPIRE|VALIDE JUSQU|EXPIRATION DATE|DATE D['’]EXPIRATION|EXP)[\s:]*(\d{2}[/.-]\d{2}[/.-]\d{4})/i) ||
+                    cleanText.match(/(?:EXPIRATION|EXPIRE)[\s:]*(\d{2}[/.-]\d{2}[/.-](?:20)\d{2})/i) ||
+                    cleanText.match(/EXP[\s:]*(\d{2}[/.-]\d{2}[/.-]\d{4})/i);
+  if (expiryMatch) {
+    result.dateExpiration = expiryMatch[1].replace(/[-.]/g, '/');
+  }
+
+  // 5. Date de délivrance
+  let issueMatch = cleanText.match(/(?:DELIVRANCE|DELIVRE LE|ISSUED|ISSUE DATE|DATE DE DELIVRANCE)[\s:]*(\d{2}[/.-]\d{2}[/.-]\d{4})/i);
+  if (issueMatch) {
+    result.dateDelivrance = issueMatch[1].replace(/[-.]/g, '/');
+  }
+
+  // 6. Sexe
   let sexeMatch = cleanText.match(/\b(?:SEXE|SEX)[\s:]*([MF])\b/i);
   if (sexeMatch) {
     result.sexe = sexeMatch[1].toUpperCase();
   }
 
-  // 5. Nom & Prénom
+  // 7. Nom & Prénom
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (/NOM[\s:]+/i.test(line)) {
