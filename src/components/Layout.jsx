@@ -390,18 +390,20 @@ export function Layout({ children, activeTab, onTabChange }) {
         <BottomNav activeTab={activeTab} onTabChange={onTabChange} onNewEntry={() => setRegOpen(true)} t={t} navItems={navItems} />
       )}
 
-      {/* Bouton Flottant (FAB) - Scan Rapide Recto/Verso accessible partout */}
-      <button
-        onClick={() => setRegOpen(true)}
-        className="fixed bottom-6 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-gradient-to-tr from-brand-blue-bright via-blue-600 to-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 group cursor-pointer border-2 border-white/30"
-        title="Scanner une pièce d'identité (Recto / Verso)"
-      >
-        <Camera size={26} className="group-hover:rotate-12 transition-transform drop-shadow" />
-        <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-green-bright opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-brand-green-bright border-2 border-white"></span>
-        </span>
-      </button>
+      {/* Bouton Flottant (FAB) - Scan Rapide (Desktop uniquement pour éviter le chevauchement du menu mobile) */}
+      {!isMobile && (
+        <button
+          onClick={() => setRegOpen(true)}
+          className="fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-tr from-brand-blue-bright via-blue-600 to-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 group cursor-pointer border-2 border-white/30"
+          title="Scanner une pièce d'identité (Recto / Verso)"
+        >
+          <Camera size={26} className="group-hover:rotate-12 transition-transform drop-shadow" />
+          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-green-bright opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-brand-green-bright border-2 border-white"></span>
+          </span>
+        </button>
+      )}
 
       {/* Global Modals */}
       <RegistrationModal isOpen={regOpen} onClose={() => setRegOpen(false)} />

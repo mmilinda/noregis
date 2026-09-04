@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronUp, ChevronDown, Eye, LogOut, User, Car, Trash2 } from 'lucide-react';
+import { ChevronUp, ChevronDown, Eye, LogOut, User, Car } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { Btn, StatusBadge, TypeBadge } from './UI';
 import { TRANSLATIONS } from '../translations';
@@ -129,33 +129,6 @@ export default function VisitorTable({ visitors, onView, onCheckout, onDelete, c
                         </button>
                       );
                     })()}
-                    {/* Bouton supprimer — Backend v2 */}
-                    {onDelete && (
-                      confirmId === (v._id || v.id) ? (
-                        <div className="flex gap-1 items-center">
-                          <button
-                            onClick={() => { onDelete(v._id || v.id); setConfirmId(null); }}
-                            className="px-2 py-1 bg-red-500 text-white rounded-md text-[9px] font-black uppercase hover:bg-red-600 transition-all"
-                          >
-                            Oui
-                          </button>
-                          <button
-                            onClick={() => setConfirmId(null)}
-                            className="px-2 py-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-md text-[9px] font-black uppercase"
-                          >
-                            Non
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setConfirmId(v._id || v.id)}
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
-                          title="Supprimer cette visite"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )
-                    )}
                   </div>
                 </td>
               </tr>
