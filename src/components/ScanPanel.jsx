@@ -440,6 +440,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     // Préservation garantie des champs clés du Recto et Verso
     merged.nom = rectoData.nom || versoData.nom || merged.nom || '';
     merged.prenom = rectoData.prenom || versoData.prenom || merged.prenom || '';
+    merged.pays = rectoData.pays || versoData.pays || merged.pays || 'Sénégal';
     merged.dateNaissance = rectoData.dateNaissance || versoData.dateNaissance || merged.dateNaissance || '';
     merged.lieuNaissance = rectoData.lieuNaissance || versoData.lieuNaissance || merged.lieuNaissance || '';
     merged.numeroPiece = rectoData.numeroPiece || versoData.numeroPiece || merged.numeroPiece || '';
@@ -689,6 +690,13 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
                 <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-700/50">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">N° Pièce</span>
                   <span className="text-xs font-mono font-black text-slate-900 dark:text-white">{combinedSummary.numeroPiece}</span>
+                </div>
+              )}
+
+              {combinedSummary.pays && (
+                <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-700/50">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Pays Emetteur</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">{combinedSummary.pays}</span>
                 </div>
               )}
 

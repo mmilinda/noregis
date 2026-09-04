@@ -49,6 +49,8 @@ export const TRANSLATIONS = {
     id_type: "Type de pièce",
     birth_date: "Date de naissance",
     expiration_date: "Date d'expiration",
+    country: "Pays",
+    issuing_country: "Pays d'émission",
     destination: "Destination",
     host_name: "Personne visitée",
     service_dept: "Service / Département",

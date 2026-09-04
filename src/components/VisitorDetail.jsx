@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { User, Car, LogOut } from 'lucide-react';
+import { User, Car, LogOut, ShieldCheck, AlertTriangle, XCircle, Globe } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { Btn, StatusBadge, TypeBadge } from './UI';
 import { TRANSLATIONS } from '../translations';
 import { visitorService } from '../services/visitorService';
+import { verifierFiabiliteDocument } from '../services/localOcrService';
 import { formatBackendDate, formatBackendTime } from './VisitorTable';
 
 const Row = ({ label, value, mono }) => (
@@ -45,6 +46,21 @@ export default function VisitorDetail({ visitor: initialVisitor, onClose, onChec
   if (!visitor) return null;
   const isVehicule = visitor.type === 'vehicule';
 
+  const visData = visitor.visiteur || visitor.visitor || visitor.visiteurId || visitor;
+  const paysVal = visitor.pays || visData.pays || 'Sénégal';
+  const auditDoc = verifierFiabiliteDocument({
+    nom: visitor.nom || visData.nom,
+    prenom: visitor.prenom || visData.prenom,
+    numeroPiece: visitor.numeroPiece || visData.numeroPiece,
+    typePiece: visitor.typePiece || visData.typePiece,
+    nin: visitor.nin || visData.nin,
+    sexe: visitor.sexe || visData.sexe,
+    dateNaissance: visitor.dateNaissance || visData.dateNaissance,
+    dateDelivrance: visitor.dateDelivrance || visData.dateDelivrance,
+    dateExpiration: visitor.dateExpiration || visData.dateExpiration,
+    pays: paysVal,
+  });
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header card */}
@@ -61,12 +77,24 @@ export default function VisitorDetail({ visitor: initialVisitor, onClose, onChec
         <div className="flex-1 min-w-0">
           <p className="font-black text-lg text-slate-900 dark:text-white truncate">
             {isVehicule 
-              ? (visitor.vehicule?.immatriculation || visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece || visitor.visiteurId?.numeroPiece || visitor.visitorId?.numeroPiece || '—') 
-              : `${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || visitor.visiteurId?.nom || visitor.visitorId?.nom || visitor.Nom || visitor.lastName || visitor.name || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || visitor.visiteurId?.prenom || visitor.visitorId?.prenom || visitor.Prenom || visitor.firstName || ''}`.trim() || visitor.nomComplet || visitor.fullName || '—'}
+              ? (visitor.vehicule?.immatriculation || visitor.numeroPiece || visData.numeroPiece || '—') 
+              : `${visitor.nom || visData.nom || visitor.Nom || ''} ${visitor.prenom || visData.prenom || visitor.Prenom || ''}`.trim() || visitor.nomComplet || visitor.fullName || '—'}
           </p>
           <div className="flex gap-2 mt-2 flex-wrap">
             <StatusBadge statut={visitor.statut} heureSortie={visitor.heureSortie} />
             <TypeBadge type={visitor.type || (visitor.vehicule ? 'vehicule' : 'person')} />
+            {!isVehicule && (
+              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 ${
+                auditDoc.statut === 'conforme' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' :
+                auditDoc.statut === 'attention' ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300' :
+                'bg-rose-500/20 text-rose-700 dark:text-rose-300'
+              }`}>
+                {auditDoc.statut === 'conforme' && <ShieldCheck size={12} />}
+                {auditDoc.statut === 'attention' && <AlertTriangle size={12} />}
+                {auditDoc.statut === 'suspect' && <XCircle size={12} />}
+                {auditDoc.statut === 'conforme' ? 'Doc Valide' : auditDoc.statut === 'attention' ? 'À vérifier' : 'Doc Suspect'}
+              </span>
+            )}
           </div>
         </div>
         <div className="text-right hidden sm:block">
@@ -86,29 +114,30 @@ export default function VisitorDetail({ visitor: initialVisitor, onClose, onChec
       <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-2 px-5">
         {isVehicule ? (
           <>
-            <Row label={t.license_plate} value={visitor.vehicule?.immatriculation || visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece || visitor.visiteurId?.numeroPiece || visitor.visitorId?.numeroPiece} mono />
-            <Row label={t.brand_model} value={`${visitor.vehicule?.marque || visitor.visiteur?.marque || visitor.visitor?.marque || visitor.visiteurId?.marque || visitor.visitorId?.marque || ''} ${visitor.vehicule?.modele || visitor.visiteur?.modele || visitor.visitor?.modele || visitor.visiteurId?.modele || visitor.visitorId?.modele || ''}`.trim() || '—'} />
-            <Row label={t.color} value={visitor.vehicule?.couleur || visitor.visiteur?.couleur || visitor.visitor?.couleur || visitor.visiteurId?.couleur} />
-            <Row label={t.id_type} value={visitor.vehicule?.typeVehicule || visitor.typePiece || visitor.visiteur?.typePiece || visitor.visitor?.typePiece || visitor.visiteurId?.typePiece || t.id_types?.carte_grise} />
-            {(visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || visitor.visiteurId?.nom || visitor.lastName || visitor.Nom) && <Row label={t.driver} value={`${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || visitor.visiteurId?.nom || visitor.visitorId?.nom || visitor.Nom || visitor.lastName || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || visitor.visiteurId?.prenom || visitor.visitorId?.prenom || visitor.Prenom || visitor.firstName || ''}`.trim()} />}
+            <Row label={t.license_plate} value={visitor.vehicule?.immatriculation || visitor.numeroPiece || visData.numeroPiece} mono />
+            <Row label={t.brand_model} value={`${visitor.vehicule?.marque || visData.marque || ''} ${visitor.vehicule?.modele || visData.modele || ''}`.trim() || '—'} />
+            <Row label={t.color} value={visitor.vehicule?.couleur || visData.couleur} />
+            <Row label={t.id_type} value={visitor.vehicule?.typeVehicule || visitor.typePiece || visData.typePiece || t.id_types?.carte_grise} />
+            {(visitor.nom || visData.nom || visitor.Nom) && <Row label={t.driver} value={`${visitor.nom || visData.nom || ''} ${visitor.prenom || visData.prenom || ''}`.trim()} />}
           </>
         ) : (
           <>
-            <Row label={t.fullname} value={fetching ? '...' : (`${visitor.nom || visitor.visiteur?.nom || visitor.visitor?.nom || visitor.visiteurId?.nom || visitor.visitorId?.nom || visitor.Nom || visitor.lastName || visitor.name || ''} ${visitor.prenom || visitor.visiteur?.prenom || visitor.visitor?.prenom || visitor.visiteurId?.prenom || visitor.visitorId?.prenom || visitor.Prenom || visitor.firstName || ''}`.trim() || visitor.nomComplet || visitor.fullName || '—')} />
-            <Row label={t.id_number} value={fetching ? '...' : (visitor.numeroPiece || visitor.visiteur?.numeroPiece || visitor.visitor?.numeroPiece || visitor.visiteurId?.numeroPiece || visitor.visitorId?.numeroPiece)} mono />
-            <Row label={t.id_type} value={fetching ? '...' : (visitor.typePiece || visitor.visiteur?.typePiece || visitor.visitor?.typePiece || visitor.visiteurId?.typePiece)} />
-            {(visitor.dateNaissance || visitor.visiteur?.dateNaissance || visitor.visitor?.dateNaissance || visitor.visiteurId?.dateNaissance) && (
-              <Row label={t.birth_date} value={fetching ? '...' : formatBackendDate(visitor.dateNaissance || visitor.visiteur?.dateNaissance || visitor.visitor?.dateNaissance || visitor.visiteurId?.dateNaissance)} />
+            <Row label={t.fullname} value={fetching ? '...' : (`${visitor.nom || visData.nom || visitor.Nom || ''} ${visitor.prenom || visData.prenom || visitor.Prenom || ''}`.trim() || visitor.nomComplet || visitor.fullName || '—')} />
+            <Row label={t.id_number} value={fetching ? '...' : (visitor.numeroPiece || visData.numeroPiece)} mono />
+            <Row label={t.id_type} value={fetching ? '...' : (visitor.typePiece || visData.typePiece)} />
+            <Row label="Pays d'émission" value={fetching ? '...' : paysVal} />
+            {(visitor.dateNaissance || visData.dateNaissance) && (
+              <Row label={t.birth_date} value={fetching ? '...' : formatBackendDate(visitor.dateNaissance || visData.dateNaissance)} />
             )}
             {/* NIN — Backend v2 */}
-            {(visitor.nin || visitor.visiteur?.nin || visitor.visiteurId?.nin) && (
-              <Row label="NIN" value={fetching ? '...' : (visitor.nin || visitor.visiteur?.nin || visitor.visiteurId?.nin)} mono />
+            {(visitor.nin || visData.nin) && (
+              <Row label="NIN" value={fetching ? '...' : (visitor.nin || visData.nin)} mono />
             )}
-            {(visitor.dateExpiration || visitor.visiteur?.dateExpiration || visitor.visitor?.dateExpiration || visitor.visiteurId?.dateExpiration) && (
-              <Row label={t.expiration_date || "Date d'expiration"} value={fetching ? '...' : formatBackendDate(visitor.dateExpiration || visitor.visiteur?.dateExpiration || visitor.visitor?.dateExpiration || visitor.visiteurId?.dateExpiration)} />
+            {(visitor.dateExpiration || visData.dateExpiration) && (
+              <Row label={t.expiration_date || "Date d'expiration"} value={fetching ? '...' : formatBackendDate(visitor.dateExpiration || visData.dateExpiration)} />
             )}
-            {(visitor.telephone || visitor.visiteur?.telephone || visitor.visitor?.telephone || visitor.visiteurId?.telephone) && (
-              <Row label={t.phone || "Téléphone"} value={fetching ? '...' : (visitor.telephone || visitor.visiteur?.telephone || visitor.visitor?.telephone || visitor.visiteurId?.telephone)} mono />
+            {(visitor.telephone || visData.telephone) && (
+              <Row label={t.phone || "Téléphone"} value={fetching ? '...' : (visitor.telephone || visData.telephone)} mono />
             )}
           </>
         )}

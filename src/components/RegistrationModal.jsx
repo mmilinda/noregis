@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import {
   User, Car, CreditCard, Building,
   Clock, Calendar, Camera, CheckCircle2,
-  ChevronRight, FileText, Ruler, MapPin, CalendarDays, Home, MapPinned, Phone, Search, UserX
+  ChevronRight, FileText, Ruler, MapPin, CalendarDays, Home, MapPinned, Phone, Search, UserX,
+  Globe, ShieldCheck, AlertTriangle, XCircle
 } from 'lucide-react';
 import { FormInput, FormSelect, Btn, Modal } from './UI';
 import { ScanPanel } from './ScanPanel';
@@ -11,6 +12,12 @@ import { useApp } from '../context/useAppState';
 import { visitorService } from '../services/visitorService';
 import { visitService } from '../services/visitService';
 import { TRANSLATIONS } from '../translations';
+import { verifierFiabiliteDocument } from '../services/localOcrService';
+
+const PAYS_OPTIONS = [
+  'Sénégal', 'France', 'Mali', "Côte d'Ivoire", 'Guinée', 'Gambie',
+  'Mauritanie', 'Togo', 'Bénin', 'Burkina Faso', 'Niger', 'Maroc', 'Autre'
+];
 
 const normalizeTypePiece = (value) => {
   if (!value) return 'CNI';
@@ -37,6 +44,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     nom: initial.nom || '',
     prenom: initial.prenom || '',
     nin: initial.nin || '',
+    pays: initial.pays || 'Sénégal',
     dateNaissance: initial.dateNaissance || '',
     sexe: initial.sexe || '',
     taille: initial.taille || '',
@@ -62,6 +70,9 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
+  // Calcul dynamique de la fiabilité et de la cohérence du document
+  const auditDoc = verifierFiabiliteDocument(form);
+
   const validate = () => {
     const e = {};
     if (!form.nom.trim()) e.nom = t.required_field;
@@ -81,7 +92,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     }
   };
 
-  // ✅ Correction : mapping direct et sécurisé des clés renvoyées par le backend OCR
+  // ✅ Mapping des clés renvoyées par l'OCR y compris le pays
   const handleScanData = (data, img) => {
     const scanTime = new Date();
     setDocImage(img);
@@ -90,6 +101,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
       nom: (data.nom && String(data.nom).trim()) || prev.nom,
       prenom: (data.prenom && String(data.prenom).trim()) || prev.prenom,
       nin: (data.nin && String(data.nin).trim()) || prev.nin,
+      pays: (data.pays && String(data.pays).trim()) || prev.pays,
       numeroPiece: (data.numeroPiece && String(data.numeroPiece).trim()) || prev.numeroPiece,
       typePiece: data.typePiece ? normalizeTypePiece(data.typePiece) : prev.typePiece,
       dateNaissance: (data.dateNaissance && String(data.dateNaissance).trim()) || prev.dateNaissance,
@@ -138,6 +150,60 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
           </Btn>
         </div>
 
+        {/* Audit de fiabilité et logique du document */}
+        {(form.numeroPiece || form.nin || form.dateExpiration) && (
+          <div className={`p-4 rounded-xl border-2 transition-all ${
+            auditDoc.statut === 'conforme'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200'
+              : auditDoc.statut === 'attention'
+              ? 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200'
+              : 'bg-rose-500/10 border-rose-500/30 text-rose-900 dark:text-rose-200'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {auditDoc.statut === 'conforme' ? (
+                  <ShieldCheck size={20} className="text-emerald-500" />
+                ) : auditDoc.statut === 'attention' ? (
+                  <AlertTriangle size={20} className="text-amber-500" />
+                ) : (
+                  <XCircle size={20} className="text-rose-500" />
+                )}
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-wider">
+                    {auditDoc.statut === 'conforme' && "Document Conforme & Cohérent"}
+                    {auditDoc.statut === 'attention' && "Attention : Informations à vérifier"}
+                    {auditDoc.statut === 'suspect' && "Alerte : Document Suspect / Expiré"}
+                  </h4>
+                  <p className="text-[10px] font-bold opacity-80 mt-0.5">
+                    Score de fiabilité : {auditDoc.score}% · Pays : {auditDoc.pays}
+                  </p>
+                </div>
+              </div>
+              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                auditDoc.statut === 'conforme' ? 'bg-emerald-500 text-white' :
+                auditDoc.statut === 'attention' ? 'bg-amber-500 text-white' : 'bg-rose-500 text-white'
+              }`}>
+                {auditDoc.statut}
+              </span>
+            </div>
+
+            {(auditDoc.errors.length > 0 || auditDoc.warnings.length > 0) && (
+              <ul className="mt-2.5 space-y-1 pt-2 border-t border-current/10 text-[11px] font-bold">
+                {auditDoc.errors.map((err, i) => (
+                  <li key={`err-${i}`} className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
+                    <XCircle size={13} className="shrink-0" /> {err}
+                  </li>
+                ))}
+                {auditDoc.warnings.map((warn, i) => (
+                  <li key={`warn-${i}`} className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
+                    <AlertTriangle size={13} className="shrink-0" /> {warn}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
         {/* Identité */}
         <div className="space-y-4">
           <p className="text-[10px] font-black text-slate-400 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
@@ -160,7 +226,17 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
               error={errors.typePiece}
             />
           </div>
-          <FormInput label={t.birth_date} id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
+          <div className="grid grid-cols-2 gap-4">
+            <FormSelect
+              label="Pays d'émission"
+              id="pays"
+              value={form.pays}
+              onChange={set('pays')}
+              options={PAYS_OPTIONS}
+              icon={Globe}
+            />
+            <FormInput label={t.birth_date} id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
+          </div>
         </div>
 
         {/* Infos complémentaires (carte d’identité) */}
@@ -692,6 +768,8 @@ export function RegistrationModal({ isOpen, onClose, initialMode = null }) {
         prenom: data.prenom,
         numeroPiece: data.numeroPiece,
         typePiece: normalizedTypePiece,
+        nin: data.nin,
+        pays: data.pays || 'Sénégal',
         dateNaissance: data.dateNaissance,
         sexe: data.sexe,
         taille: data.taille,

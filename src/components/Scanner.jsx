@@ -1,9 +1,14 @@
 import { useState, useRef } from 'react';
-import { Calendar, Building2, User, CreditCard, CheckCircle2, Camera, Clock, MapPin, Ruler, CalendarDays, UserRound, FileText, Home, MapPinned, Phone } from 'lucide-react';
+import { Calendar, Building2, User, CreditCard, CheckCircle2, Camera, Clock, MapPin, Ruler, CalendarDays, UserRound, FileText, Home, MapPinned, Phone, Globe } from 'lucide-react';
 import { Btn, Input, Select, Modal } from './UI';
 import { ScanPanel } from './ScanPanel';
 import { useApp } from '../context/useAppState';
 import { TRANSLATIONS } from '../translations';
+
+const PAYS_OPTIONS = [
+  'Sénégal', 'France', 'Mali', "Côte d'Ivoire", 'Guinée', 'Gambie',
+  'Mauritanie', 'Togo', 'Bénin', 'Burkina Faso', 'Niger', 'Maroc', 'Autre'
+];
 
 const servicesList = [
   'Direction Générale', 'Ressources Humaines', 'Direction Financière',
@@ -19,6 +24,7 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
   const [formData, setFormData] = useState({
     nom: initial.nom || '',
     prenom: initial.prenom || '',
+    pays: initial.pays || 'Sénégal',
     dateNaissance: initial.dateNaissance || '',
     sexe: initial.sexe || '',
     taille: initial.taille || '',
@@ -72,12 +78,13 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
     }
   };
 
-  // ✅ Correction : mapping direct des clés camelCase
+  // ✅ Correction : mapping direct des clés camelCase y compris le pays
   const handleOcrData = (data, image) => {
     setFormData(prev => ({
       ...prev,
       nom: data.nom ?? prev.nom,
       prenom: data.prenom ?? prev.prenom,
+      pays: data.pays ?? prev.pays,
       numeroPiece: data.numeroPiece ?? prev.numeroPiece,
       typePiece: data.typePiece ?? prev.typePiece,
       dateNaissance: data.dateNaissance ?? prev.dateNaissance,
@@ -142,7 +149,10 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
             <Input label={t.id_number} id="numeroPiece" required value={formData.numeroPiece} onChange={handleChange('numeroPiece')} error={errors.numeroPiece} placeholder={t.number_placeholder} />
             <Select label={t.id_type} id="typePiece" required value={formData.typePiece} onChange={handleChange('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
           </div>
-          <Input label={t.birth_date} id="dateNaissance" type="date" value={formData.dateNaissance} onChange={handleChange('dateNaissance')} icon={Calendar} />
+          <div className="grid grid-cols-2 gap-4">
+            <Select label="Pays d'émission" id="pays" value={formData.pays} onChange={handleChange('pays')} options={PAYS_OPTIONS} icon={Globe} />
+            <Input label={t.birth_date} id="dateNaissance" type="date" value={formData.dateNaissance} onChange={handleChange('dateNaissance')} icon={Calendar} />
+          </div>
         </div>
 
         {/* Infos complémentaires */}
