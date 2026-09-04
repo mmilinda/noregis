@@ -665,6 +665,37 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
                 Données Extraites avec succès
               </p>
 
+              {/* Badge Fiabilité & Authenticité du Document selon le Pays */}
+              {combinedSummary.fiabilite && (
+                <div className={`p-2.5 rounded-xl mb-3 border ${
+                  combinedSummary.fiabilite.score >= 80 
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' 
+                    : combinedSummary.fiabilite.score >= 60 
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400' 
+                    : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400'
+                }`}>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
+                      <span>{combinedSummary.fiabilite.pays?.drapeau || '🇸🇳'}</span>
+                      <span>Fiabilité {combinedSummary.fiabilite.pays?.nom || combinedSummary.pays || 'Sénégal'}</span>
+                    </span>
+                    <span className="text-xs font-black px-2 py-0.5 rounded-full bg-white/80 dark:bg-slate-900/80 shadow-sm">
+                      {combinedSummary.fiabilite.score}% - {combinedSummary.fiabilite.niveau || combinedSummary.fiabilite.statut}
+                    </span>
+                  </div>
+
+                  {combinedSummary.fiabilite.anomalies && combinedSummary.fiabilite.anomalies.length > 0 && (
+                    <div className="mt-2 space-y-1 text-[10px] border-t border-current/20 pt-1.5">
+                      {combinedSummary.fiabilite.anomalies.map((an, idx) => (
+                        <p key={idx} className="flex items-center gap-1 font-medium">
+                          ⚠️ {an}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {combinedSummary.nin && (
                 <div className="flex justify-between items-center py-1.5 border-b border-brand-green-bright/20 bg-brand-green-light/20 dark:bg-brand-green-bright/10 px-2 rounded">
                   <span className="text-[10px] font-extrabold text-brand-green-bright uppercase">NIN (Verso)</span>

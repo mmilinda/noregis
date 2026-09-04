@@ -142,6 +142,9 @@ export function normaliserDonneesOCR(res) {
     telephone,
     pays,
   };
+
+  norm.fiabilite = res.fiabilite || verifierFiabiliteDocument(norm);
+  return norm;
 }
 
 export function parseIDText(text) {
