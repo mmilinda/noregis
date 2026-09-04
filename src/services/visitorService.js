@@ -21,6 +21,10 @@ export const visitorService = {
     return api.get(`/api/search?query=${encodeURIComponent(query)}`);
   },
 
+  searchByTelephone: async (telephone) => {
+    return api.get(`/api/visiteurs/recherche/telephone?telephone=${encodeURIComponent(telephone)}`);
+  },
+
   // Nouvelle méthode — Backend v2
   deleteVisitor: async (id) => {
     return api.delete(`/api/visiteurs/${id}`);

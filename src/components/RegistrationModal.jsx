@@ -67,8 +67,44 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   const [errors, setErrors] = useState({});
   const [scanOpen, setScanOpen] = useState(false);
   const [docImage, setDocImage] = useState(initial.docImage || null);
+  const [searchingPhone, setSearchingPhone] = useState(false);
+  const [foundVisitorMsg, setFoundVisitorMsg] = useState(null);
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  // Recherche automatique d'un visiteur existant par numéro de téléphone
+  const handleSearchPhone = async (telValue) => {
+    const val = telValue || form.telephone;
+    if (!val || val.trim().length < 6) return;
+
+    setSearchingPhone(true);
+    setFoundVisitorMsg(null);
+
+    try {
+      const res = await visitorService.searchByTelephone(val);
+      if (res && res.success && res.visiteur) {
+        const v = res.visiteur;
+        setForm(prev => ({
+          ...prev,
+          nom: v.nom || prev.nom,
+          prenom: v.prenom || prev.prenom,
+          numeroPiece: v.numeroPiece || prev.numeroPiece,
+          nin: v.nin || prev.nin,
+          typePiece: v.typePiece || prev.typePiece,
+          sexe: v.sexe || prev.sexe,
+          dateNaissance: v.dateNaissance ? String(v.dateNaissance).slice(0, 10) : prev.dateNaissance,
+          lieuNaissance: v.lieuNaissance || prev.lieuNaissance,
+          adresseDomicile: v.adresseDomicile || prev.adresseDomicile,
+          telephone: v.telephone || val,
+        }));
+        setFoundVisitorMsg(`Visiteur existant trouvé (${v.prenom} ${v.nom}) ! Les données ont été pré-remplies.`);
+      }
+    } catch (err) {
+      console.log('Aucun visiteur existant trouvé avec ce téléphone.');
+    } finally {
+      setSearchingPhone(false);
+    }
+  };
 
   // Calcul dynamique de la fiabilité et de la cohérence du document
   const auditDoc = verifierFiabiliteDocument(form);
@@ -260,7 +296,40 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
             <FormInput label="Date de délivrance" id="dateDelivrance" type="date" value={form.dateDelivrance} onChange={set('dateDelivrance')} icon={CalendarDays} />
             <FormInput label="Date d'expiration" id="dateExpiration" type="date" value={form.dateExpiration} onChange={set('dateExpiration')} icon={CalendarDays} />
           </div>
-          <FormInput label="Numéro de Téléphone" id="telephone" value={form.telephone} onChange={set('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
+          <div className="relative space-y-1">
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <FormInput 
+                  label="Numéro de Téléphone" 
+                  id="telephone" 
+                  value={form.telephone} 
+                  onChange={(e) => {
+                    set('telephone')(e);
+                    if (e.target.value.length >= 8) handleSearchPhone(e.target.value);
+                  }} 
+                  icon={Phone} 
+                  placeholder="Ex: +221 77 123 45 67" 
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => handleSearchPhone(form.telephone)}
+                disabled={searchingPhone || !form.telephone}
+                className="h-[42px] px-3.5 bg-brand-blue-bright text-white rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-blue-600 disabled:opacity-50 transition-all shadow-sm active:scale-95 mb-0.5"
+                title="Rechercher ce visiteur dans la base de données"
+              >
+                <Search size={14} />
+                <span className="hidden sm:inline">{searchingPhone ? 'Recherche...' : 'Rechercher'}</span>
+              </button>
+            </div>
+
+            {foundVisitorMsg && (
+              <div className="mt-1.5 p-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-black flex items-center gap-2">
+                <ShieldCheck size={16} />
+                <span>{foundVisitorMsg}</span>
+              </div>
+            )}
+          </div>
           <FormInput label="Centre d'enregistrement" id="centreEnregistrement" value={form.centreEnregistrement} onChange={set('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
           <FormInput label="Adresse du domicile" id="adresseDomicile" value={form.adresseDomicile} onChange={set('adresseDomicile')} icon={MapPinned} placeholder="Adresse domicile" />
           <FormInput label="NIN (Numéro d'Identification Nationale)" id="nin" value={form.nin} onChange={set('nin')} icon={CreditCard} placeholder="Ex: 1 890 1999 12345" />
