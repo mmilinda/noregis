@@ -23,11 +23,16 @@ function base64ToFile(base64, filename = 'scan.jpg') {
 /* ===========================================
    PRÉTRAITEMENT & COMPRESSION ULTRA-RAPIDE (Canvas)
 =========================================== */
-function preparerImageOCR(base64) {
+function preparerImageOCR(base64OrFile) {
   return new Promise((resolve) => {
+    if (!base64OrFile) return resolve(base64OrFile);
+    let src = base64OrFile;
+    if (base64OrFile instanceof File || base64OrFile instanceof Blob) {
+      src = URL.createObjectURL(base64OrFile);
+    }
     const img = new Image();
     img.onload = () => {
-      const MAX = 1920; // Haute Définition HD pour une lisibilité parfaite des petits caractères
+      const MAX = 1200; // Format optimal pour IA vision rapide et lisibilité maximale
       let w = img.width;
       let h = img.height;
       if (w > MAX || h > MAX) {
@@ -46,10 +51,12 @@ function preparerImageOCR(base64) {
       const ctx = canvas.getContext('2d');
 
       ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', 0.95));
+      const compressed = canvas.toDataURL('image/jpeg', 0.82);
+      if (typeof src === 'string' && src.startsWith('blob:')) URL.revokeObjectURL(src);
+      resolve(compressed);
     };
-    img.onerror = () => resolve(base64);
-    img.src = base64;
+    img.onerror = () => resolve(base64OrFile);
+    img.src = src;
   });
 }
 
@@ -315,13 +322,14 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
 
   // Exécution de l'OCR sur le Recto
   const runRectoOCR = async (image) => {
-    setLoadingMsg('Analyse du RECTO en cours...');
+    setLoadingMsg('Analyse rapide du RECTO...');
     setPhase('recto_ocr');
     let extracted = {};
     let isLocalFallback = false;
 
     try {
-      const fileToSend = image instanceof File ? image : base64ToFile(image, 'recto.jpg');
+      const preparedImage = await preparerImageOCR(image);
+      const fileToSend = preparedImage instanceof File ? preparedImage : base64ToFile(preparedImage, 'recto.jpg');
       const fd = new FormData();
       fd.append('image', fileToSend);
       fd.append('mode', mode);
@@ -368,13 +376,14 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
 
   // Exécution de l'OCR sur le Verso
   const runVersoOCR = async (image) => {
-    setLoadingMsg('Analyse du VERSO (extraction NIN)...');
+    setLoadingMsg('Analyse rapide du VERSO (extraction NIN)...');
     setPhase('verso_ocr');
     let extracted = {};
     let isLocalFallback = false;
 
     try {
-      const fileToSend = image instanceof File ? image : base64ToFile(image, 'verso.jpg');
+      const preparedImage = await preparerImageOCR(image);
+      const fileToSend = preparedImage instanceof File ? preparedImage : base64ToFile(preparedImage, 'verso.jpg');
       const fd = new FormData();
       fd.append('image', fileToSend);
       fd.append('mode', 'verso');
