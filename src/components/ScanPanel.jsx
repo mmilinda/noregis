@@ -362,8 +362,8 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     setRectoData(extracted);
     setRectoImg(image);
 
-    // Auto-remplissage DIRECT et instantané du formulaire principal !
-    onDataExtracted({ ...extracted, photo: image }, image);
+    // Passer au prompt Verso pour scanner le verso (NIN / CNI) sans fermer le modal
+    setPhase('verso_prompt');
   };
 
   // Exécution de l'OCR sur le Verso
@@ -409,11 +409,8 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     setVersoData(extracted);
     setVersoImg(image);
     
-    // Auto-remplissage DIRECT avec la fusion Recto + Verso
-    const rData = extractedRef.current.recto;
-    const rImg = extractedRef.current.rectoImg || image;
-    const merged = { ...rData, ...extracted, photo: rImg, photoVerso: image };
-    onDataExtracted(merged, rImg);
+    // Afficher le résumé avec la fusion Recto + Verso
+    setPhase('summary');
   };
 
   // Passer le verso
@@ -589,51 +586,54 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-black text-brand-green-bright flex items-center gap-1.5">
-                  <CheckCircle2 size={14} /> Document scanné avec succès
+                  <CheckCircle2 size={14} /> RECTO scanné avec succès
                 </p>
                 <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 truncate mt-0.5">
-                  {rectoData.prenom} {rectoData.nom} {rectoData.numeroPiece ? `(${rectoData.numeroPiece})` : ''}
+                  {rectoData.prenom || ''} {rectoData.nom || ''} {rectoData.numeroPiece ? `(N° ${rectoData.numeroPiece})` : ''}
                 </p>
               </div>
             </div>
 
-            {/* Bouton principal : Valider avec cette seule face */}
-            <button
-              onClick={handleSkipVerso}
-              className="w-full flex items-center justify-center gap-3 p-4 bg-brand-green-bright hover:bg-green-600 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg active:scale-95 transition-all"
-            >
-              <CheckCircle2 size={18} /> Valider avec cette seule face (Recto)
-            </button>
+            {/* Bloc Verso Prioritaire pour CNI */}
+            <div className="bg-brand-blue-light/10 dark:bg-brand-blue-bright/10 border-2 border-brand-blue-bright/30 p-4 rounded-xl space-y-3">
+              <div className="text-center">
+                <p className="text-xs font-black text-brand-blue-bright uppercase tracking-wider">
+                  2. Scanner la face arrière (VERSO)
+                </p>
+                <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 mt-1">
+                  Recommandé pour la CNI sénégalaise afin d'extraire le NIN et l'adresse.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <button
+                  onClick={() => setPhase('verso_camera')}
+                  className="flex items-center justify-center gap-2 p-3 rounded-xl bg-brand-blue-bright text-white hover:bg-blue-600 transition-all text-xs font-black shadow-md active:scale-95 cursor-pointer"
+                >
+                  <Camera size={16} /> Caméra Verso
+                </button>
+                <button
+                  onClick={() => triggerUpload('verso')}
+                  className="flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-brand-blue-bright/40 bg-white dark:bg-slate-800 hover:bg-brand-blue-light/20 text-brand-blue-bright transition-all text-xs font-black active:scale-95 cursor-pointer"
+                >
+                  <Upload size={16} /> Importer Verso
+                </button>
+              </div>
+            </div>
 
             <div className="relative flex py-1 items-center">
               <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
-              <span className="flex-shrink mx-3 text-[10px] font-bold text-slate-400 uppercase">Ou (Optionnel)</span>
+              <span className="flex-shrink mx-3 text-[10px] font-bold text-slate-400 uppercase">Ou</span>
               <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 p-3 rounded-xl text-center">
-              <p className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                Ajouter la face arrière (Verso)
-              </p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">
-                Utile uniquement pour les cartes CNI recto-verso avec NIN au verso.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setPhase('verso_camera')}
-                className="flex items-center justify-center gap-2 p-3 rounded-xl border border-brand-blue-bright/30 bg-brand-blue-light/10 hover:bg-brand-blue-light/20 text-brand-blue-bright transition-all text-xs font-bold"
-              >
-                <Camera size={16} /> Caméra Verso
-              </button>
-              <button
-                onClick={() => triggerUpload('verso')}
-                className="flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-all text-xs font-bold"
-              >
-                <Upload size={16} /> Importer Verso
-              </button>
-            </div>
+            {/* Bouton pour valider directement sans Verso */}
+            <button
+              onClick={handleFinalValidation}
+              className="w-full flex items-center justify-center gap-3 p-3.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white rounded-xl text-xs font-black uppercase tracking-wider border border-slate-300 dark:border-slate-700 transition-all active:scale-95 cursor-pointer"
+            >
+              <CheckCircle2 size={18} className="text-brand-green-bright" /> Valider & Remplir avec le Recto uniquement
+            </button>
           </div>
         )}
 
