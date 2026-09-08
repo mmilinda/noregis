@@ -699,6 +699,34 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
                 </div>
               )}
 
+              {combinedSummary.typePiece && (
+                <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-700/50">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Type Document</span>
+                  <span className="text-xs font-black uppercase text-brand-blue-bright">{combinedSummary.typePiece}</span>
+                </div>
+              )}
+
+              {combinedSummary.immatriculation && (
+                <div className="flex justify-between items-center py-1.5 border-b border-amber-500/30 bg-amber-500/10 px-2 rounded">
+                  <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 uppercase">Immatriculation</span>
+                  <span className="text-xs font-black font-mono text-amber-600 dark:text-amber-400">{combinedSummary.immatriculation}</span>
+                </div>
+              )}
+
+              {(combinedSummary.marque || combinedSummary.modele) && (
+                <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-700/50">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Véhicule (Marque/Modèle)</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">{`${combinedSummary.marque || ''} ${combinedSummary.modele || ''}`.trim()}</span>
+                </div>
+              )}
+
+              {combinedSummary.categoriesPermis && (
+                <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-slate-700/50">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Catégories Permis</span>
+                  <span className="text-xs font-black text-slate-900 dark:text-white">{combinedSummary.categoriesPermis}</span>
+                </div>
+              )}
+
               {combinedSummary.nin && (
                 <div className="flex justify-between items-center py-1.5 border-b border-brand-green-bright/20 bg-brand-green-light/20 dark:bg-brand-green-bright/10 px-2 rounded">
                   <span className="text-[10px] font-extrabold text-brand-green-bright uppercase">NIN (Verso)</span>

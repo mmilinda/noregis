@@ -127,20 +127,37 @@ export function normaliserDonneesOCR(res) {
   const telephone = getVal('telephone', 'phone', 'phoneNumber', 'phone_number', 'tel', 'mobile');
   const pays = getVal('pays', 'country', 'paysEmetteur', 'issuingCountry', 'nationality', 'nationalite', 'paysOrigine') || 'Sénégal';
 
-  return {
+  const immatriculation = getVal('immatriculation', 'immatriculationVehicule', 'plaque', 'plate');
+  const marque = getVal('marque', 'brand', 'make');
+  const modele = getVal('modele', 'model');
+  const couleur = getVal('couleur', 'color');
+  const typeVehicule = getVal('typeVehicule', 'type_vehicule', 'vehicleType', 'genre');
+  const categoriesPermis = getVal('categoriesPermis', 'categories', 'permisCategory');
+  const nationalite = getVal('nationalite', 'nationality');
+  const centreEnregistrement = getVal('centreEnregistrement', 'issuer', 'autorite', 'emetteur');
+
+  const norm = {
     nom,
     prenom,
-    numeroPiece,
+    numeroPiece: numeroPiece || immatriculation,
     nin,
     dateNaissance: toISODate(rawDateNaissance),
     sexe: sexe ? sexe.toUpperCase().slice(0, 1) : '',
-    typePiece: typePiece || (numeroPiece ? 'CNI' : ''),
+    typePiece: typePiece || (immatriculation ? 'CARTE_GRISE' : (numeroPiece ? 'CNI' : '')),
     lieuNaissance,
     dateDelivrance: toISODate(rawDateDelivrance),
     dateExpiration: toISODate(rawDateExpiration),
     adresseDomicile,
     telephone,
     pays,
+    immatriculation: immatriculation || numeroPiece,
+    marque,
+    modele,
+    couleur,
+    typeVehicule,
+    categoriesPermis,
+    nationalite,
+    centreEnregistrement,
   };
 
   norm.fiabilite = res.fiabilite || verifierFiabiliteDocument(norm);
