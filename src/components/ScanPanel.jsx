@@ -322,7 +322,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
 
   // Exécution de l'OCR sur le Recto
   const runRectoOCR = async (image) => {
-    setLoadingMsg('Analyse rapide du RECTO...');
+    setLoadingMsg('Analyse rapide du RECTO par IA...');
     setPhase('recto_ocr');
     let extracted = {};
     let isLocalFallback = false;
@@ -342,13 +342,13 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
         if (foundNIN) extracted.nin = foundNIN;
       }
     } catch (err) {
-      console.warn('Backend API scan indisponible ou erreur 401, bascule sur OCR local Tesseract:', err);
+      console.warn('Backend API scan indisponible :', err);
       isLocalFallback = true;
     }
 
-    // Ne lancer Tesseract local que si le serveur backend est totalement hors ligne (fallback réseau)
-    if (isLocalFallback) {
-      setLoadingMsg('Analyse Tesseract.js locale (mode secours)...');
+    // Ne lancer Tesseract local que si l'appareil est réellement hors-ligne (pas de connexion internet)
+    if (isLocalFallback && typeof navigator !== 'undefined' && !navigator.onLine) {
+      setLoadingMsg('Mode hors-ligne : Analyse Tesseract locale...');
       try {
         const localRes = await runLocalOCR(image);
         extracted = normaliserDonneesOCR({ ...localRes.extracted, ...extracted });
@@ -396,12 +396,12 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
         if (foundNIN) extracted.nin = foundNIN;
       }
     } catch (err) {
-      console.warn('Backend API scan verso indisponible, bascule sur OCR local:', err);
+      console.warn('Backend API scan verso indisponible :', err);
       isLocalFallback = true;
     }
 
-    if (isLocalFallback) {
-      setLoadingMsg('Analyse NIN Tesseract.js locale...');
+    if (isLocalFallback && typeof navigator !== 'undefined' && !navigator.onLine) {
+      setLoadingMsg('Mode hors-ligne : Analyse NIN Tesseract.js locale...');
       try {
         const localRes = await runLocalOCR(image);
         const normLocal = normaliserDonneesOCR(localRes.extracted);
