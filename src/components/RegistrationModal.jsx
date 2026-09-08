@@ -30,6 +30,30 @@ const normalizeTypePiece = (value) => {
   return value;
 };
 
+const normalizeSexe = (val) => {
+  if (!val) return '';
+  const s = String(val).toUpperCase().trim();
+  if (s.startsWith('M') || s.includes('HOMME') || s.includes('MASCULIN')) return 'M';
+  if (s.startsWith('F') || s.includes('FEMME') || s.includes('FEMININ')) return 'F';
+  return val;
+};
+
+const formatDateForInput = (dateStr) => {
+  if (!dateStr) return '';
+  const str = String(dateStr).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  if (/^\d{4}-\d{2}-\d{2}T/.test(str)) return str.slice(0, 10);
+  const dmyMatch = str.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})$/);
+  if (dmyMatch) {
+    const day = dmyMatch[1].padStart(2, '0');
+    const month = dmyMatch[2].padStart(2, '0');
+    const year = dmyMatch[3];
+    return `${year}-${month}-${day}`;
+  }
+  return str;
+};
+
+
 // ========== FORMULAIRE PERSONNE ==========
 function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   const now = new Date();
@@ -206,27 +230,31 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   };
 
   // ✅ Mapping des clés renvoyées par l'OCR y compris le pays
-  const handleScanData = (data, img) => {
+  const handleScanData = (rawData, img) => {
+    const data = rawData?.infosExtraites || rawData?.extracted || rawData || {};
+    console.log('📋 Données réceptionnées dans PersonForm :', data);
     const scanTime = new Date();
-    setDocImage(img);
+    const photoToSave = img || data.photo || null;
+    if (photoToSave) setDocImage(photoToSave);
+
     setForm(prev => ({
       ...prev,
-      nom: (data.nom && String(data.nom).trim()) || prev.nom,
-      prenom: (data.prenom && String(data.prenom).trim()) || prev.prenom,
-      nin: (data.nin && String(data.nin).trim()) || prev.nin,
-      pays: (data.pays && String(data.pays).trim()) || prev.pays,
-      numeroPiece: (data.numeroPiece && String(data.numeroPiece).trim()) || prev.numeroPiece,
-      typePiece: data.typePiece ? normalizeTypePiece(data.typePiece) : prev.typePiece,
-      dateNaissance: (data.dateNaissance && String(data.dateNaissance).trim()) || prev.dateNaissance,
-      sexe: (data.sexe && String(data.sexe).trim()) || prev.sexe,
-      taille: (data.taille && String(data.taille).trim()) || prev.taille,
-      lieuNaissance: (data.lieuNaissance && String(data.lieuNaissance).trim()) || prev.lieuNaissance,
-      dateDelivrance: (data.dateDelivrance && String(data.dateDelivrance).trim()) || prev.dateDelivrance,
-      dateExpiration: (data.dateExpiration && String(data.dateExpiration).trim()) || prev.dateExpiration,
-      telephone: (data.telephone && String(data.telephone).trim()) || prev.telephone,
-      centreEnregistrement: (data.centreEnregistrement && String(data.centreEnregistrement).trim()) || prev.centreEnregistrement,
-      adresseDomicile: (data.adresseDomicile && String(data.adresseDomicile).trim()) || prev.adresseDomicile,
-      profession: (data.profession && String(data.profession).trim()) || prev.profession,
+      nom: data.nom ? String(data.nom).trim() : (data.lastName ? String(data.lastName).trim() : prev.nom),
+      prenom: data.prenom ? String(data.prenom).trim() : (data.firstName ? String(data.firstName).trim() : prev.prenom),
+      nin: data.nin ? String(data.nin).trim() : (data.idNumber ? String(data.idNumber).trim() : prev.nin),
+      pays: data.pays ? String(data.pays).trim() : (data.country ? String(data.country).trim() : prev.pays),
+      numeroPiece: data.numeroPiece ? String(data.numeroPiece).trim() : (data.documentNumber ? String(data.documentNumber).trim() : prev.numeroPiece),
+      typePiece: (data.typePiece || data.documentType) ? normalizeTypePiece(data.typePiece || data.documentType) : prev.typePiece,
+      dateNaissance: formatDateForInput(data.dateNaissance || data.birthDate) || prev.dateNaissance,
+      sexe: normalizeSexe(data.sexe || data.sex) || prev.sexe,
+      taille: data.taille ? String(data.taille).trim() : (data.height ? String(data.height).trim() : prev.taille),
+      lieuNaissance: data.lieuNaissance ? String(data.lieuNaissance).trim() : (data.birthPlace ? String(data.birthPlace).trim() : prev.lieuNaissance),
+      dateDelivrance: formatDateForInput(data.dateDelivrance || data.issuedAt) || prev.dateDelivrance,
+      dateExpiration: formatDateForInput(data.dateExpiration || data.expiresAt) || prev.dateExpiration,
+      telephone: data.telephone ? String(data.telephone).trim() : (data.phone ? String(data.phone).trim() : prev.telephone),
+      centreEnregistrement: data.centreEnregistrement ? String(data.centreEnregistrement).trim() : (data.issuer ? String(data.issuer).trim() : prev.centreEnregistrement),
+      adresseDomicile: data.adresseDomicile ? String(data.adresseDomicile).trim() : (data.address ? String(data.address).trim() : prev.adresseDomicile),
+      profession: data.profession ? String(data.profession).trim() : prev.profession,
       heureEntree: scanTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
       date: scanTime.toLocaleDateString('fr-FR'),
     }));
@@ -550,18 +578,21 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     }
   };
 
-  const handleScanData = (data, img) => {
+  const handleScanData = (rawData, img) => {
+    const data = rawData?.infosExtraites || rawData?.extracted || rawData || {};
     const scanTime = new Date();
-    setDocImage(img);
+    const photoToSave = img || data.photo || null;
+    if (photoToSave) setDocImage(photoToSave);
+
     setForm(prev => ({
       ...prev,
-      immatriculation: data.numeroPiece ?? prev.immatriculation,
-      marque: data.marque ?? prev.marque,
-      modele: data.modele ?? prev.modele,
-      couleur: data.couleur ?? prev.couleur,
-      typeVehicule: data.typeVehicule ?? prev.typeVehicule,
-      nom: data.nom ?? prev.nom,
-      prenom: data.prenom ?? prev.prenom,
+      immatriculation: data.immatriculation || data.numeroPiece || prev.immatriculation,
+      marque: data.marque || prev.marque,
+      modele: data.modele || prev.modele,
+      couleur: data.couleur || prev.couleur,
+      typeVehicule: data.typeVehicule || prev.typeVehicule,
+      nom: data.nom || prev.nom,
+      prenom: data.prenom || prev.prenom,
       heureEntree: scanTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
       date: scanTime.toLocaleDateString('fr-FR'),
     }));

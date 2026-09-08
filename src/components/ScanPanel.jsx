@@ -310,11 +310,11 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
 
   const [rectoImg, setRectoImg] = useState(null);
   const [versoImg, setVersoImg] = useState(null);
-
   const [rectoData, setRectoData] = useState({});
   const [versoData, setVersoData] = useState({});
   const [loadingMsg, setLoadingMsg] = useState('');
 
+  const extractedRef = useRef({ recto: {}, verso: {}, rectoImg: null, versoImg: null });
   const fileInputRef = useRef(null);
   const currentFileInputTarget = useRef('recto');
 
@@ -357,6 +357,8 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
       }
     }
 
+    extractedRef.current.recto = extracted;
+    extractedRef.current.rectoImg = image;
     setRectoData(extracted);
     setRectoImg(image);
 
@@ -402,12 +404,16 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
       }
     }
 
+    extractedRef.current.verso = extracted;
+    extractedRef.current.versoImg = image;
     setVersoData(extracted);
     setVersoImg(image);
     
     // Auto-remplissage DIRECT avec la fusion Recto + Verso
-    const merged = { ...rectoData, ...extracted, photo: rectoImg || image, photoVerso: image };
-    onDataExtracted(merged, rectoImg || image);
+    const rData = extractedRef.current.recto;
+    const rImg = extractedRef.current.rectoImg || image;
+    const merged = { ...rData, ...extracted, photo: rImg, photoVerso: image };
+    onDataExtracted(merged, rImg);
   };
 
   // Passer le verso
@@ -437,29 +443,33 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
 
   // Validation finale (fusion sécurisée sans écraser le Recto par le Verso)
   const handleFinalValidation = () => {
-    const merged = { ...rectoData };
+    const rData = (extractedRef.current.recto && Object.keys(extractedRef.current.recto).length > 0) ? extractedRef.current.recto : rectoData;
+    const vData = (extractedRef.current.verso && Object.keys(extractedRef.current.verso).length > 0) ? extractedRef.current.verso : versoData;
+    const rImg = extractedRef.current.rectoImg || rectoImg;
+    const vImg = extractedRef.current.versoImg || versoImg;
+
+    const merged = { ...rData };
     
-    // Importer uniquement les champs valides et non vides issus du Verso (ex: NIN, adresse)
-    for (const [key, val] of Object.entries(versoData || {})) {
+    for (const [key, val] of Object.entries(vData || {})) {
       if (val !== undefined && val !== null && String(val).trim() !== '') {
         merged[key] = val;
       }
     }
 
-    // Préservation garantie des champs clés du Recto et Verso
-    merged.nom = rectoData.nom || versoData.nom || merged.nom || '';
-    merged.prenom = rectoData.prenom || versoData.prenom || merged.prenom || '';
-    merged.pays = rectoData.pays || versoData.pays || merged.pays || 'Sénégal';
-    merged.dateNaissance = rectoData.dateNaissance || versoData.dateNaissance || merged.dateNaissance || '';
-    merged.lieuNaissance = rectoData.lieuNaissance || versoData.lieuNaissance || merged.lieuNaissance || '';
-    merged.numeroPiece = rectoData.numeroPiece || versoData.numeroPiece || merged.numeroPiece || '';
-    merged.nin = versoData.nin || rectoData.nin || merged.nin || '';
-    merged.dateExpiration = versoData.dateExpiration || rectoData.dateExpiration || merged.dateExpiration || '';
-    merged.dateDelivrance = versoData.dateDelivrance || rectoData.dateDelivrance || merged.dateDelivrance || '';
-    merged.photo = rectoImg;
-    merged.photoVerso = versoImg;
+    merged.nom = rData.nom || vData.nom || merged.nom || '';
+    merged.prenom = rData.prenom || vData.prenom || merged.prenom || '';
+    merged.pays = rData.pays || vData.pays || merged.pays || 'Sénégal';
+    merged.dateNaissance = rData.dateNaissance || vData.dateNaissance || merged.dateNaissance || '';
+    merged.lieuNaissance = rData.lieuNaissance || vData.lieuNaissance || merged.lieuNaissance || '';
+    merged.numeroPiece = rData.numeroPiece || vData.numeroPiece || merged.numeroPiece || '';
+    merged.nin = vData.nin || rData.nin || merged.nin || '';
+    merged.dateExpiration = vData.dateExpiration || rData.dateExpiration || merged.dateExpiration || '';
+    merged.dateDelivrance = vData.dateDelivrance || rData.dateDelivrance || merged.dateDelivrance || '';
+    merged.photo = rImg;
+    merged.photoVerso = vImg;
 
-    onDataExtracted(merged, rectoImg);
+    console.log('🚀 Final validation sending merged data:', merged);
+    onDataExtracted(merged, rImg);
   };
 
   const combinedSummary = {
