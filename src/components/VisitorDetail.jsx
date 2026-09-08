@@ -117,7 +117,7 @@ export default function VisitorDetail({ visitor: initialVisitor, onClose, onChec
             <Row label={t.license_plate} value={visitor.vehicule?.immatriculation || visitor.numeroPiece || visData.numeroPiece} mono />
             <Row label={t.brand_model} value={`${visitor.vehicule?.marque || visData.marque || ''} ${visitor.vehicule?.modele || visData.modele || ''}`.trim() || '—'} />
             <Row label={t.color} value={visitor.vehicule?.couleur || visData.couleur} />
-            <Row label={t.id_type} value={visitor.vehicule?.typeVehicule || visitor.typePiece || visData.typePiece || t.id_types?.carte_grise} />
+            <Row label={t.id_type} value={visitor.vehicule?.typeVehicule || visitor.typePiece || visData.typePiece || 'Carte Grise'} />
             {(visitor.nom || visData.nom || visitor.Nom) && <Row label={t.driver} value={`${visitor.nom || visData.nom || ''} ${visitor.prenom || visData.prenom || ''}`.trim()} />}
           </>
         ) : (

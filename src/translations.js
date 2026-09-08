@@ -164,8 +164,7 @@ export const TRANSLATIONS = {
       license: "Permis de Conduire",
       residence: "Carte de Séjour",
       consular: "Carte Consulaire",
-      other: "Autre Document Officiel",
-      carte_grise: "Carte Grise"
+      other: "Autre Document Officiel"
     },
     vehicle_types: {
       sedan: "Berline",
@@ -340,8 +339,7 @@ export const TRANSLATIONS = {
       license: "Driver's License",
       residence: "Residence Card",
       consular: "Consular Card",
-      other: "Other Official Doc",
-      carte_grise: "Vehicle Registration"
+      other: "Other Official Doc"
     },
     vehicle_types: {
       sedan: "Sedan",
@@ -515,8 +513,7 @@ export const TRANSLATIONS = {
       license: "رخصة سياقة",
       residence: "بطاقة إقامة",
       consular: "بطاقة قنصلية",
-      other: "وثيقة رسمية أخرى",
-      carte_grise: "البطاقة الرمادية"
+      other: "وثيقة رسمية أخرى"
     },
     vehicle_types: {
       sedan: "سيارة صغيرة",
