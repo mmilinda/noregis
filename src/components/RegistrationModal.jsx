@@ -230,7 +230,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   };
 
   // ✅ Mapping des clés renvoyées par l'OCR y compris le pays
-  const handleScanData = (rawData, img) => {
+  const handleScanData = (rawData, img, shouldClose = true) => {
     const data = rawData?.infosExtraites || rawData?.extracted || rawData || {};
     console.log('📋 Données réceptionnées dans PersonForm :', data);
     const scanTime = new Date();
@@ -239,26 +239,26 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
 
     setForm(prev => ({
       ...prev,
-      nom: data.nom ? String(data.nom).trim() : (data.lastName ? String(data.lastName).trim() : prev.nom),
-      prenom: data.prenom ? String(data.prenom).trim() : (data.firstName ? String(data.firstName).trim() : prev.prenom),
-      nin: data.nin ? String(data.nin).trim() : (data.idNumber ? String(data.idNumber).trim() : prev.nin),
-      pays: data.pays ? String(data.pays).trim() : (data.country ? String(data.country).trim() : prev.pays),
-      numeroPiece: data.numeroPiece ? String(data.numeroPiece).trim() : (data.documentNumber ? String(data.documentNumber).trim() : prev.numeroPiece),
+      nom: (data.nom || data.lastName) ? String(data.nom || data.lastName).trim() : prev.nom,
+      prenom: (data.prenom || data.firstName) ? String(data.prenom || data.firstName).trim() : prev.prenom,
+      nin: (data.nin || data.idNumber || data.ninNumber) ? String(data.nin || data.idNumber || data.ninNumber).trim() : prev.nin,
+      pays: (data.pays || data.country) ? String(data.pays || data.country).trim() : prev.pays,
+      numeroPiece: (data.numeroPiece || data.documentNumber || data.cardNumber) ? String(data.numeroPiece || data.documentNumber || data.cardNumber).trim() : prev.numeroPiece,
       typePiece: (data.typePiece || data.documentType) ? normalizeTypePiece(data.typePiece || data.documentType) : prev.typePiece,
       dateNaissance: formatDateForInput(data.dateNaissance || data.birthDate) || prev.dateNaissance,
-      sexe: normalizeSexe(data.sexe || data.sex) || prev.sexe,
-      taille: data.taille ? String(data.taille).trim() : (data.height ? String(data.height).trim() : prev.taille),
-      lieuNaissance: data.lieuNaissance ? String(data.lieuNaissance).trim() : (data.birthPlace ? String(data.birthPlace).trim() : prev.lieuNaissance),
-      dateDelivrance: formatDateForInput(data.dateDelivrance || data.issuedAt) || prev.dateDelivrance,
-      dateExpiration: formatDateForInput(data.dateExpiration || data.expiresAt) || prev.dateExpiration,
-      telephone: data.telephone ? String(data.telephone).trim() : (data.phone ? String(data.phone).trim() : prev.telephone),
-      centreEnregistrement: data.centreEnregistrement ? String(data.centreEnregistrement).trim() : (data.issuer ? String(data.issuer).trim() : prev.centreEnregistrement),
-      adresseDomicile: data.adresseDomicile ? String(data.adresseDomicile).trim() : (data.address ? String(data.address).trim() : prev.adresseDomicile),
+      sexe: normalizeSexe(data.sexe || data.sex || data.gender) || prev.sexe,
+      taille: (data.taille || data.height) ? String(data.taille || data.height).trim() : prev.taille,
+      lieuNaissance: (data.lieuNaissance || data.birthPlace) ? String(data.lieuNaissance || data.birthPlace).trim() : prev.lieuNaissance,
+      dateDelivrance: formatDateForInput(data.dateDelivrance || data.issuedAt || data.issueDate) || prev.dateDelivrance,
+      dateExpiration: formatDateForInput(data.dateExpiration || data.expiresAt || data.expiryDate) || prev.dateExpiration,
+      telephone: (data.telephone || data.phone || data.phoneNumber) ? String(data.telephone || data.phone || data.phoneNumber).trim() : prev.telephone,
+      centreEnregistrement: (data.centreEnregistrement || data.issuer || data.authority) ? String(data.centreEnregistrement || data.issuer || data.authority).trim() : prev.centreEnregistrement,
+      adresseDomicile: (data.adresseDomicile || data.address) ? String(data.adresseDomicile || data.address).trim() : prev.adresseDomicile,
       profession: data.profession ? String(data.profession).trim() : prev.profession,
       heureEntree: scanTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
       date: scanTime.toLocaleDateString('fr-FR'),
     }));
-    setScanOpen(false);
+    if (shouldClose) setScanOpen(false);
   };
 
   return (

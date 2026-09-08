@@ -362,7 +362,12 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     setRectoData(extracted);
     setRectoImg(image);
 
-    // Passer au prompt Verso pour scanner le verso (NIN / CNI) sans fermer le modal
+    // Auto-remplissage immédiat du formulaire parent en arrière-plan (sans fermer le modal)
+    if (onDataExtracted) {
+      onDataExtracted({ ...extracted, photo: image }, image, false);
+    }
+
+    // Passer au prompt Verso pour scanner le verso (NIN / CNI)
     setPhase('verso_prompt');
   };
 
@@ -409,7 +414,16 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     setVersoData(extracted);
     setVersoImg(image);
     
-    // Afficher le résumé avec la fusion Recto + Verso
+    const rData = extractedRef.current.recto;
+    const rImg = extractedRef.current.rectoImg || image;
+    const merged = { ...rData, ...extracted, photo: rImg, photoVerso: image };
+
+    // Auto-remplissage immédiat avec fusion Recto + Verso (sans fermer le modal)
+    if (onDataExtracted) {
+      onDataExtracted(merged, rImg, false);
+    }
+
+    // Afficher le résumé
     setPhase('summary');
   };
 
@@ -466,7 +480,9 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     merged.photoVerso = vImg;
 
     console.log('🚀 Final validation sending merged data:', merged);
-    onDataExtracted(merged, rImg);
+    if (onDataExtracted) {
+      onDataExtracted(merged, rImg, true);
+    }
   };
 
   const combinedSummary = {
