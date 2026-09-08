@@ -136,21 +136,23 @@ export function normaliserDonneesOCR(res) {
   const nationalite = getVal('nationalite', 'nationality');
   const centreEnregistrement = getVal('centreEnregistrement', 'issuer', 'autorite', 'emetteur');
 
+  const isCar = (typePiece || '').toUpperCase() === 'CARTE_GRISE' || (!!immatriculation && !numeroPiece);
+
   const norm = {
     nom,
     prenom,
-    numeroPiece: numeroPiece || immatriculation,
+    numeroPiece: numeroPiece || (isCar ? immatriculation : ''),
     nin,
     dateNaissance: toISODate(rawDateNaissance),
     sexe: sexe ? sexe.toUpperCase().slice(0, 1) : '',
-    typePiece: typePiece || (immatriculation ? 'CARTE_GRISE' : (numeroPiece ? 'CNI' : '')),
+    typePiece: typePiece || (isCar ? 'CARTE_GRISE' : (numeroPiece ? 'CNI' : '')),
     lieuNaissance,
     dateDelivrance: toISODate(rawDateDelivrance),
     dateExpiration: toISODate(rawDateExpiration),
     adresseDomicile,
     telephone,
     pays,
-    immatriculation: immatriculation || numeroPiece,
+    immatriculation: isCar ? (immatriculation || numeroPiece) : '',
     marque,
     modele,
     couleur,
