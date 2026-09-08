@@ -20,21 +20,14 @@ const PAYS_OPTIONS = [
 ];
 
 const normalizeTypePiece = (value) => {
-  if (!value) return 'CNI';
-  const mapping = {
-    'Carte Nationale d\'Identité': 'CNI',
-    "Carte Nationale d'Identité": 'CNI',
-    'Carte Nationale d’Identité': 'CNI',
-    'CNI': 'CNI',
-    'Passeport': 'PASSEPORT',
-    'PASSEPORT': 'PASSEPORT',
-    'Permis de conduire': 'PERMIS',
-    'PERMIS': 'PERMIS',
-    'Carte de séjour': 'CARTE_SEJOUR',
-    'CARTE_SEJOUR': 'CARTE_SEJOUR',
-    'CARTE_IDENTITE_CEDEAO': 'CARTE_IDENTITE_CEDEAO',
-  };
-  return mapping[value] || 'CNI';
+  if (!value) return "Carte Nationale d'Identité";
+  const v = String(value).toUpperCase().trim();
+  if (v === 'CNI' || v.includes('NATIONAL') || v.includes('IDENTIT')) return "Carte Nationale d'Identité";
+  if (v === 'PASSEPORT' || v.includes('PASSPORT')) return "Passeport";
+  if (v === 'PERMIS' || v.includes('DRIVER') || v.includes('CONDUIRE')) return "Permis de Conduire";
+  if (v === 'CARTE_SEJOUR' || v.includes('SEJOUR') || v.includes('RESIDENCE')) return "Carte de Séjour";
+  if (v === 'CARTE_CONSULAIRE' || v.includes('CONSULAIRE')) return "Carte Consulaire";
+  return value;
 };
 
 // ========== FORMULAIRE PERSONNE ==========

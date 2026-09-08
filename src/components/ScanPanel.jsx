@@ -360,18 +360,8 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     setRectoData(extracted);
     setRectoImg(image);
 
-    const typeStr = String(extracted.typePiece || '').toUpperCase();
-    const isSingleSide = typeStr.includes('PASSEPORT') ||
-                         typeStr.includes('PASSPORT') ||
-                         typeStr.includes('PERMIS') ||
-                         typeStr.includes('DRIVER') ||
-                         mode === 'vehicule';
-
-    if (isSingleSide) {
-      setPhase('summary');
-    } else {
-      setPhase('verso_prompt');
-    }
+    // Auto-remplissage DIRECT et instantané du formulaire principal !
+    onDataExtracted({ ...extracted, photo: image }, image);
   };
 
   // Exécution de l'OCR sur le Verso
@@ -414,7 +404,10 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
 
     setVersoData(extracted);
     setVersoImg(image);
-    setPhase('summary');
+    
+    // Auto-remplissage DIRECT avec la fusion Recto + Verso
+    const merged = { ...rectoData, ...extracted, photo: rectoImg || image, photoVerso: image };
+    onDataExtracted(merged, rectoImg || image);
   };
 
   // Passer le verso
