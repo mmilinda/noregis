@@ -69,13 +69,111 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   const [docImage, setDocImage] = useState(initial.docImage || null);
   const [searchingNIN, setSearchingNIN] = useState(false);
   const [foundVisitorMsg, setFoundVisitorMsg] = useState(null);
+  const [ninSuggestions, setNinSuggestions] = useState([]);
+  const [showNinSuggestions, setShowNinSuggestions] = useState(false);
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  // Recherche automatique d'un visiteur existant par NIN
+  // Autocomplétion dynamique dès les premiers chiffres du NIN
+  const handleNinInputChange = async (e) => {
+    const val = e.target.value;
+    set('nin')(e);
+    setFoundVisitorMsg(null);
+
+    if (!val || !val.trim()) {
+      setNinSuggestions([]);
+      setShowNinSuggestions(false);
+      return;
+    }
+
+    setSearchingNIN(true);
+    const query = val.trim().toLowerCase();
+    const queryDigits = query.replace(/\D/g, '');
+
+    try {
+      const mappedVisitors = new Map();
+
+      // 1. Recherche dans l'état local (visitors)
+      if (Array.isArray(state.visitors)) {
+        state.visitors.forEach(v => {
+          const visObj = v.visiteur || v.visitor || v.visiteurId || v;
+          const id = visObj._id || visObj.id || v.visiteurId || v._id || v.id;
+          const ninStr = String(visObj.nin || v.nin || '').toLowerCase();
+          const ninDigits = ninStr.replace(/\D/g, '');
+          const nom = String(visObj.nom || v.nom || '').toLowerCase();
+          const prenom = String(visObj.prenom || v.prenom || '').toLowerCase();
+
+          if (
+            ninStr.includes(query) ||
+            (queryDigits.length >= 1 && ninDigits.includes(queryDigits)) ||
+            (query.length >= 2 && `${nom} ${prenom}`.includes(query))
+          ) {
+            if (id && !mappedVisitors.has(id)) {
+              mappedVisitors.set(id, {
+                _id: id,
+                id,
+                nom: visObj.nom || v.nom || '',
+                prenom: visObj.prenom || v.prenom || '',
+                nin: visObj.nin || v.nin || '',
+                numeroPiece: visObj.numeroPiece || v.numeroPiece || '',
+                typePiece: visObj.typePiece || v.typePiece || 'CNI',
+                sexe: visObj.sexe || v.sexe || '',
+                dateNaissance: visObj.dateNaissance || v.dateNaissance || '',
+                lieuNaissance: visObj.lieuNaissance || v.lieuNaissance || '',
+                adresseDomicile: visObj.adresseDomicile || v.adresseDomicile || '',
+                telephone: visObj.telephone || v.telephone || '',
+              });
+            }
+          }
+        });
+      }
+
+      // 2. Recherche distante API Backend
+      try {
+        const res = await visitorService.searchByNIN(val);
+        const apiList = res?.visiteurs || (res?.visiteur ? [res.visiteur] : []);
+        apiList.forEach(v => {
+          const id = v._id || v.id;
+          if (id && !mappedVisitors.has(id)) {
+            mappedVisitors.set(id, v);
+          }
+        });
+      } catch (err) {
+        // Ignorer l'erreur réseau pendant la frappe
+      }
+
+      const results = Array.from(mappedVisitors.values());
+      setNinSuggestions(results);
+      setShowNinSuggestions(results.length > 0);
+    } catch (err) {
+      console.error('Erreur autocomplétion NIN :', err);
+    } finally {
+      setSearchingNIN(false);
+    }
+  };
+
+  const selectVisitorFromSuggestion = (v) => {
+    setForm(prev => ({
+      ...prev,
+      nom: v.nom || prev.nom,
+      prenom: v.prenom || prev.prenom,
+      numeroPiece: v.numeroPiece || prev.numeroPiece,
+      nin: v.nin || prev.nin,
+      typePiece: v.typePiece || prev.typePiece,
+      sexe: v.sexe || prev.sexe,
+      dateNaissance: v.dateNaissance ? String(v.dateNaissance).slice(0, 10) : prev.dateNaissance,
+      lieuNaissance: v.lieuNaissance || prev.lieuNaissance,
+      adresseDomicile: v.adresseDomicile || prev.adresseDomicile,
+      telephone: v.telephone || prev.telephone,
+    }));
+    setFoundVisitorMsg(`Visiteur existant sélectionné (${v.prenom} ${v.nom}) ! Données pré-remplies.`);
+    setShowNinSuggestions(false);
+  };
+
+  // Recherche explicite par bouton
   const handleSearchNIN = async (ninValue) => {
     const val = ninValue || form.nin;
-    if (!val || val.trim().length < 5) return;
+    if (!val || val.trim().length < 1) return;
 
     setSearchingNIN(true);
     setFoundVisitorMsg(null);
@@ -83,21 +181,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     try {
       const res = await visitorService.searchByNIN(val);
       if (res && res.success && res.visiteur) {
-        const v = res.visiteur;
-        setForm(prev => ({
-          ...prev,
-          nom: v.nom || prev.nom,
-          prenom: v.prenom || prev.prenom,
-          numeroPiece: v.numeroPiece || prev.numeroPiece,
-          nin: v.nin || val,
-          typePiece: v.typePiece || prev.typePiece,
-          sexe: v.sexe || prev.sexe,
-          dateNaissance: v.dateNaissance ? String(v.dateNaissance).slice(0, 10) : prev.dateNaissance,
-          lieuNaissance: v.lieuNaissance || prev.lieuNaissance,
-          adresseDomicile: v.adresseDomicile || prev.adresseDomicile,
-          telephone: v.telephone || prev.telephone,
-        }));
-        setFoundVisitorMsg(`Visiteur existant trouvé (${v.prenom} ${v.nom}) ! Les données ont été pré-remplies.`);
+        selectVisitorFromSuggestion(res.visiteur);
       }
     } catch (err) {
       console.log('Aucun visiteur existant trouvé avec ce NIN.');
@@ -307,7 +391,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
           <FormInput label="Centre d'enregistrement" id="centreEnregistrement" value={form.centreEnregistrement} onChange={set('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
           <FormInput label="Adresse du domicile" id="adresseDomicile" value={form.adresseDomicile} onChange={set('adresseDomicile')} icon={MapPinned} placeholder="Adresse domicile" />
 
-          {/* Recherche automatique par NIN */}
+          {/* Recherche automatique par NIN avec liste déroulante instantanée */}
           <div className="relative space-y-1">
             <div className="flex gap-2 items-end">
               <div className="flex-1">
@@ -315,12 +399,9 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
                   label="NIN (Numéro d'Identification Nationale)" 
                   id="nin" 
                   value={form.nin} 
-                  onChange={(e) => {
-                    set('nin')(e);
-                    if (e.target.value.trim().length >= 6) handleSearchNIN(e.target.value);
-                  }} 
+                  onChange={handleNinInputChange}
                   icon={CreditCard} 
-                  placeholder="Ex: 1 751 1994 01234" 
+                  placeholder="Tapez les premiers chiffres du NIN (ex: 1751)..." 
                 />
               </div>
               <button
@@ -331,9 +412,44 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
                 title="Rechercher ce visiteur par son NIN"
               >
                 <Search size={14} />
-                <span className="hidden sm:inline">{searchingNIN ? 'Recherche...' : 'Vérifier NIN'}</span>
+                <span className="hidden sm:inline">{searchingNIN ? 'Recherche...' : 'Vérifier'}</span>
               </button>
             </div>
+
+            {/* Liste déroulante des suggestions NIN en temps réel */}
+            {showNinSuggestions && ninSuggestions.length > 0 && (
+              <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border-2 border-brand-blue-bright shadow-2xl rounded-xl max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase tracking-wider text-brand-blue-bright flex items-center justify-between">
+                  <span>NINs trouvés ({ninSuggestions.length})</span>
+                  <span className="text-[9px] opacity-70">Cliquez pour remplir</span>
+                </div>
+                {ninSuggestions.map(v => (
+                  <button
+                    key={v._id || v.id}
+                    type="button"
+                    onClick={() => selectVisitorFromSuggestion(v)}
+                    className="w-full p-2.5 text-left hover:bg-brand-blue-light/20 dark:hover:bg-brand-blue-bright/20 flex items-center justify-between transition-colors group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-brand-blue-light text-brand-blue-bright font-black text-xs flex items-center justify-center shrink-0">
+                        {((v.prenom?.[0] || '') + (v.nom?.[0] || 'V')).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-slate-900 dark:text-white group-hover:text-brand-blue-bright">
+                          {v.prenom} {v.nom}
+                        </p>
+                        <p className="text-[10px] font-mono text-slate-500">
+                          NIN: <span className="font-bold text-brand-blue-bright">{v.nin || '—'}</span> · {v.numeroPiece ? `Pièce: ${v.numeroPiece}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-black uppercase bg-brand-blue-bright text-white px-2 py-1 rounded-lg group-hover:scale-105 transition-transform">
+                      Sélectionner
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
 
             {foundVisitorMsg && (
               <div className="mt-1.5 p-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-black flex items-center gap-2">
@@ -578,10 +694,17 @@ function NINSearchForm({ onSelectVisitor, onCancel, t }) {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSearch = async (e) => {
-    if (e) e.preventDefault();
-    const query = ninNumber.trim().toLowerCase();
-    if (!query) return;
+  const handleSearch = async (valOrEvent) => {
+    const rawVal = typeof valOrEvent === 'string' ? valOrEvent : ninNumber;
+    if (valOrEvent && typeof valOrEvent === 'object' && valOrEvent.preventDefault) {
+      valOrEvent.preventDefault();
+    }
+    const query = (rawVal || '').trim().toLowerCase();
+    if (!query) {
+      setSearchResults([]);
+      setSearched(false);
+      return;
+    }
 
     setSearching(true);
     setSearched(true);
@@ -592,44 +715,51 @@ function NINSearchForm({ onSelectVisitor, onCancel, t }) {
       const queryDigits = query.replace(/\D/g, '');
 
       // 1. Chercher dans l'état local (visitors)
-      state.visitors.forEach(v => {
-        const visObj = v.visiteur || v.visitor || v.visiteurId || v;
-        const id = visObj._id || visObj.id || v.visiteurId || v._id || v.id;
-        const ninStr = String(visObj.nin || v.nin || '').toLowerCase();
-        const nom = String(visObj.nom || v.nom || '').toLowerCase();
-        const prenom = String(visObj.prenom || v.prenom || '').toLowerCase();
-        const piece = String(visObj.numeroPiece || v.numeroPiece || '').toLowerCase();
+      if (Array.isArray(state.visitors)) {
+        state.visitors.forEach(v => {
+          const visObj = v.visiteur || v.visitor || v.visiteurId || v;
+          const id = visObj._id || visObj.id || v.visiteurId || v._id || v.id;
+          const ninStr = String(visObj.nin || v.nin || '').toLowerCase();
+          const ninDigits = ninStr.replace(/\D/g, '');
+          const nom = String(visObj.nom || v.nom || '').toLowerCase();
+          const prenom = String(visObj.prenom || v.prenom || '').toLowerCase();
+          const piece = String(visObj.numeroPiece || v.numeroPiece || '').toLowerCase();
 
-        if (ninStr.includes(query) || (queryDigits.length >= 5 && ninStr.replace(/\D/g, '').includes(queryDigits)) || (query.length >= 3 && (`${nom} ${prenom}`.includes(query) || piece.includes(query)))) {
-          if (id && !mappedVisitors.has(id)) {
-            mappedVisitors.set(id, {
-              _id: id,
-              id: id,
-              nom: visObj.nom || v.nom || '—',
-              prenom: visObj.prenom || v.prenom || '',
-              telephone: visObj.telephone || v.telephone || '—',
-              numeroPiece: visObj.numeroPiece || v.numeroPiece || '—',
-              typePiece: visObj.typePiece || v.typePiece || 'CNI',
-              nin: visObj.nin || v.nin || '',
-              dateNaissance: visObj.dateNaissance || v.dateNaissance || '',
-              sexe: visObj.sexe || v.sexe || '',
-              adresseDomicile: visObj.adresseDomicile || v.adresseDomicile || '',
-              photo: visObj.photo || v.photo || null,
-            });
+          if (
+            ninStr.includes(query) ||
+            (queryDigits.length >= 1 && ninDigits.includes(queryDigits)) ||
+            (query.length >= 2 && (`${nom} ${prenom}`.includes(query) || piece.includes(query)))
+          ) {
+            if (id && !mappedVisitors.has(id)) {
+              mappedVisitors.set(id, {
+                _id: id,
+                id: id,
+                nom: visObj.nom || v.nom || '—',
+                prenom: visObj.prenom || v.prenom || '',
+                telephone: visObj.telephone || v.telephone || '—',
+                numeroPiece: visObj.numeroPiece || v.numeroPiece || '—',
+                typePiece: visObj.typePiece || v.typePiece || 'CNI',
+                nin: visObj.nin || v.nin || '',
+                dateNaissance: visObj.dateNaissance || v.dateNaissance || '',
+                sexe: visObj.sexe || v.sexe || '',
+                adresseDomicile: visObj.adresseDomicile || v.adresseDomicile || '',
+                photo: visObj.photo || v.photo || null,
+              });
+            }
           }
-        }
-      });
+        });
+      }
 
       // 2. Chercher via l'API backend dédiée par NIN
       try {
         const apiRes = await visitorService.searchByNIN(query);
-        if (apiRes && apiRes.visiteur) {
-          const vis = apiRes.visiteur;
+        const apiList = apiRes?.visiteurs || (apiRes?.visiteur ? [apiRes.visiteur] : []);
+        apiList.forEach(vis => {
           const id = vis._id || vis.id;
           if (id && !mappedVisitors.has(id)) {
             mappedVisitors.set(id, vis);
           }
-        }
+        });
       } catch (err) {
         console.warn("Recherche API NIN directe:", err);
       }
@@ -653,6 +783,17 @@ function NINSearchForm({ onSelectVisitor, onCancel, t }) {
       console.error("Erreur lors de la recherche par NIN:", err);
     } finally {
       setSearching(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setNinNumber(val);
+    if (val.trim().length >= 1) {
+      handleSearch(val);
+    } else {
+      setSearchResults([]);
+      setSearched(false);
     }
   };
 
@@ -708,9 +849,9 @@ function NINSearchForm({ onSelectVisitor, onCancel, t }) {
           <CreditCard size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Entrez le NIN (ex: 1 751 1994 01234)..."
+            placeholder="Tapez les premiers chiffres du NIN (ex: 1751)..."
             value={ninNumber}
-            onChange={e => setNinNumber(e.target.value)}
+            onChange={handleInputChange}
             className="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl py-2.5 pl-10 pr-3 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"
             autoFocus
           />
