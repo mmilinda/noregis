@@ -854,8 +854,10 @@ export function RegistrationModal({ isOpen, onClose, initialMode = null }) {
       const visitorResponse = await visitorService.create(visitorPayload);
       console.log('✅ Réponse backend (create) :', visitorResponse);
 
-      const visitorId = visitorResponse.visiteur?._id || visitorResponse._id || visitorResponse.id;
-      if (!visitorId) throw new Error('Impossible de récupérer l\'identifiant du visiteur');
+      const visiteurObj = visitorResponse?.visiteur || visitorResponse?.data || visitorResponse;
+      const visitorId = visiteurObj?._id || visiteurObj?.id || visitorResponse?.id;
+
+      if (!visitorId) throw new Error(visitorResponse?.message || 'Impossible de récupérer l\'identifiant du visiteur');
 
       await visitService.recordEntry({
         visiteurId: visitorId,
