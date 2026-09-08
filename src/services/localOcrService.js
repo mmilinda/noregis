@@ -188,6 +188,8 @@ export function parseIDText(text) {
     result.pays = 'Gambie';
   } else if (/MAURITANIE|MAURITANIA/i.test(cleanText)) {
     result.pays = 'Mauritanie';
+  } else if (/GABON|GABONAISE/i.test(cleanText)) {
+    result.pays = 'Gabon';
   }
 
   // 1. NIN (Numéro d'Identification Nationale - Sénégal: 13 à 15 chiffres)

@@ -7,7 +7,7 @@ import { TRANSLATIONS } from '../translations';
 
 const PAYS_OPTIONS = [
   'Sénégal', 'France', 'Mali', "Côte d'Ivoire", 'Guinée', 'Gambie',
-  'Mauritanie', 'Togo', 'Bénin', 'Burkina Faso', 'Niger', 'Maroc', 'Autre'
+  'Mauritanie', 'Togo', 'Bénin', 'Burkina Faso', 'Niger', 'Maroc', 'Gabon', 'Autre'
 ];
 
 const servicesList = [

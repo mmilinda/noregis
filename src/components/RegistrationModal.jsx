@@ -16,7 +16,7 @@ import { verifierFiabiliteDocument } from '../services/localOcrService';
 
 const PAYS_OPTIONS = [
   'Sénégal', 'France', 'Mali', "Côte d'Ivoire", 'Guinée', 'Gambie',
-  'Mauritanie', 'Togo', 'Bénin', 'Burkina Faso', 'Niger', 'Maroc', 'Autre'
+  'Mauritanie', 'Togo', 'Bénin', 'Burkina Faso', 'Niger', 'Maroc', 'Gabon', 'Autre'
 ];
 
 const normalizeTypePiece = (value) => {
