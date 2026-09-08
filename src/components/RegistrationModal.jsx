@@ -221,14 +221,19 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     const photoToSave = img || data.photo || null;
     if (photoToSave) setDocImage(photoToSave);
 
+    const extractedTypePiece = (data.typePiece || data.documentType) ? normalizeTypePiece(data.typePiece || data.documentType) : prev.typePiece;
+    const extractedNumPiece = (data.numeroPiece || data.documentNumber || data.cardNumber) ? String(data.numeroPiece || data.documentNumber || data.cardNumber).trim() : prev.numeroPiece;
+    const isPassportDoc = extractedTypePiece === 'Passeport';
+    const extractedNin = isPassportDoc ? (extractedNumPiece || data.nin || prev.nin) : ((data.nin || data.idNumber || data.ninNumber) ? String(data.nin || data.idNumber || data.ninNumber).trim() : prev.nin);
+
     setForm(prev => ({
       ...prev,
       nom: (data.nom || data.lastName) ? String(data.nom || data.lastName).trim() : prev.nom,
       prenom: (data.prenom || data.firstName) ? String(data.prenom || data.firstName).trim() : prev.prenom,
-      nin: (data.nin || data.idNumber || data.ninNumber) ? String(data.nin || data.idNumber || data.ninNumber).trim() : prev.nin,
+      nin: extractedNin,
       pays: (data.pays || data.country) ? String(data.pays || data.country).trim() : prev.pays,
-      numeroPiece: (data.numeroPiece || data.documentNumber || data.cardNumber) ? String(data.numeroPiece || data.documentNumber || data.cardNumber).trim() : prev.numeroPiece,
-      typePiece: (data.typePiece || data.documentType) ? normalizeTypePiece(data.typePiece || data.documentType) : prev.typePiece,
+      numeroPiece: extractedNumPiece,
+      typePiece: extractedTypePiece,
       dateNaissance: formatDateForInput(data.dateNaissance || data.birthDate) || prev.dateNaissance,
       sexe: normalizeSexe(data.sexe || data.sex || data.gender) || prev.sexe,
       taille: (data.taille || data.height) ? String(data.taille || data.height).trim() : prev.taille,

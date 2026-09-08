@@ -78,13 +78,19 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
   // ✅ Correction : mapping direct des clés camelCase y compris le pays et type de pièce
   const handleOcrData = (rawData, image) => {
     const data = rawData?.infosExtraites || rawData?.extracted || rawData || {};
+    const extractedTypePiece = (data.typePiece || data.documentType) ? normalizeTypePiece(data.typePiece || data.documentType) : prev.typePiece;
+    const extractedNumPiece = (data.numeroPiece || data.documentNumber) ? String(data.numeroPiece || data.documentNumber).trim() : prev.numeroPiece;
+    const isPassportDoc = extractedTypePiece === 'Passeport';
+    const extractedNin = isPassportDoc ? (extractedNumPiece || data.nin || prev.nin) : (data.nin ?? prev.nin);
+
     setFormData(prev => ({
       ...prev,
       nom: (data.nom || data.lastName) ? String(data.nom || data.lastName).trim() : prev.nom,
       prenom: (data.prenom || data.firstName) ? String(data.prenom || data.firstName).trim() : prev.prenom,
+      nin: extractedNin,
       pays: (data.pays || data.country) ? String(data.pays || data.country).trim() : prev.pays,
-      numeroPiece: (data.numeroPiece || data.documentNumber) ? String(data.numeroPiece || data.documentNumber).trim() : prev.numeroPiece,
-      typePiece: (data.typePiece || data.documentType) ? normalizeTypePiece(data.typePiece || data.documentType) : prev.typePiece,
+      numeroPiece: extractedNumPiece,
+      typePiece: extractedTypePiece,
       dateNaissance: data.dateNaissance ?? prev.dateNaissance,
       sexe: data.sexe ?? prev.sexe,
       taille: data.taille ?? prev.taille,

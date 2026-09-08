@@ -473,7 +473,12 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     merged.dateNaissance = rData.dateNaissance || vData.dateNaissance || merged.dateNaissance || '';
     merged.lieuNaissance = rData.lieuNaissance || vData.lieuNaissance || merged.lieuNaissance || '';
     merged.numeroPiece = rData.numeroPiece || vData.numeroPiece || merged.numeroPiece || '';
-    merged.nin = vData.nin || rData.nin || merged.nin || '';
+    merged.typePiece = rData.typePiece || vData.typePiece || merged.typePiece || '';
+    if (merged.typePiece === 'Passeport' || String(merged.typePiece).toUpperCase().includes('PASSPORT')) {
+      merged.nin = merged.numeroPiece || merged.nin || '';
+    } else {
+      merged.nin = vData.nin || rData.nin || merged.nin || '';
+    }
     merged.dateExpiration = vData.dateExpiration || rData.dateExpiration || merged.dateExpiration || '';
     merged.dateDelivrance = vData.dateDelivrance || rData.dateDelivrance || merged.dateDelivrance || '';
     merged.photo = rImg;

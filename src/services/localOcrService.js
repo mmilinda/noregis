@@ -58,8 +58,9 @@ export function verifierFiabiliteDocument(doc = {}) {
   }
 
   // 3. Senegal NIN coherence & logic
+  const isPassport = typePiece === 'Passeport' || (typePiece || '').toUpperCase().includes('PASSPORT');
   const isSenegal = /sénégal|senegal|sn/i.test(pays);
-  if (isSenegal && nin) {
+  if (isSenegal && nin && !isPassport) {
     const cleanNin = nin.replace(/[\s-]/g, '');
     if (!/^\d{13,15}$/.test(cleanNin)) {
       warnings.push("Format NIN sénégalais inhabituel (13 à 15 chiffres attendus)");
@@ -119,7 +120,7 @@ export function normaliserDonneesOCR(res) {
   const nin = getVal('nin', 'ninNumber', 'nin_number', 'idNumber', 'id_number', 'nationalId', 'national_id', 'numNational', 'codeNational');
   const rawDateNaissance = getVal('dateNaissance', 'date_naissance', 'birthDate', 'birth_date', 'dob');
   const sexe = getVal('sexe', 'sex', 'gender');
-  const typePiece = getVal('typePiece', 'type_piece', 'documentType', 'docType');
+  const typePieceRaw = getVal('typePiece', 'type_piece', 'documentType', 'docType');
   const lieuNaissance = getVal('lieuNaissance', 'lieu_naissance', 'birthPlace', 'pob');
   const rawDateDelivrance = getVal('dateDelivrance', 'date_delivrance', 'issueDate', 'issued_date', 'issuedAt');
   const rawDateExpiration = getVal('dateExpiration', 'date_expiration', 'expiryDate', 'expirationDate', 'expiresAt', 'exp', 'validUntil', 'dateExp', 'expiration');
@@ -136,16 +137,21 @@ export function normaliserDonneesOCR(res) {
   const nationalite = getVal('nationalite', 'nationality');
   const centreEnregistrement = getVal('centreEnregistrement', 'issuer', 'autorite', 'emetteur');
 
-  const isCar = (typePiece || '').toUpperCase() === 'CARTE_GRISE' || (!!immatriculation && !numeroPiece);
+  const isCar = (typePieceRaw || '').toUpperCase() === 'CARTE_GRISE' || (!!immatriculation && !numeroPiece);
+  const typePieceNormalized = normalizeTypePiece(typePieceRaw);
+  const isPassport = typePieceNormalized === 'Passeport' || (typePieceRaw || '').toUpperCase().includes('PASSPORT');
+
+  // Pour les passeports, à la place du NIN, on récupère/utilise le numéro de passeport
+  const finalNin = isPassport ? (numeroPiece || nin) : nin;
 
   const norm = {
     nom,
     prenom,
     numeroPiece: numeroPiece || (isCar ? immatriculation : ''),
-    nin,
+    nin: finalNin,
     dateNaissance: toISODate(rawDateNaissance),
     sexe: sexe ? sexe.toUpperCase().slice(0, 1) : '',
-    typePiece: typePiece || (isCar ? 'CARTE_GRISE' : (numeroPiece ? 'CNI' : '')),
+    typePiece: isPassport ? 'Passeport' : (typePieceRaw ? typePieceNormalized : (isCar ? 'CARTE_GRISE' : (numeroPiece ? 'CNI' : ''))),
     lieuNaissance,
     dateDelivrance: toISODate(rawDateDelivrance),
     dateExpiration: toISODate(rawDateExpiration),
@@ -336,9 +342,8 @@ export function parseMRZ(cleanText) {
 
       // Numéro d'identification personnel / NIN (positions 28..41)
       const persNum = l2.slice(28, 42).replace(/</g, '').trim();
-      if (persNum && /^\d{11,15}$/.test(persNum)) {
-        res.nin = persNum;
-      }
+      // Pour les passeports : à la place du NIN, on récupère le numéro de passeport
+      res.nin = res.numeroPiece || persNum || '';
     }
   }
 
@@ -420,8 +425,10 @@ export function parseIDText(text) {
     }
   }
 
-  // 1. NIN (Numéro d'Identification Nationale - Sénégal: 13 à 15 chiffres)
-  if (!result.nin) {
+  // 1. NIN (Numéro d'Identification Nationale)
+  if (result.typePiece === 'Passeport' && result.numeroPiece) {
+    result.nin = result.numeroPiece;
+  } else if (!result.nin) {
     let ninMatch = cleanText.match(/NIN[\s:]*([0-9\s]{13,20})/i) ||
                    cleanText.match(/N[.\s]*I[.\s]*N[.\s:]*([0-9\s]{13,20})/i) ||
                    cleanText.match(/\b([12][\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4,5})\b/) ||
