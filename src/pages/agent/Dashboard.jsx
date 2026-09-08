@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Users, UserCheck, UserX, Car, Plus, RefreshCw, Search, Camera, Phone } from 'lucide-react';
+import { Users, UserCheck, UserX, Car, Plus, RefreshCw, Search, Camera, CreditCard } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
 import { StatCard, Card, CardHeader, Btn, EmptyState, Modal } from '../../components/UI';
 import { RegistrationModal } from '../../components/RegistrationModal';
@@ -84,11 +84,11 @@ export default function AgentDashboard({ isMobile }) {
     const matchType = filterType === 'all' || visitorType === filterType;
     
     const matchSearch = !q || [
-      v.nom, v.prenom, v.telephone, v.numeroPiece, v.typePiece, v.immatriculation, v.pays,
-      v.visiteur?.nom, v.visiteur?.prenom, v.visiteur?.telephone, v.visiteur?.numeroPiece, v.visiteur?.typePiece, v.visiteur?.pays,
-      v.visitor?.nom, v.visitor?.prenom, v.visitor?.telephone, v.visitor?.numeroPiece, v.visitor?.typePiece, v.visitor?.pays,
-      v.visiteurId?.nom, v.visiteurId?.prenom, v.visiteurId?.telephone, v.visiteurId?.numeroPiece, v.visiteurId?.typePiece, v.visiteurId?.pays,
-      v.visitorId?.nom, v.visitorId?.prenom, v.visitorId?.telephone, v.visitorId?.numeroPiece, v.visitorId?.typePiece, v.visitorId?.pays,
+      v.nom, v.prenom, v.telephone, v.numeroPiece, v.nin, v.typePiece, v.immatriculation, v.pays,
+      v.visiteur?.nom, v.visiteur?.prenom, v.visiteur?.telephone, v.visiteur?.numeroPiece, v.visiteur?.nin, v.visiteur?.typePiece, v.visiteur?.pays,
+      v.visitor?.nom, v.visitor?.prenom, v.visitor?.telephone, v.visitor?.numeroPiece, v.visitor?.nin, v.visitor?.typePiece, v.visitor?.pays,
+      v.visiteurId?.nom, v.visiteurId?.prenom, v.visiteurId?.telephone, v.visiteurId?.numeroPiece, v.visiteurId?.nin, v.visiteurId?.typePiece, v.visiteurId?.pays,
+      v.visitorId?.nom, v.visitorId?.prenom, v.visitorId?.telephone, v.visitorId?.numeroPiece, v.visitorId?.nin, v.visitorId?.typePiece, v.visitorId?.pays,
       v.vehicule?.immatriculation, v.vehicule?.marque, v.vehicule?.modele, v.vehicule?.couleur,
       v.personneVisitee, v.hote, v.visitedPerson,
       v.service, v.departement,
@@ -134,12 +134,12 @@ export default function AgentDashboard({ isMobile }) {
         <div className="flex gap-2 flex-wrap sm:flex-nowrap">
           <Btn
             variant="secondary"
-            icon={Phone}
-            onClick={() => { setRegMode('phone_search'); setRegOpen(true); }}
+            icon={CreditCard}
+            onClick={() => { setRegMode('nin_search'); setRegOpen(true); }}
             size={isMobile ? 'md' : 'lg'}
             className="!rounded-lg text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-950/20"
           >
-            {isMobile ? 'Recherche Tél' : 'Recherche par Téléphone'}
+            {isMobile ? 'Recherche NIN' : 'Recherche par NIN'}
           </Btn>
           <Btn
             variant="primary"

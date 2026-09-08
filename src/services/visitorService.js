@@ -21,8 +21,12 @@ export const visitorService = {
     return api.get(`/api/search?query=${encodeURIComponent(query)}`);
   },
 
+  searchByNIN: async (nin) => {
+    return api.get(`/api/visiteurs/recherche/nin?nin=${encodeURIComponent(nin)}`);
+  },
+
   searchByTelephone: async (telephone) => {
-    return api.get(`/api/visiteurs/recherche/telephone?telephone=${encodeURIComponent(telephone)}`);
+    return api.get(`/api/visiteurs/recherche/nin?nin=${encodeURIComponent(telephone)}`);
   },
 
   // Nouvelle méthode — Backend v2
@@ -30,3 +34,4 @@ export const visitorService = {
     return api.delete(`/api/visiteurs/${id}`);
   },
 };
+

@@ -67,21 +67,21 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   const [errors, setErrors] = useState({});
   const [scanOpen, setScanOpen] = useState(false);
   const [docImage, setDocImage] = useState(initial.docImage || null);
-  const [searchingPhone, setSearchingPhone] = useState(false);
+  const [searchingNIN, setSearchingNIN] = useState(false);
   const [foundVisitorMsg, setFoundVisitorMsg] = useState(null);
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  // Recherche automatique d'un visiteur existant par numéro de téléphone
-  const handleSearchPhone = async (telValue) => {
-    const val = telValue || form.telephone;
-    if (!val || val.trim().length < 6) return;
+  // Recherche automatique d'un visiteur existant par NIN
+  const handleSearchNIN = async (ninValue) => {
+    const val = ninValue || form.nin;
+    if (!val || val.trim().length < 5) return;
 
-    setSearchingPhone(true);
+    setSearchingNIN(true);
     setFoundVisitorMsg(null);
 
     try {
-      const res = await visitorService.searchByTelephone(val);
+      const res = await visitorService.searchByNIN(val);
       if (res && res.success && res.visiteur) {
         const v = res.visiteur;
         setForm(prev => ({
@@ -89,20 +89,20 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
           nom: v.nom || prev.nom,
           prenom: v.prenom || prev.prenom,
           numeroPiece: v.numeroPiece || prev.numeroPiece,
-          nin: v.nin || prev.nin,
+          nin: v.nin || val,
           typePiece: v.typePiece || prev.typePiece,
           sexe: v.sexe || prev.sexe,
           dateNaissance: v.dateNaissance ? String(v.dateNaissance).slice(0, 10) : prev.dateNaissance,
           lieuNaissance: v.lieuNaissance || prev.lieuNaissance,
           adresseDomicile: v.adresseDomicile || prev.adresseDomicile,
-          telephone: v.telephone || val,
+          telephone: v.telephone || prev.telephone,
         }));
         setFoundVisitorMsg(`Visiteur existant trouvé (${v.prenom} ${v.nom}) ! Les données ont été pré-remplies.`);
       }
     } catch (err) {
-      console.log('Aucun visiteur existant trouvé avec ce téléphone.');
+      console.log('Aucun visiteur existant trouvé avec ce NIN.');
     } finally {
-      setSearchingPhone(false);
+      setSearchingNIN(false);
     }
   };
 
@@ -296,30 +296,42 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
             <FormInput label="Date de délivrance" id="dateDelivrance" type="date" value={form.dateDelivrance} onChange={set('dateDelivrance')} icon={CalendarDays} />
             <FormInput label="Date d'expiration" id="dateExpiration" type="date" value={form.dateExpiration} onChange={set('dateExpiration')} icon={CalendarDays} />
           </div>
+          <FormInput 
+            label="Numéro de Téléphone" 
+            id="telephone" 
+            value={form.telephone} 
+            onChange={set('telephone')} 
+            icon={Phone} 
+            placeholder="Ex: +221 77 123 45 67" 
+          />
+          <FormInput label="Centre d'enregistrement" id="centreEnregistrement" value={form.centreEnregistrement} onChange={set('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
+          <FormInput label="Adresse du domicile" id="adresseDomicile" value={form.adresseDomicile} onChange={set('adresseDomicile')} icon={MapPinned} placeholder="Adresse domicile" />
+
+          {/* Recherche automatique par NIN */}
           <div className="relative space-y-1">
             <div className="flex gap-2 items-end">
               <div className="flex-1">
                 <FormInput 
-                  label="Numéro de Téléphone" 
-                  id="telephone" 
-                  value={form.telephone} 
+                  label="NIN (Numéro d'Identification Nationale)" 
+                  id="nin" 
+                  value={form.nin} 
                   onChange={(e) => {
-                    set('telephone')(e);
-                    if (e.target.value.length >= 8) handleSearchPhone(e.target.value);
+                    set('nin')(e);
+                    if (e.target.value.trim().length >= 6) handleSearchNIN(e.target.value);
                   }} 
-                  icon={Phone} 
-                  placeholder="Ex: +221 77 123 45 67" 
+                  icon={CreditCard} 
+                  placeholder="Ex: 1 751 1994 01234" 
                 />
               </div>
               <button
                 type="button"
-                onClick={() => handleSearchPhone(form.telephone)}
-                disabled={searchingPhone || !form.telephone}
-                className="h-[42px] px-3.5 bg-brand-blue-bright text-white rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-blue-600 disabled:opacity-50 transition-all shadow-sm active:scale-95 mb-0.5"
-                title="Rechercher ce visiteur dans la base de données"
+                onClick={() => handleSearchNIN(form.nin)}
+                disabled={searchingNIN || !form.nin}
+                className="h-[42px] px-3.5 bg-brand-blue-bright text-white rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-blue-600 disabled:opacity-50 transition-all shadow-sm active:scale-95 mb-0.5 shrink-0"
+                title="Rechercher ce visiteur par son NIN"
               >
                 <Search size={14} />
-                <span className="hidden sm:inline">{searchingPhone ? 'Recherche...' : 'Rechercher'}</span>
+                <span className="hidden sm:inline">{searchingNIN ? 'Recherche...' : 'Vérifier NIN'}</span>
               </button>
             </div>
 
@@ -330,9 +342,6 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
               </div>
             )}
           </div>
-          <FormInput label="Centre d'enregistrement" id="centreEnregistrement" value={form.centreEnregistrement} onChange={set('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
-          <FormInput label="Adresse du domicile" id="adresseDomicile" value={form.adresseDomicile} onChange={set('adresseDomicile')} icon={MapPinned} placeholder="Adresse domicile" />
-          <FormInput label="NIN (Numéro d'Identification Nationale)" id="nin" value={form.nin} onChange={set('nin')} icon={CreditCard} placeholder="Ex: 1 890 1999 12345" />
         </div>
 
         {/* Destination */}
@@ -552,10 +561,10 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   );
 }
 
-// ========== FORMULAIRE RECHERCHE PAR TÉLÉPHONE (VISITEUR EXISTANT) ==========
-function PhoneSearchForm({ onSelectVisitor, onCancel, t }) {
+// ========== FORMULAIRE RECHERCHE PAR NIN (VISITEUR EXISTANT) ==========
+function NINSearchForm({ onSelectVisitor, onCancel, t }) {
   const { state } = useApp();
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [ninNumber, setNinNumber] = useState('');
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [searched, setSearched] = useState(false);
@@ -571,7 +580,7 @@ function PhoneSearchForm({ onSelectVisitor, onCancel, t }) {
 
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
-    const query = phoneNumber.trim().toLowerCase();
+    const query = ninNumber.trim().toLowerCase();
     if (!query) return;
 
     setSearching(true);
@@ -580,17 +589,18 @@ function PhoneSearchForm({ onSelectVisitor, onCancel, t }) {
 
     try {
       const mappedVisitors = new Map();
+      const queryDigits = query.replace(/\D/g, '');
 
       // 1. Chercher dans l'état local (visitors)
       state.visitors.forEach(v => {
         const visObj = v.visiteur || v.visitor || v.visiteurId || v;
         const id = visObj._id || visObj.id || v.visiteurId || v._id || v.id;
-        const phone = String(visObj.telephone || v.telephone || '').toLowerCase();
+        const ninStr = String(visObj.nin || v.nin || '').toLowerCase();
         const nom = String(visObj.nom || v.nom || '').toLowerCase();
         const prenom = String(visObj.prenom || v.prenom || '').toLowerCase();
         const piece = String(visObj.numeroPiece || v.numeroPiece || '').toLowerCase();
 
-        if (phone.includes(query) || (query.length >= 3 && (`${nom} ${prenom}`.includes(query) || piece.includes(query)))) {
+        if (ninStr.includes(query) || (queryDigits.length >= 5 && ninStr.replace(/\D/g, '').includes(queryDigits)) || (query.length >= 3 && (`${nom} ${prenom}`.includes(query) || piece.includes(query)))) {
           if (id && !mappedVisitors.has(id)) {
             mappedVisitors.set(id, {
               _id: id,
@@ -610,7 +620,21 @@ function PhoneSearchForm({ onSelectVisitor, onCancel, t }) {
         }
       });
 
-      // 2. Chercher dans l'API backend
+      // 2. Chercher via l'API backend dédiée par NIN
+      try {
+        const apiRes = await visitorService.searchByNIN(query);
+        if (apiRes && apiRes.visiteur) {
+          const vis = apiRes.visiteur;
+          const id = vis._id || vis.id;
+          if (id && !mappedVisitors.has(id)) {
+            mappedVisitors.set(id, vis);
+          }
+        }
+      } catch (err) {
+        console.warn("Recherche API NIN directe:", err);
+      }
+
+      // 3. Fallback recherche générale API
       try {
         const apiRes = await visitorService.search(query);
         const apiList = apiRes?.visiteurs || apiRes?.results || (Array.isArray(apiRes) ? apiRes : []);
@@ -621,12 +645,12 @@ function PhoneSearchForm({ onSelectVisitor, onCancel, t }) {
           }
         });
       } catch (err) {
-        console.warn("Recherche API téléphone:", err);
+        console.warn("Recherche API générale:", err);
       }
 
       setSearchResults(Array.from(mappedVisitors.values()));
     } catch (err) {
-      console.error("Erreur lors de la recherche par téléphone:", err);
+      console.error("Erreur lors de la recherche par NIN:", err);
     } finally {
       setSearching(false);
     }
@@ -666,14 +690,14 @@ function PhoneSearchForm({ onSelectVisitor, onCancel, t }) {
       {/* Explication */}
       <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-500/30 p-4 rounded-xl flex items-center gap-3">
         <div className="w-10 h-10 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0">
-          <Phone size={20} />
+          <CreditCard size={20} />
         </div>
         <div>
           <h4 className="text-xs font-black text-amber-700 dark:text-amber-300 uppercase tracking-wider">
-            Recherche par numéro de téléphone
+            Recherche par NIN (Numéro d'Identification National)
           </h4>
           <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 mt-0.5">
-            Retrouvez rapidement un visiteur déjà enregistré lors d'une précédente visite sans re-scanner sa pièce.
+            Retrouvez rapidement un visiteur déjà enregistré en saisissant son NIN ou son numéro de pièce.
           </p>
         </div>
       </div>
@@ -681,12 +705,12 @@ function PhoneSearchForm({ onSelectVisitor, onCancel, t }) {
       {/* Barre de recherche */}
       <form onSubmit={handleSearch} className="flex gap-2">
         <div className="relative flex-1">
-          <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <CreditCard size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Entrez le numéro de téléphone (ex: 77 123 45 67)..."
-            value={phoneNumber}
-            onChange={e => setPhoneNumber(e.target.value)}
+            placeholder="Entrez le NIN (ex: 1 751 1994 01234)..."
+            value={ninNumber}
+            onChange={e => setNinNumber(e.target.value)}
             className="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl py-2.5 pl-10 pr-3 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"
             autoFocus
           />
@@ -706,8 +730,8 @@ function PhoneSearchForm({ onSelectVisitor, onCancel, t }) {
           {searchResults.length === 0 ? (
             <div className="p-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl text-center border border-slate-100 dark:border-slate-800">
               <UserX className="mx-auto text-slate-400 mb-2" size={32} />
-              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Aucun visiteur trouvé avec ce numéro</p>
-              <p className="text-[10px] text-slate-400 mt-1">Vérifiez le numéro ou effectuez un premier enregistrement avec pièce d'identité.</p>
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Aucun visiteur trouvé avec ce NIN</p>
+              <p className="text-[10px] text-slate-400 mt-1">Vérifiez le NIN ou effectuez un premier enregistrement avec pièce d'identité.</p>
             </div>
           ) : (
             <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
@@ -726,7 +750,7 @@ function PhoneSearchForm({ onSelectVisitor, onCancel, t }) {
                         {vis.prenom} {vis.nom}
                       </p>
                       <p className="text-[10px] font-mono text-slate-500">
-                        {vis.telephone || '—'} · {vis.numeroPiece ? `N° ${vis.numeroPiece}` : ''} {vis.nin ? `(NIN: ${vis.nin})` : ''}
+                        {vis.nin ? `NIN: ${vis.nin}` : ''} {vis.numeroPiece ? `· Piece: ${vis.numeroPiece}` : ''} {vis.telephone ? `· Tel: ${vis.telephone}` : ''}
                       </p>
                     </div>
                   </div>
@@ -752,7 +776,7 @@ function PhoneSearchForm({ onSelectVisitor, onCancel, t }) {
                   {selectedVisitor.prenom} {selectedVisitor.nom}
                 </p>
                 <p className="text-[10px] font-mono text-slate-500">
-                  {selectedVisitor.telephone} · {selectedVisitor.numeroPiece}
+                  {selectedVisitor.nin ? `NIN: ${selectedVisitor.nin}` : ''} · {selectedVisitor.numeroPiece}
                 </p>
               </div>
             </div>
@@ -910,7 +934,7 @@ export function RegistrationModal({ isOpen, onClose, initialMode = null }) {
       title={
         mode === 'person' ? t.person_entry :
         mode === 'vehicule' ? t.vehicle_entry :
-        mode === 'phone_search' ? 'Recherche Visiteur Existant' :
+        (mode === 'nin_search' || mode === 'phone_search') ? 'Recherche Visiteur Existant (NIN)' :
         t.new_entry_title
       }
       size="md"
@@ -937,15 +961,15 @@ export function RegistrationModal({ isOpen, onClose, initialMode = null }) {
           </button>
 
           <button
-            onClick={() => setMode('phone_search')}
+            onClick={() => setMode('nin_search')}
             className="group relative p-4 rounded-xl border-2 border-amber-200 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/10 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-all duration-300 flex items-center gap-4 text-left shadow-sm active:scale-[0.98]"
           >
             <div className="w-12 h-12 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <Phone size={24} />
+              <CreditCard size={24} />
             </div>
             <div className="flex-1">
-              <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">Visiteur existant (Téléphone)</h4>
-              <p className="text-[9px] font-bold text-amber-600/80 dark:text-amber-400/80 uppercase tracking-tighter mt-1 opacity-80 group-hover:opacity-100">Recherche rapide par numéro si déjà enregistré</p>
+              <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">Visiteur existant (NIN)</h4>
+              <p className="text-[9px] font-bold text-amber-600/80 dark:text-amber-400/80 uppercase tracking-tighter mt-1 opacity-80 group-hover:opacity-100">Recherche rapide par NIN si déjà enregistré</p>
             </div>
             <ChevronRight className={`text-slate-300 group-hover:text-amber-500 transition-all ${state.settings?.language === 'ar' ? 'rotate-180 group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} size={16} />
           </button>
@@ -966,8 +990,8 @@ export function RegistrationModal({ isOpen, onClose, initialMode = null }) {
         </div>
       ) : mode === 'person' ? (
         <PersonForm onSubmit={handleSubmit} onCancel={() => setMode(null)} loading={loading} t={t} />
-      ) : mode === 'phone_search' ? (
-        <PhoneSearchForm onSelectVisitor={handleExistingVisitorSubmit} onCancel={() => setMode(null)} t={t} />
+      ) : (mode === 'nin_search' || mode === 'phone_search') ? (
+        <NINSearchForm onSelectVisitor={handleExistingVisitorSubmit} onCancel={() => setMode(null)} t={t} />
       ) : (
         <VehiculeForm onSubmit={handleSubmit} onCancel={() => setMode(null)} loading={loading} t={t} />
       )}
