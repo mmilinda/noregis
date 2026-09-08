@@ -352,8 +352,15 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     setRectoData(extracted);
     setRectoImg(image);
 
-    if (mode === 'vehicule') {
-      onDataExtracted(extracted, image);
+    const typeStr = String(extracted.typePiece || '').toUpperCase();
+    const isSingleSide = typeStr.includes('PASSEPORT') ||
+                         typeStr.includes('PASSPORT') ||
+                         typeStr.includes('PERMIS') ||
+                         typeStr.includes('DRIVER') ||
+                         mode === 'vehicule';
+
+    if (isSingleSide) {
+      setPhase('summary');
     } else {
       setPhase('verso_prompt');
     }
@@ -482,7 +489,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
               </span>
               <ArrowRight size={12} className="text-slate-400" />
               <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${phase.startsWith('verso') ? 'bg-brand-green-bright text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>
-                2. VERSO (NIN)
+                2. VERSO (Optionnel)
               </span>
             </div>
           </div>
@@ -505,9 +512,9 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
         {phase === 'recto_choose' && (
           <div className="flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="bg-brand-blue-light/20 dark:bg-brand-blue-bright/10 border border-brand-blue-bright/20 p-4 rounded-xl text-center">
-              <p className="text-xs font-black text-brand-blue-bright uppercase tracking-wider">Étape 1 : Face Avant (Recto)</p>
+              <p className="text-xs font-black text-brand-blue-bright uppercase tracking-wider">Face Avant / Document principal</p>
               <p className="text-[11px] text-slate-600 dark:text-slate-300 font-bold mt-1">
-                Scannez la face avant de la carte d'identité pour capturer le nom, prénom et numéro de pièce.
+                Scannez le document d'identité (Passeport, Permis, CNI, etc.) pour extraire automatiquement les informations.
               </p>
             </div>
 
@@ -519,7 +526,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
                 <Camera size={24} />
               </div>
               <div className="flex-1">
-                <p className="font-black text-sm text-slate-900 dark:text-white">Scanner le RECTO avec la caméra</p>
+                <p className="font-black text-sm text-slate-900 dark:text-white">Scanner le document avec la caméra</p>
                 <p className="text-[10px] font-bold text-brand-blue-bright uppercase tracking-tight mt-0.5">Capture en direct</p>
               </div>
             </button>
@@ -532,7 +539,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
                 <Upload size={24} />
               </div>
               <div className="flex-1">
-                <p className="font-black text-sm text-slate-900 dark:text-white">Importer une photo du RECTO</p>
+                <p className="font-black text-sm text-slate-900 dark:text-white">Importer une photo du document</p>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mt-0.5">Galerie / Fichier</p>
               </div>
             </button>
@@ -570,7 +577,7 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-black text-brand-green-bright flex items-center gap-1.5">
-                  <CheckCircle2 size={14} /> RECTO capturé avec succès
+                  <CheckCircle2 size={14} /> Document scanné avec succès
                 </p>
                 <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 truncate mt-0.5">
                   {rectoData.prenom} {rectoData.nom} {rectoData.numeroPiece ? `(${rectoData.numeroPiece})` : ''}
@@ -578,47 +585,43 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
               </div>
             </div>
 
-            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-500/30 p-4 rounded-xl text-center">
-              <p className="text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                Étape 2 : Face Arrière (Verso)
+            {/* Bouton principal : Valider avec cette seule face */}
+            <button
+              onClick={handleSkipVerso}
+              className="w-full flex items-center justify-center gap-3 p-4 bg-brand-green-bright hover:bg-green-600 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg active:scale-95 transition-all"
+            >
+              <CheckCircle2 size={18} /> Valider avec cette seule face (Recto)
+            </button>
+
+            <div className="relative flex py-1 items-center">
+              <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+              <span className="flex-shrink mx-3 text-[10px] font-bold text-slate-400 uppercase">Ou (Optionnel)</span>
+              <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 p-3 rounded-xl text-center">
+              <p className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Ajouter la face arrière (Verso)
               </p>
-              <p className="text-[11px] text-slate-600 dark:text-slate-300 font-bold mt-1">
-                Scannez le VERSO pour extraire le <strong>NIN</strong> (Numéro d'Identification Nationale) et les dates officielles.
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">
+                Utile uniquement pour les cartes CNI recto-verso avec NIN au verso.
               </p>
             </div>
 
-            <button
-              onClick={() => setPhase('verso_camera')}
-              className="group flex items-center gap-4 p-4 rounded-xl border-2 border-brand-green-bright/30 bg-brand-green-light/10 hover:border-brand-green-bright hover:bg-brand-green-light/20 transition-all text-left"
-            >
-              <div className="w-12 h-12 rounded-xl bg-brand-green-bright text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-md">
-                <Camera size={24} />
-              </div>
-              <div className="flex-1">
-                <p className="font-black text-sm text-slate-900 dark:text-white">Scanner le VERSO avec la caméra</p>
-                <p className="text-[10px] font-bold text-brand-green-bright uppercase tracking-tight mt-0.5">Pour extraire le NIN</p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => triggerUpload('verso')}
-              className="group flex items-center gap-4 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-slate-400 transition-all text-left"
-            >
-              <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center shrink-0">
-                <Upload size={24} />
-              </div>
-              <div className="flex-1">
-                <p className="font-black text-sm text-slate-900 dark:text-white">Importer une photo du VERSO</p>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mt-0.5">Galerie / Fichier</p>
-              </div>
-            </button>
-
-            <button
-              onClick={handleSkipVerso}
-              className="w-full flex items-center justify-center gap-2 p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-black uppercase tracking-wider transition-all mt-2"
-            >
-              <SkipForward size={16} /> Passer le verso (valider uniquement le recto)
-            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setPhase('verso_camera')}
+                className="flex items-center justify-center gap-2 p-3 rounded-xl border border-brand-blue-bright/30 bg-brand-blue-light/10 hover:bg-brand-blue-light/20 text-brand-blue-bright transition-all text-xs font-bold"
+              >
+                <Camera size={16} /> Caméra Verso
+              </button>
+              <button
+                onClick={() => triggerUpload('verso')}
+                className="flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-all text-xs font-bold"
+              >
+                <Upload size={16} /> Importer Verso
+              </button>
+            </div>
           </div>
         )}
 
