@@ -5,10 +5,7 @@ import { ScanPanel } from './ScanPanel';
 import { useApp } from '../context/useAppState';
 import { TRANSLATIONS } from '../translations';
 
-const PAYS_OPTIONS = [
-  'Sénégal', 'France', 'Mali', "Côte d'Ivoire", 'Guinée', 'Gambie',
-  'Mauritanie', 'Togo', 'Bénin', 'Burkina Faso', 'Niger', 'Maroc', 'Gabon', 'Autre'
-];
+import { PAYS_OPTIONS, normalizeTypePiece } from '../services/localOcrService';
 
 const servicesList = [
   'Direction Générale', 'Ressources Humaines', 'Direction Financière',
@@ -78,15 +75,16 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
     }
   };
 
-  // ✅ Correction : mapping direct des clés camelCase y compris le pays
-  const handleOcrData = (data, image) => {
+  // ✅ Correction : mapping direct des clés camelCase y compris le pays et type de pièce
+  const handleOcrData = (rawData, image) => {
+    const data = rawData?.infosExtraites || rawData?.extracted || rawData || {};
     setFormData(prev => ({
       ...prev,
-      nom: data.nom ?? prev.nom,
-      prenom: data.prenom ?? prev.prenom,
-      pays: data.pays ?? prev.pays,
-      numeroPiece: data.numeroPiece ?? prev.numeroPiece,
-      typePiece: data.typePiece ?? prev.typePiece,
+      nom: (data.nom || data.lastName) ? String(data.nom || data.lastName).trim() : prev.nom,
+      prenom: (data.prenom || data.firstName) ? String(data.prenom || data.firstName).trim() : prev.prenom,
+      pays: (data.pays || data.country) ? String(data.pays || data.country).trim() : prev.pays,
+      numeroPiece: (data.numeroPiece || data.documentNumber) ? String(data.numeroPiece || data.documentNumber).trim() : prev.numeroPiece,
+      typePiece: (data.typePiece || data.documentType) ? normalizeTypePiece(data.typePiece || data.documentType) : prev.typePiece,
       dateNaissance: data.dateNaissance ?? prev.dateNaissance,
       sexe: data.sexe ?? prev.sexe,
       taille: data.taille ?? prev.taille,

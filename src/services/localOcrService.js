@@ -166,103 +166,347 @@ export function normaliserDonneesOCR(res) {
   return norm;
 }
 
+export const ISO3_COUNTRY_MAP = {
+  SEN: 'Sénégal',
+  FRA: 'France',
+  GAB: 'Gabon',
+  MLI: 'Mali',
+  CIV: "Côte d'Ivoire",
+  GIN: 'Guinée',
+  GMB: 'Gambie',
+  MRT: 'Mauritanie',
+  TOG: 'Togo',
+  BEN: 'Bénin',
+  BFA: 'Burkina Faso',
+  NER: 'Niger',
+  MAR: 'Maroc',
+  TUN: 'Tunisie',
+  DZA: 'Algérie',
+  CMR: 'Cameroun',
+  COD: 'RDC',
+  COG: 'Congo',
+  GHA: 'Ghana',
+  NGA: 'Nigeria',
+  CPV: 'Cap-Vert',
+  GNB: 'Guinée-Bissau',
+  GNQ: 'Guinée Équatoriale',
+  RWA: 'Rwanda',
+  BDI: 'Burundi',
+  TZA: 'Tanzanie',
+  KEN: 'Kenya',
+  UGA: 'Ouganda',
+  ETH: 'Éthiopie',
+  ZAF: 'Afrique du Sud',
+  USA: 'États-Unis',
+  CAN: 'Canada',
+  GBR: 'Royaume-Uni',
+  DEU: 'Allemagne',
+  ESP: 'Espagne',
+  ITA: 'Italie',
+  PRT: 'Portugal',
+  BEL: 'Belgique',
+  CHE: 'Suisse',
+  NLD: 'Pays-Bas',
+  CHN: 'Chine',
+  JPN: 'Japon',
+  IND: 'Inde',
+  BRA: 'Brésil',
+  TUR: 'Turquie',
+  SAU: 'Arabie Saoudite',
+  ARE: 'Émirats Arabes Unis',
+  QAT: 'Qatar',
+  EGY: 'Égypte',
+  RUS: 'Russie',
+  LUX: 'Luxembourg',
+  SWE: 'Suède',
+  NOR: 'Norvège',
+  DNK: 'Danemark',
+  FIN: 'Finlande',
+  POL: 'Pologne',
+  AUT: 'Autriche',
+};
+
+export const PAYS_OPTIONS = [
+  'Sénégal', 'France', 'Gabon', 'Mali', "Côte d'Ivoire", 'Guinée', 'Gambie',
+  'Mauritanie', 'Togo', 'Bénin', 'Burkina Faso', 'Niger', 'Maroc', 'Tunisie', 'Algérie',
+  'Cameroun', 'RDC', 'Congo', 'Ghana', 'Nigeria', 'Cap-Vert', 'Guinée-Bissau', 'Guinée Équatoriale',
+  'États-Unis', 'Canada', 'Royaume-Uni', 'Allemagne', 'Espagne', 'Italie', 'Suisse', 'Belgique',
+  'Autre'
+];
+
+export function normalizeTypePiece(value) {
+  if (!value) return "Carte Nationale d'Identité";
+  const v = String(value).toUpperCase().trim();
+  if (v === 'CNI' || v.includes('NATIONAL') || v.includes('IDENTIT')) return "Carte Nationale d'Identité";
+  if (v === 'PASSEPORT' || v.includes('PASSPORT') || v === 'P') return "Passeport";
+  if (v === 'PERMIS' || v.includes('DRIVER') || v.includes('CONDUIRE')) return "Permis de Conduire";
+  if (v === 'CARTE_SEJOUR' || v.includes('SEJOUR') || v.includes('RESIDENCE')) return "Carte de Séjour";
+  if (v === 'CARTE_CONSULAIRE' || v.includes('CONSULAIRE')) return "Carte Consulaire";
+  if (v === 'CARTE_GRISE' || v.includes('GRISE')) return "Carte Grise";
+  return value;
+}
+
+function fixMRZDigits(str) {
+  if (!str) return '';
+  return str
+    .replace(/O/gi, '0')
+    .replace(/Q/gi, '0')
+    .replace(/[IL]/gi, '1')
+    .replace(/Z/gi, '2')
+    .replace(/S/gi, '5')
+    .replace(/B/gi, '8');
+}
+
+export function parseMRZ(cleanText) {
+  if (!cleanText) return {};
+  const lines = cleanText.split('\n').map(l => l.replace(/[\s\r\t]/g, '').toUpperCase());
+  const res = {};
+
+  // Recherche Ligne 1 du MRZ Passeport (Standard ICAO 9303 TD3)
+  let l1Idx = lines.findIndex(l => /^P[<A-Z0-9]{1}[A-Z]{3}[A-Z<]{10,}/.test(l) || (l.startsWith('P') && l.includes('<<')));
+  if (l1Idx === -1) {
+    l1Idx = lines.findIndex(l => l.includes('<<') && (l.startsWith('P') || l.startsWith('1P') || l.startsWith('2P')));
+  }
+
+  if (l1Idx !== -1) {
+    res.typePiece = 'Passeport';
+    const l1 = lines[l1Idx].replace(/^[^P]+/, '');
+
+    // Code pays d'émission (3 lettres ISO à la position 2..4)
+    const natMatch = l1.match(/^P[<A-Z0-9]?([A-Z]{3})/);
+    if (natMatch && ISO3_COUNTRY_MAP[natMatch[1]]) {
+      res.pays = ISO3_COUNTRY_MAP[natMatch[1]];
+    }
+
+    // Nom & Prénom depuis la ligne 1 MRZ (format SURNAME<<GIVEN_NAMES)
+    let namePart = l1.slice(5);
+    if (!namePart.includes('<<')) namePart = l1.slice(2);
+    if (namePart.includes('<<')) {
+      const parts = namePart.split('<<');
+      let surname = parts[0].replace(/</g, ' ').replace(/\s+/g, ' ').trim();
+      let given = parts[1] ? parts[1].split('<').filter(Boolean).join(' ').trim() : '';
+
+      if (surname) res.nom = surname;
+      if (given) res.prenom = given;
+    }
+
+    // Recherche Ligne 2 MRZ (N° Passeport, Nationalité, Date Naissance, Sexe, Date Expiration)
+    const l2Raw = lines[l1Idx + 1] || lines[l1Idx + 2];
+    if (l2Raw && l2Raw.length >= 25) {
+      const l2 = l2Raw.replace(/^[^A-Z0-9]+/, '');
+
+      // Numéro de Passeport (positions 0..8)
+      const docNo = l2.slice(0, 9).replace(/</g, '').trim();
+      if (/^[A-Z0-9]{6,12}$/.test(docNo)) {
+        res.numeroPiece = docNo;
+      }
+
+      // Pays si non extrait de la ligne 1 (positions 10..12)
+      if (!res.pays) {
+        const nat2 = l2.slice(10, 13).replace(/[^A-Z]/g, '');
+        if (ISO3_COUNTRY_MAP[nat2]) res.pays = ISO3_COUNTRY_MAP[nat2];
+      }
+
+      // Date de Naissance (positions 13..18: YYMMDD)
+      const rawDob = l2.slice(13, 19);
+      const dobStr = fixMRZDigits(rawDob);
+      if (/^\d{6}$/.test(dobStr)) {
+        const yy = parseInt(dobStr.slice(0, 2), 10);
+        const mm = dobStr.slice(2, 4);
+        const dd = dobStr.slice(4, 6);
+        const currentYY = new Date().getFullYear() % 100;
+        const century = (yy > currentYY) ? '19' : '20';
+        res.dateNaissance = `${century}${dobStr.slice(0, 2)}-${mm}-${dd}`;
+      }
+
+      // Sexe (position 20)
+      const sexChar = l2.charAt(20).toUpperCase();
+      if (sexChar === 'M' || sexChar === 'F') {
+        res.sexe = sexChar;
+      }
+
+      // Date d'expiration (positions 21..26: YYMMDD)
+      const rawExp = l2.slice(21, 27);
+      const expStr = fixMRZDigits(rawExp);
+      if (/^\d{6}$/.test(expStr)) {
+        const mm = expStr.slice(2, 4);
+        const dd = expStr.slice(4, 6);
+        res.dateExpiration = `20${expStr.slice(0, 2)}-${mm}-${dd}`;
+      }
+
+      // Numéro d'identification personnel / NIN (positions 28..41)
+      const persNum = l2.slice(28, 42).replace(/</g, '').trim();
+      if (persNum && /^\d{11,15}$/.test(persNum)) {
+        res.nin = persNum;
+      }
+    }
+  }
+
+  return res;
+}
+
 export function parseIDText(text) {
   if (!text) return {};
   const cleanText = text.replace(/\r\n/g, '\n');
   const lines = cleanText.split('\n').map(l => l.trim()).filter(Boolean);
 
-  const result = {};
+  // 1. Tenter la lecture MRZ internationale (Passeports ICAO 9303)
+  const mrzResult = parseMRZ(cleanText);
+  const result = { ...mrzResult };
 
-  // Country detection
-  if (/SENEGAL|SÉNÉGAL/i.test(cleanText)) {
-    result.pays = 'Sénégal';
-  } else if (/FRANCE|FRANCAISE|FRANÇAISE/i.test(cleanText)) {
-    result.pays = 'France';
-  } else if (/MALI/i.test(cleanText)) {
-    result.pays = 'Mali';
-  } else if (/COTE D['’]IVOIRE|CÔTE D['’]IVOIRE/i.test(cleanText)) {
-    result.pays = "Côte d'Ivoire";
-  } else if (/GUINEE|GUINÉE/i.test(cleanText)) {
-    result.pays = 'Guinée';
-  } else if (/GAMBIA|GAMBIE/i.test(cleanText)) {
-    result.pays = 'Gambie';
-  } else if (/MAURITANIE|MAURITANIA/i.test(cleanText)) {
-    result.pays = 'Mauritanie';
-  } else if (/GABON|GABONAISE/i.test(cleanText)) {
-    result.pays = 'Gabon';
+  // Country detection fallback si non extrait du MRZ
+  if (!result.pays) {
+    if (/SENEGAL|SÉNÉGAL/i.test(cleanText)) {
+      result.pays = 'Sénégal';
+    } else if (/FRANCE|FRANCAISE|FRANÇAISE/i.test(cleanText)) {
+      result.pays = 'France';
+    } else if (/GABON|GABONAISE/i.test(cleanText)) {
+      result.pays = 'Gabon';
+    } else if (/MALI/i.test(cleanText)) {
+      result.pays = 'Mali';
+    } else if (/COTE D['’]IVOIRE|CÔTE D['’]IVOIRE/i.test(cleanText)) {
+      result.pays = "Côte d'Ivoire";
+    } else if (/GUINEE|GUINÉE/i.test(cleanText)) {
+      result.pays = 'Guinée';
+    } else if (/GAMBIA|GAMBIE/i.test(cleanText)) {
+      result.pays = 'Gambie';
+    } else if (/MAURITANIE|MAURITANIA/i.test(cleanText)) {
+      result.pays = 'Mauritanie';
+    } else if (/UNITED STATES|AMERICA|USA/i.test(cleanText)) {
+      result.pays = 'États-Unis';
+    } else if (/CANADA/i.test(cleanText)) {
+      result.pays = 'Canada';
+    } else if (/UNITED KINGDOM|BRITISH|GBR/i.test(cleanText)) {
+      result.pays = 'Royaume-Uni';
+    }
+  }
+
+  // Multi-lingual Passport Visual Zone Detection
+  if (/(?:PASSPORT|PASSEPORT|PASAPORTE)/i.test(cleanText) || result.typePiece === 'Passeport') {
+    result.typePiece = 'Passeport';
+
+    // Numéro de Passeport (Zone Visuelle)
+    let pNoMatch = cleanText.match(/(?:PASSPORT\s*(?:NO|NUMERO|N°)?|PASSEPORT\s*(?:NO|NUMERO|N°)?|PASAPORTE\s*(?:NO|NUMERO|N°)?)[\s.:]*([A-Z0-9]{6,12})/i) ||
+                   cleanText.match(/(?:DOC\s*N°|DOCUMENT\s*N°|PASSPORT\s*CODE)[\s.:]*([A-Z0-9]{6,12})/i);
+    if (pNoMatch && !result.numeroPiece) {
+      result.numeroPiece = pNoMatch[1];
+    }
+
+    // Nom (Zone Visuelle)
+    let surnameMatch = cleanText.match(/(?:SURNAME|NOM|APELLIDOS)[\s.:]+([A-Z\s-]+)/i);
+    if (surnameMatch && !result.nom) {
+      const rawNom = surnameMatch[1].split('\n')[0].trim();
+      if (rawNom.length > 1 && !/PASSEPORT|PASSPORT|REPUBLIQUE|SENEGAL|GABON|FRANCE|MALI/i.test(rawNom)) {
+        result.nom = rawNom;
+      }
+    }
+
+    // Prénom (Zone Visuelle)
+    let givenMatch = cleanText.match(/(?:GIVEN\s*NAMES?|PRENOMS?|NOMBRES?)[\s.:]+([A-Z\s-]+)/i);
+    if (givenMatch && !result.prenom) {
+      const rawPrenom = givenMatch[1].split('\n')[0].trim();
+      if (rawPrenom.length > 1 && !/PASSEPORT|PASSPORT|REPUBLIQUE|SENEGAL|GABON|FRANCE|MALI/i.test(rawPrenom)) {
+        result.prenom = rawPrenom;
+      }
+    }
+
+    // Lieu de naissance (Zone Visuelle)
+    let pobMatch = cleanText.match(/(?:PLACE\s*OF\s*BIRTH|LIEU\s*DE\s*NAISSANCE)[\s.:]*([A-Z\s-]+)/i);
+    if (pobMatch && !result.lieuNaissance) {
+      const pob = pobMatch[1].split('\n')[0].trim();
+      if (pob.length > 2 && !/DATE|SEXE|SEX/i.test(pob)) {
+        result.lieuNaissance = pob;
+      }
+    }
   }
 
   // 1. NIN (Numéro d'Identification Nationale - Sénégal: 13 à 15 chiffres)
-  let ninMatch = cleanText.match(/NIN[\s:]*([0-9\s]{13,20})/i) ||
-                 cleanText.match(/N[.\s]*I[.\s]*N[.\s:]*([0-9\s]{13,20})/i) ||
-                 cleanText.match(/\b([12][\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4,5})\b/) ||
-                 cleanText.match(/\b([12]\d{12,14})\b/);
-  if (ninMatch) {
-    result.nin = ninMatch[1].replace(/[\s-]/g, '');
+  if (!result.nin) {
+    let ninMatch = cleanText.match(/NIN[\s:]*([0-9\s]{13,20})/i) ||
+                   cleanText.match(/N[.\s]*I[.\s]*N[.\s:]*([0-9\s]{13,20})/i) ||
+                   cleanText.match(/\b([12][\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4,5})\b/) ||
+                   cleanText.match(/\b([12]\d{12,14})\b/);
+    if (ninMatch) {
+      result.nin = ninMatch[1].replace(/[\s-]/g, '');
+    }
   }
 
-  // 2. Numéro de pièce
-  let pieceMatch = cleanText.match(/(?:N°|NO|NUMERO|CARD|ID)[\s.:]*([A-Z0-9]{8,15})/i) ||
-                    cleanText.match(/\b([A-Z]\d{9,12})\b/);
-  if (pieceMatch) {
-    result.numeroPiece = pieceMatch[1];
+  // 2. Numéro de pièce fallback
+  if (!result.numeroPiece) {
+    let pieceMatch = cleanText.match(/(?:N°|NO|NUMERO|CARD|ID)[\s.:]*([A-Z0-9]{8,15})/i) ||
+                      cleanText.match(/\b([A-Z]\d{9,12})\b/);
+    if (pieceMatch) {
+      result.numeroPiece = pieceMatch[1];
+    }
   }
 
-  // 3. Date de naissance
-  let dateMatch = cleanText.match(/(?:NEE? LE|BIRTH|NAISSANCE)[\s:]*(\d{2}[/.-]\d{2}[/.-]\d{4})/i) ||
-                  cleanText.match(/\b(\d{2}[/.-]\d{2}[/.-](?:19|20)\d{2})\b/);
-  if (dateMatch) {
-    result.dateNaissance = dateMatch[1].replace(/[-.]/g, '/');
+  // 3. Date de naissance fallback
+  if (!result.dateNaissance) {
+    let dateMatch = cleanText.match(/(?:NEE? LE|BIRTH|NAISSANCE|DATE OF BIRTH)[\s:]*(\d{2}[/.-]\d{2}[/.-]\d{4})/i) ||
+                    cleanText.match(/\b(\d{2}[/.-]\d{2}[/.-](?:19|20)\d{2})\b/);
+    if (dateMatch) {
+      result.dateNaissance = dateMatch[1].replace(/[-.]/g, '/');
+    }
   }
 
-  // 4. Date d'expiration
-  let expiryMatch = cleanText.match(/(?:EXPIRATION|EXPIRE|VALIDE JUSQU|EXPIRATION DATE|DATE D['’]EXPIRATION|EXP)[\s:]*(\d{2}[/.-]\d{2}[/.-]\d{4})/i) ||
-                    cleanText.match(/(?:EXPIRATION|EXPIRE)[\s:]*(\d{2}[/.-]\d{2}[/.-](?:20)\d{2})/i) ||
-                    cleanText.match(/EXP[\s:]*(\d{2}[/.-]\d{2}[/.-]\d{4})/i);
-  if (expiryMatch) {
-    result.dateExpiration = expiryMatch[1].replace(/[-.]/g, '/');
+  // 4. Date d'expiration fallback
+  if (!result.dateExpiration) {
+    let expiryMatch = cleanText.match(/(?:EXPIRATION|EXPIRE|VALIDE JUSQU|EXPIRATION DATE|DATE D['’]EXPIRATION|DATE OF EXPIRY|EXP)[\s:]*(\d{2}[/.-]\d{2}[/.-]\d{4})/i) ||
+                      cleanText.match(/(?:EXPIRATION|EXPIRE)[\s:]*(\d{2}[/.-]\d{2}[/.-](?:20)\d{2})/i) ||
+                      cleanText.match(/EXP[\s:]*(\d{2}[/.-]\d{2}[/.-]\d{4})/i);
+    if (expiryMatch) {
+      result.dateExpiration = expiryMatch[1].replace(/[-.]/g, '/');
+    }
   }
 
-  // 5. Date de délivrance
-  let issueMatch = cleanText.match(/(?:DELIVRANCE|DELIVRE LE|ISSUED|ISSUE DATE|DATE DE DELIVRANCE)[\s:]*(\d{2}[/.-]\d{2}[/.-]\d{4})/i);
-  if (issueMatch) {
-    result.dateDelivrance = issueMatch[1].replace(/[-.]/g, '/');
+  // 5. Date de délivrance fallback
+  if (!result.dateDelivrance) {
+    let issueMatch = cleanText.match(/(?:DELIVRANCE|DELIVRE LE|ISSUED|ISSUE DATE|DATE DE DELIVRANCE|DATE OF ISSUE)[\s:]*(\d{2}[/.-]\d{2}[/.-]\d{4})/i);
+    if (issueMatch) {
+      result.dateDelivrance = issueMatch[1].replace(/[-.]/g, '/');
+    }
   }
 
-  // 6. Sexe
-  let sexeMatch = cleanText.match(/\b(?:SEXE|SEX)[\s:]*([MF])\b/i);
-  if (sexeMatch) {
-    result.sexe = sexeMatch[1].toUpperCase();
+  // 6. Sexe fallback
+  if (!result.sexe) {
+    let sexeMatch = cleanText.match(/\b(?:SEXE|SEX|GENDER)[\s:]*([MF])\b/i);
+    if (sexeMatch) {
+      result.sexe = sexeMatch[1].toUpperCase();
+    }
   }
 
   // 7. Téléphone
-  let phoneMatch = cleanText.match(/(?:TEL|PHONE|TELEPHONE|MOBILE)[\s:]*([+\d\s]{8,18})/i);
-  if (phoneMatch) {
-    result.telephone = phoneMatch[1].trim();
-  }
-
-  // 8. Nom & Prénom
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (/NOM[\s:]+/i.test(line)) {
-      const parts = line.split(/NOM[\s:]+/i);
-      if (parts[1] && parts[1].trim().length > 1) result.nom = parts[1].trim();
-      else if (lines[i + 1]) result.nom = lines[i + 1].trim();
-    }
-    if (/PRENOM[S]?[\s:]+/i.test(line)) {
-      const parts = line.split(/PRENOM[S]?[\s:]+/i);
-      if (parts[1] && parts[1].trim().length > 1) result.prenom = parts[1].trim();
-      else if (lines[i + 1]) result.prenom = lines[i + 1].trim();
+  if (!result.telephone) {
+    let phoneMatch = cleanText.match(/(?:TEL|PHONE|TELEPHONE|MOBILE)[\s:]*([+\d\s]{8,18})/i);
+    if (phoneMatch) {
+      result.telephone = phoneMatch[1].trim();
     }
   }
 
-  // Fallback si NOM / PRENOM non trouvés par mot clé : chercher les lignes en majuscules
+  // 8. Nom & Prénom fallback
+  if (!result.nom || !result.prenom) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/NOM[\s:]+|SURNAME[\s:]+/i.test(line)) {
+        const parts = line.split(/(?:NOM|SURNAME)[\s:]+/i);
+        if (parts[1] && parts[1].trim().length > 1 && !result.nom) result.nom = parts[1].trim();
+        else if (lines[i + 1] && !result.nom) result.nom = lines[i + 1].trim();
+      }
+      if (/PRENOM[S]?[\s:]+|GIVEN NAMES?[\s:]+/i.test(line)) {
+        const parts = line.split(/(?:PRENOM[S]?|GIVEN NAMES?)[\s:]+/i);
+        if (parts[1] && parts[1].trim().length > 1 && !result.prenom) result.prenom = parts[1].trim();
+        else if (lines[i + 1] && !result.prenom) result.prenom = lines[i + 1].trim();
+      }
+    }
+  }
+
+  // Fallback si NOM / PRENOM toujours non trouvés
   if (!result.nom || !result.prenom) {
     const uppercaseLines = lines.filter(l => 
       l === l.toUpperCase() && 
       l.length > 2 && 
       !/\d/.test(l) && 
-      !/REPUBLIQUE|SENEGAL|CARTE|NATIONALE|IDENTITE|CEDEAO|ECOWAS|PERMIS|CONDUIRE/i.test(l)
+      !/REPUBLIQUE|SENEGAL|GABON|FRANCE|MALI|CARTE|NATIONALE|IDENTITE|CEDEAO|ECOWAS|PERMIS|CONDUIRE|PASSEPORT|PASSPORT/i.test(l)
     );
     if (uppercaseLines.length >= 2) {
       if (!result.nom) result.nom = uppercaseLines[0];

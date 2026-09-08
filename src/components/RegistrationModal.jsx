@@ -12,23 +12,7 @@ import { useApp } from '../context/useAppState';
 import { visitorService } from '../services/visitorService';
 import { visitService } from '../services/visitService';
 import { TRANSLATIONS } from '../translations';
-import { verifierFiabiliteDocument } from '../services/localOcrService';
-
-const PAYS_OPTIONS = [
-  'Sénégal', 'France', 'Mali', "Côte d'Ivoire", 'Guinée', 'Gambie',
-  'Mauritanie', 'Togo', 'Bénin', 'Burkina Faso', 'Niger', 'Maroc', 'Gabon', 'Autre'
-];
-
-const normalizeTypePiece = (value) => {
-  if (!value) return "Carte Nationale d'Identité";
-  const v = String(value).toUpperCase().trim();
-  if (v === 'CNI' || v.includes('NATIONAL') || v.includes('IDENTIT')) return "Carte Nationale d'Identité";
-  if (v === 'PASSEPORT' || v.includes('PASSPORT')) return "Passeport";
-  if (v === 'PERMIS' || v.includes('DRIVER') || v.includes('CONDUIRE')) return "Permis de Conduire";
-  if (v === 'CARTE_SEJOUR' || v.includes('SEJOUR') || v.includes('RESIDENCE')) return "Carte de Séjour";
-  if (v === 'CARTE_CONSULAIRE' || v.includes('CONSULAIRE')) return "Carte Consulaire";
-  return value;
-};
+import { verifierFiabiliteDocument, PAYS_OPTIONS, normalizeTypePiece } from '../services/localOcrService';
 
 const normalizeSexe = (val) => {
   if (!val) return '';
