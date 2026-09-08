@@ -346,9 +346,9 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
       isLocalFallback = true;
     }
 
-    // Ne lancer Tesseract local que si l'appareil est réellement hors-ligne (pas de connexion internet)
-    if (isLocalFallback && typeof navigator !== 'undefined' && !navigator.onLine) {
-      setLoadingMsg('Mode hors-ligne : Analyse Tesseract locale...');
+    // Utiliser Tesseract local si l'API backend a échoué
+    if (isLocalFallback) {
+      setLoadingMsg('Analyse locale de secours...');
       try {
         const localRes = await runLocalOCR(image);
         extracted = normaliserDonneesOCR({ ...localRes.extracted, ...extracted });
@@ -397,8 +397,8 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
       isLocalFallback = true;
     }
 
-    if (isLocalFallback && typeof navigator !== 'undefined' && !navigator.onLine) {
-      setLoadingMsg('Mode hors-ligne : Analyse NIN Tesseract.js locale...');
+    if (isLocalFallback) {
+      setLoadingMsg('Analyse NIN locale de secours...');
       try {
         const localRes = await runLocalOCR(image);
         const normLocal = normaliserDonneesOCR(localRes.extracted);
