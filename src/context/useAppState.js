@@ -55,12 +55,20 @@ export function reducer(state, action) {
     case 'TOGGLE_DARK':
       return { ...state, darkMode: !state.darkMode };
     case 'ADD_VISITOR': {
-      const now = new Date();
-      const visitor = { 
-        ...action.payload, 
-        id: `VIS-${now.getFullYear()}-${Date.now().toString().slice(-6)}` 
-      };
-      return { ...state, visitors: [visitor, ...state.visitors], currentVisitor: visitor };
+      if (!action.payload) return state;
+      const newVis = action.payload;
+      const newId = newVis._id || newVis.id;
+      const exists = state.visitors.some(
+        v => (v._id && v._id === newId) || (v.id && v.id === newId)
+      );
+      if (exists) {
+        return {
+          ...state,
+          visitors: state.visitors.map(v => (v._id === newId || v.id === newId) ? { ...v, ...newVis } : v),
+          currentVisitor: newVis,
+        };
+      }
+      return { ...state, visitors: [newVis, ...state.visitors], currentVisitor: newVis };
     }
     case 'CHECKOUT_VISITOR': {
       const now = new Date();
@@ -133,12 +141,20 @@ export function reducer(state, action) {
 
     // ── Backend v2 — Socket.IO temps réel ─────────────────────
     case 'ADD_VISIT_REALTIME': {
-      // Évite les doublons si la visite existe déjà
+      if (!action.payload) return state;
+      const newVis = action.payload;
+      const newId = newVis._id || newVis.id;
       const exists = state.visitors.some(
-        v => v._id === action.payload._id || v.id === action.payload._id
+        v => (v._id && v._id === newId) || (v.id && v.id === newId)
       );
-      if (exists) return state;
-      return { ...state, visitors: [action.payload, ...state.visitors] };
+      if (exists) {
+        return {
+          ...state,
+          visitors: state.visitors.map(v => (v._id === newId || v.id === newId) ? { ...v, ...newVis } : v),
+          currentVisitor: newVis,
+        };
+      }
+      return { ...state, visitors: [newVis, ...state.visitors], currentVisitor: newVis };
     }
     case 'UPDATE_VISIT_REALTIME': {
       const updated = state.visitors.map(v =>

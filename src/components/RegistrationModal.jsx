@@ -1024,7 +1024,7 @@ export function RegistrationModal({ isOpen, onClose, initialMode = null }) {
 
       if (!visitorId) throw new Error(visitorResponse?.message || 'Impossible de récupérer l\'identifiant du visiteur');
 
-      await visitService.recordEntry({
+      const recordRes = await visitService.recordEntry({
         visiteurId: visitorId,
         personneVisitee: data.personneVisitee,
         service: data.service,
@@ -1032,7 +1032,30 @@ export function RegistrationModal({ isOpen, onClose, initialMode = null }) {
       });
 
       notify('success', t.welcome);
-      dispatch({ type: 'ADD_VISITOR', payload: { ...data, id: visitorId } });
+
+      const newVisite = recordRes?.visite || {
+        _id: recordRes?.visite?._id || `temp_${Date.now()}`,
+        visiteurId: visiteurObj,
+        visiteur: visiteurObj,
+        personneVisitee: data.personneVisitee,
+        service: data.service,
+        motif: data.motif || t.standard_visit,
+        heureEntree: new Date(),
+        statut: 'EN_COURS',
+        type: data.type || 'person',
+      };
+
+      dispatch({ type: 'ADD_VISIT_REALTIME', payload: newVisite });
+
+      try {
+        const fresh = await visitService.getAll();
+        if (fresh && fresh.visites) {
+          dispatch({ type: 'SET_VISITORS', payload: fresh.visites });
+        }
+      } catch (e) {
+        console.warn('Erreur sync backend après enregistrement:', e);
+      }
+
       setMode(null);
       onClose();
     } catch (err) {
@@ -1049,7 +1072,7 @@ export function RegistrationModal({ isOpen, onClose, initialMode = null }) {
       const visitorId = data.visiteurId || data._id || data.id;
       if (!visitorId) throw new Error('Identifiant du visiteur introuvable');
 
-      await visitService.recordEntry({
+      const recordRes = await visitService.recordEntry({
         visiteurId: visitorId,
         personneVisitee: data.personneVisitee,
         service: data.service,
@@ -1057,7 +1080,30 @@ export function RegistrationModal({ isOpen, onClose, initialMode = null }) {
       });
 
       notify('success', `Bienvenue ! Entrée enregistrée pour ${data.prenom || ''} ${data.nom || ''}`);
-      dispatch({ type: 'ADD_VISITOR', payload: { ...data, id: visitorId } });
+
+      const newVisite = recordRes?.visite || {
+        _id: recordRes?.visite?._id || `temp_${Date.now()}`,
+        visiteurId: data,
+        visiteur: data,
+        personneVisitee: data.personneVisitee,
+        service: data.service,
+        motif: data.motif || t.standard_visit,
+        heureEntree: new Date(),
+        statut: 'EN_COURS',
+        type: data.type || 'person',
+      };
+
+      dispatch({ type: 'ADD_VISIT_REALTIME', payload: newVisite });
+
+      try {
+        const fresh = await visitService.getAll();
+        if (fresh && fresh.visites) {
+          dispatch({ type: 'SET_VISITORS', payload: fresh.visites });
+        }
+      } catch (e) {
+        console.warn('Erreur sync backend après entrée visiteur existant:', e);
+      }
+
       setMode(null);
       onClose();
     } catch (err) {
