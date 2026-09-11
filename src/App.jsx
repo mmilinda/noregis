@@ -22,7 +22,7 @@ import AgentHistorique from './pages/agent/Historique';
    INNER APP (has access to context and router)
 ============================================ */
 function AppInner() {
-  const { state, dispatch } = useApp();
+  const { state, dispatch, notify } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -46,7 +46,7 @@ function AppInner() {
   useEffect(() => {
     const handleExpired = () => {
       dispatch({ type: 'LOGOUT' });
-      notify('error', 'Votre session a expiré (durée 2h). Veuillez vous reconnecter.');
+      if (notify) notify('error', 'Votre session a expiré (durée 2h). Veuillez vous reconnecter.');
       navigate('/login');
     };
     window.addEventListener('auth:expired', handleExpired);
