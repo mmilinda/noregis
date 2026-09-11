@@ -46,11 +46,12 @@ function AppInner() {
   useEffect(() => {
     const handleExpired = () => {
       dispatch({ type: 'LOGOUT' });
+      notify('error', 'Votre session a expiré (durée 2h). Veuillez vous reconnecter.');
       navigate('/login');
     };
     window.addEventListener('auth:expired', handleExpired);
     return () => window.removeEventListener('auth:expired', handleExpired);
-  }, [dispatch, navigate]);
+  }, [dispatch, navigate, notify]);
 
   // Global data preload — runs once after authentication regardless of role.
   // Ensures Historique and any other page that reads state.visitors always has data.
