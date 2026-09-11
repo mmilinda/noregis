@@ -4,9 +4,11 @@ import {
   Calendar, Award, UserCheck, RefreshCw, BarChart2
 } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
-import { Card, CardHeader, StatCard, Btn } from '../../components/UI';
+import { Card, CardHeader, StatCard, Btn, Modal } from '../../components/UI';
 import { visitService } from '../../services/visitService';
 import { TRANSLATIONS } from '../../translations';
+import VisitorTable from '../../components/VisitorTable';
+import VisitorDetail from '../../components/VisitorDetail';
 
 export default function AdminDashboard({ isMobile }) {
   const { state, dispatch, notify } = useApp();
@@ -14,6 +16,29 @@ export default function AdminDashboard({ isMobile }) {
   
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [detailVisitor, setDetailVisitor] = useState(null);
+
+  const handleCheckout = async (id) => {
+    try {
+      await visitService.recordExit(id);
+      dispatch({ type: 'CHECKOUT_VISITOR', payload: id });
+      notify('info', t.exit_recorded || 'Sortie enregistrée.');
+      fetchStats(true);
+    } catch (err) {
+      notify('error', (t.error_prefix || 'Erreur') + ': ' + err.message);
+    }
+  };
+
+  const handleDeleteVisit = async (id) => {
+    try {
+      await visitService.deleteVisit(id);
+      dispatch({ type: 'DELETE_VISIT', payload: id });
+      notify('success', 'Visite supprimée avec succès.');
+      fetchStats(true);
+    } catch (err) {
+      notify('error', (t.error_prefix || 'Erreur') + ': ' + err.message);
+    }
+  };
 
   const fetchStats = async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
@@ -389,6 +414,31 @@ export default function AdminDashboard({ isMobile }) {
         </Card>
 
       </div>
+
+      {/* Table des passages & Gestion pour l'Admin */}
+      <Card className="border-slate-200 dark:border-slate-800">
+        <CardHeader 
+          title="Dernières Visites & Gestion des Passages" 
+          subtitle="Registre complet des visites avec option de suppression réservée aux administrateurs."
+        />
+        {visits.length === 0 ? (
+          <div className="p-12 text-center text-slate-400 font-bold text-xs">
+            Aucune visite enregistrée pour le moment.
+          </div>
+        ) : (
+          <VisitorTable 
+            visitors={visits} 
+            onView={setDetailVisitor} 
+            onCheckout={handleCheckout} 
+            onDelete={handleDeleteVisit}
+            compact={isMobile} 
+          />
+        )}
+      </Card>
+
+      <Modal isOpen={!!detailVisitor} onClose={() => setDetailVisitor(null)} title={t.profile || "Détails"} size="md">
+        <VisitorDetail visitor={detailVisitor} onClose={() => setDetailVisitor(null)} onCheckout={handleCheckout} />
+      </Modal>
     </div>
   );
 }

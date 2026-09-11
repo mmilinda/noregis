@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { User, Car, LogOut, ShieldCheck, AlertTriangle, XCircle, Globe } from 'lucide-react';
+import { User, Car, LogOut, ShieldCheck, AlertTriangle, XCircle, Globe, Trash2 } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { Btn, StatusBadge, TypeBadge } from './UI';
 import { TRANSLATIONS } from '../translations';
 import { visitorService } from '../services/visitorService';
+import { visitService } from '../services/visitService';
 import { verifierFiabiliteDocument } from '../services/localOcrService';
 import { formatBackendDate, formatBackendTime } from './VisitorTable';
 
@@ -17,10 +18,28 @@ const Row = ({ label, value, mono }) => (
 );
 
 export default function VisitorDetail({ visitor: initialVisitor, onClose, onCheckout }) {
-  const { state } = useApp();
+  const { state, dispatch, notify } = useApp();
   const [visitor, setVisitor] = useState(initialVisitor);
   const [fetching, setFetching] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const t = TRANSLATIONS[state.settings?.language || 'fr'];
+  const isAdmin = state.agent?.role === 'ADMIN';
+
+  const handleDeleteVisit = async () => {
+    const id = visitor._id || visitor.id;
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette visite ?")) return;
+    setDeleting(true);
+    try {
+      await visitService.deleteVisit(id);
+      dispatch({ type: 'DELETE_VISIT', payload: id });
+      notify('success', 'Visite supprimée avec succès.');
+      onClose();
+    } catch (err) {
+      notify('error', 'Erreur lors de la suppression: ' + (err.message || err));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     const fetchFullVisitor = async () => {
@@ -148,15 +167,24 @@ export default function VisitorDetail({ visitor: initialVisitor, onClose, onChec
         {visitor.heureSortie && <Row label={t.exit_time} value={formatBackendTime(visitor.heureSortie || visitor.updatedAt)} />}
       </div>
 
-      {(() => {
-        const s = String(visitor.statut || '').toLowerCase();
-        const isPresent = (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!visitor.heureSortie && s !== 'sorti' && s !== 'sortis');
-        return isPresent && (
-          <Btn variant="warning" icon={LogOut} onClick={() => { onCheckout(visitor.id || visitor._id); onClose(); }} fullWidth size="lg">
-            {t.mark_exit}
+      <div className="flex flex-col gap-2">
+        {(() => {
+          const s = String(visitor.statut || '').toLowerCase();
+          const isPresent = (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!visitor.heureSortie && s !== 'sorti' && s !== 'sortis');
+          return isPresent && (
+            <Btn variant="warning" icon={LogOut} onClick={() => { onCheckout(visitor.id || visitor._id); onClose(); }} fullWidth size="lg">
+              {t.mark_exit}
+            </Btn>
+          );
+        })()}
+
+        {isAdmin && (
+          <Btn variant="danger" icon={Trash2} loading={deleting} onClick={handleDeleteVisit} fullWidth size="lg">
+            Supprimer la visite
           </Btn>
-        );
-      })()}
+        )}
+      </div>
     </div>
   );
 }
+
