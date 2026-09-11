@@ -14,6 +14,23 @@ export const authService = {
     return data;
   },
 
+  verify2FA: async ({ userId, code }) => {
+    const data = await api.post('/api/auth/verify-2fa', { userId, code });
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      const user = data.user || data.utilisateur;
+      if (user) {
+        data.user = user;
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+    }
+    return data;
+  },
+
+  resend2FA: async ({ userId }) => {
+    return api.post('/api/auth/resend-2fa', { userId });
+  },
+
   register: async ({ email, password, prenom, nom }) => {
     return api.post('/api/auth/register', {
       email, motDePasse: password, prenom, nom,
