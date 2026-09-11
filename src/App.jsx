@@ -42,6 +42,16 @@ function AppInner() {
     if (state.settings?.fontSize) html.classList.add(`font-${state.settings.fontSize}`);
   }, [state.darkMode, state.settings?.fontSize]);
 
+  // Écouteur global d'expiration de session (Token expiré / manquant)
+  useEffect(() => {
+    const handleExpired = () => {
+      dispatch({ type: 'LOGOUT' });
+      navigate('/login');
+    };
+    window.addEventListener('auth:expired', handleExpired);
+    return () => window.removeEventListener('auth:expired', handleExpired);
+  }, [dispatch, navigate]);
+
   // Global data preload — runs once after authentication regardless of role.
   // Ensures Historique and any other page that reads state.visitors always has data.
   useEffect(() => {

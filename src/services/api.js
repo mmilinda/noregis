@@ -3,10 +3,17 @@ const BASE_URL = (import.meta.env.VITE_API_URL || 'https://noregisbackend-h9l7.o
 const handleResponse = async (response) => {
   if (response.status === 401) {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    if (typeof window !== 'undefined' && !window.location.pathname.includes('/scan/')) {
+      window.dispatchEvent(new Event('auth:expired'));
+    }
   }
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Erreur API (' + response.status + ')');
+    const msg = response.status === 401 
+      ? 'Votre session a expiré. Veuillez vous reconnecter.' 
+      : (errorData.message || 'Erreur API (' + response.status + ')');
+    throw new Error(msg);
   }
   return response;
 };
