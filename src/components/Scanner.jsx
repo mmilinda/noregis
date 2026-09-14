@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Calendar, Building2, User, CreditCard, CheckCircle2, Camera, Clock, MapPin, Ruler, CalendarDays, UserRound, FileText, Home, MapPinned, Phone, Globe } from 'lucide-react';
+import { Calendar, Building2, User, CreditCard, CheckCircle2, Camera, Clock, MapPin, Ruler, CalendarDays, UserRound, FileText, Home, MapPinned, Phone, Globe, Award, FileBadge, Car } from 'lucide-react';
 import { Btn, Input, Select, Modal } from './UI';
 import { ScanPanel } from './ScanPanel';
 import { useApp } from '../context/useAppState';
@@ -37,6 +37,13 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
     service: initial.service || '',
     motif: initial.motif || '',
     profession: initial.profession || '',
+    immatriculation: initial.immatriculation || '',
+    marque: initial.marque || '',
+    modele: initial.modele || '',
+    couleur: initial.couleur || '',
+    typeVehicule: initial.typeVehicule || '',
+    categoriesPermis: initial.categoriesPermis || '',
+    nin: initial.nin || '',
     heureEntree: initial.heureEntree || new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
     date: initial.date || new Date().toLocaleDateString('fr-FR'),
     ...initial
@@ -46,8 +53,16 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
   const [showScan, setShowScan] = useState(false);
   const [docImage, setDocImage] = useState(initial.docImage || null);
 
+  const activeDocType = normalizeTypePiece(formData.typePiece);
+  const docCategory = 
+    activeDocType === 'Passeport' ? 'PASSPORT' :
+    activeDocType === 'Permis de Conduire' ? 'LICENSE' :
+    (activeDocType === 'Carte Consulaire' || activeDocType === 'Carte de Séjour') ? 'CONSULAR' :
+    activeDocType === 'Carte Grise' ? 'CARTE_GRISE' : 'CNI';
+
   const handleChange = (field) => (e) => {
-    setFormData(prev => ({ ...prev, [field]: e.target.value }));
+    const val = e.target.value;
+    setFormData(prev => ({ ...prev, [field]: val }));
   };
 
   const validate = () => {
@@ -75,13 +90,12 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
     }
   };
 
-  // ✅ Correction : mapping direct des clés camelCase y compris le pays et type de pièce
   const handleOcrData = (rawData, image) => {
     const data = rawData?.infosExtraites || rawData?.extracted || rawData || {};
-    const extractedTypePiece = (data.typePiece || data.documentType) ? normalizeTypePiece(data.typePiece || data.documentType) : prev.typePiece;
-    const extractedNumPiece = (data.numeroPiece || data.documentNumber) ? String(data.numeroPiece || data.documentNumber).trim() : prev.numeroPiece;
+    const extractedTypePiece = (data.typePiece || data.documentType) ? normalizeTypePiece(data.typePiece || data.documentType) : formData.typePiece;
+    const extractedNumPiece = (data.numeroPiece || data.documentNumber) ? String(data.numeroPiece || data.documentNumber).trim() : formData.numeroPiece;
     const isPassportDoc = extractedTypePiece === 'Passeport';
-    const extractedNin = isPassportDoc ? (extractedNumPiece || data.nin || prev.nin) : (data.nin ?? prev.nin);
+    const extractedNin = isPassportDoc ? (extractedNumPiece || data.nin || formData.nin) : (data.nin ?? formData.nin);
 
     setFormData(prev => ({
       ...prev,
@@ -100,12 +114,16 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
       telephone: data.telephone ?? prev.telephone,
       centreEnregistrement: data.centreEnregistrement ?? prev.centreEnregistrement,
       adresseDomicile: data.adresseDomicile ?? prev.adresseDomicile,
+      immatriculation: data.immatriculation ?? prev.immatriculation,
+      marque: data.marque ?? prev.marque,
+      modele: data.modele ?? prev.modele,
+      couleur: data.couleur ?? prev.couleur,
+      typeVehicule: data.typeVehicule ?? prev.typeVehicule,
+      categoriesPermis: data.categoriesPermis ?? prev.categoriesPermis,
     }));
     setDocImage(image);
     setShowScan(false);
   };
-
-  const isRtl = state.settings?.language === 'ar';
 
   return (
     <>
@@ -140,42 +158,173 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
           </Btn>
         </div>
 
-        {/* Section identité */}
+        {/* Formulaire Dynamique selon le document */}
         <div className="space-y-4">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
-            <CreditCard size={14} /> {t.id_doc}
-          </p>
-          <div className="grid grid-cols-2 gap-4">
-            <Input label={t.name} id="nom" required value={formData.nom} onChange={handleChange('nom')} error={errors.nom} placeholder="NOM" />
-            <Input label={t.firstname} id="prenom" required value={formData.prenom} onChange={handleChange('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
+          <div className={`p-3.5 rounded-xl border-2 transition-all flex items-center justify-between gap-3 ${
+            docCategory === 'PASSPORT' ? 'bg-blue-500/10 border-blue-500/30 text-blue-900 dark:text-blue-200' :
+            docCategory === 'LICENSE' ? 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200' :
+            docCategory === 'CONSULAR' ? 'bg-purple-500/10 border-purple-500/30 text-purple-900 dark:text-purple-200' :
+            docCategory === 'CARTE_GRISE' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200' :
+            'bg-brand-blue-light/30 border-brand-blue-bright/30 text-slate-900 dark:text-white'
+          }`}>
+            <div className="flex items-center gap-2.5">
+              {docCategory === 'PASSPORT' && <Globe size={20} className="text-blue-500 shrink-0" />}
+              {docCategory === 'LICENSE' && <Award size={20} className="text-amber-500 shrink-0" />}
+              {docCategory === 'CONSULAR' && <FileBadge size={20} className="text-purple-500 shrink-0" />}
+              {docCategory === 'CARTE_GRISE' && <Car size={20} className="text-emerald-500 shrink-0" />}
+              {docCategory === 'CNI' && <CreditCard size={20} className="text-brand-blue-bright shrink-0" />}
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-wider">Formulaire {activeDocType}</h4>
+                <p className="text-[10px] font-bold opacity-80 mt-0.5">Adapté au document détecté</p>
+              </div>
+            </div>
+            <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg bg-white/80 dark:bg-slate-800 border border-current/20 shadow-sm shrink-0">
+              {activeDocType}
+            </span>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input label={t.id_number} id="numeroPiece" required value={formData.numeroPiece} onChange={handleChange('numeroPiece')} error={errors.numeroPiece} placeholder={t.number_placeholder} />
-            <Select label={t.id_type} id="typePiece" required value={formData.typePiece} onChange={handleChange('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Select label="Pays d'émission" id="pays" value={formData.pays} onChange={handleChange('pays')} options={PAYS_OPTIONS} icon={Globe} />
-            <Input label={t.birth_date} id="dateNaissance" type="date" value={formData.dateNaissance} onChange={handleChange('dateNaissance')} icon={Calendar} />
-          </div>
-        </div>
 
-        {/* Infos complémentaires */}
-        <div className="space-y-4 border-t border-slate-200 dark:border-slate-700 pt-4">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
-            <FileText size={14} /> Infos complémentaires (carte d'identité)
-          </p>
-          <div className="grid grid-cols-2 gap-4">
-            <Select label="Sexe" id="sexe" value={formData.sexe} onChange={handleChange('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
-            <Input label="Taille (cm)" id="taille" type="number" value={formData.taille} onChange={handleChange('taille')} icon={Ruler} placeholder="Taille" />
-          </div>
-          <Input label="Lieu de naissance" id="lieuNaissance" value={formData.lieuNaissance} onChange={handleChange('lieuNaissance')} icon={MapPin} placeholder="Lieu de naissance" />
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Date de délivrance" id="dateDelivrance" type="date" value={formData.dateDelivrance} onChange={handleChange('dateDelivrance')} icon={CalendarDays} />
-            <Input label="Date d'expiration" id="dateExpiration" type="date" value={formData.dateExpiration} onChange={handleChange('dateExpiration')} icon={CalendarDays} />
-          </div>
-          <Input label="Numéro de Téléphone" id="telephone" value={formData.telephone} onChange={handleChange('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
-          <Input label="Centre d'enregistrement" id="centreEnregistrement" value={formData.centreEnregistrement} onChange={handleChange('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
-          <Input label="Adresse du domicile" id="adresseDomicile" value={formData.adresseDomicile} onChange={handleChange('adresseDomicile')} icon={MapPinned} placeholder="Adresse domicile" />
+          {/* PASSEPORT */}
+          {docCategory === 'PASSPORT' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <Input label={t.name} id="nom" required value={formData.nom} onChange={handleChange('nom')} error={errors.nom} placeholder="NOM" />
+                <Input label={t.firstname} id="prenom" required value={formData.prenom} onChange={handleChange('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="N° de Passeport" id="numeroPiece" required value={formData.numeroPiece} onChange={(e) => { handleChange('numeroPiece')(e); setFormData(f => ({ ...f, nin: e.target.value })); }} error={errors.numeroPiece} placeholder="Ex: A12345678" />
+                <Select label={t.id_type} id="typePiece" required value={formData.typePiece} onChange={handleChange('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Select label="Pays d'émission" id="pays" value={formData.pays} onChange={handleChange('pays')} options={PAYS_OPTIONS} icon={Globe} />
+                <Input label="Date d'expiration" id="dateExpiration" type="date" value={formData.dateExpiration} onChange={handleChange('dateExpiration')} icon={CalendarDays} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label={t.birth_date} id="dateNaissance" type="date" value={formData.dateNaissance} onChange={handleChange('dateNaissance')} icon={Calendar} />
+                <Select label="Sexe" id="sexe" value={formData.sexe} onChange={handleChange('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Lieu de naissance" id="lieuNaissance" value={formData.lieuNaissance} onChange={handleChange('lieuNaissance')} icon={MapPin} placeholder="Lieu" />
+                <Input label="Numéro de Téléphone" id="telephone" value={formData.telephone} onChange={handleChange('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
+              </div>
+            </div>
+          )}
+
+          {/* PERMIS DE CONDUIRE */}
+          {docCategory === 'LICENSE' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <Input label={t.name} id="nom" required value={formData.nom} onChange={handleChange('nom')} error={errors.nom} placeholder="NOM" />
+                <Input label={t.firstname} id="prenom" required value={formData.prenom} onChange={handleChange('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="N° Permis de Conduire" id="numeroPiece" required value={formData.numeroPiece} onChange={handleChange('numeroPiece')} error={errors.numeroPiece} placeholder="Ex: 12345678" />
+                <Select label={t.id_type} id="typePiece" required value={formData.typePiece} onChange={handleChange('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Catégories Permis" id="categoriesPermis" value={formData.categoriesPermis || ''} onChange={handleChange('categoriesPermis')} placeholder="Ex: B, C" />
+                <Select label="Pays d'émission" id="pays" value={formData.pays} onChange={handleChange('pays')} options={PAYS_OPTIONS} icon={Globe} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Date de délivrance" id="dateDelivrance" type="date" value={formData.dateDelivrance} onChange={handleChange('dateDelivrance')} icon={CalendarDays} />
+                <Input label="Date d'expiration" id="dateExpiration" type="date" value={formData.dateExpiration} onChange={handleChange('dateExpiration')} icon={CalendarDays} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Centre / Lieu de délivrance" id="centreEnregistrement" value={formData.centreEnregistrement} onChange={handleChange('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
+                <Input label="Numéro de Téléphone" id="telephone" value={formData.telephone} onChange={handleChange('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
+              </div>
+            </div>
+          )}
+
+          {/* CARTE CONSULAIRE / SÉJOUR */}
+          {docCategory === 'CONSULAR' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <Input label={t.name} id="nom" required value={formData.nom} onChange={handleChange('nom')} error={errors.nom} placeholder="NOM" />
+                <Input label={t.firstname} id="prenom" required value={formData.prenom} onChange={handleChange('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label={`N° ${activeDocType}`} id="numeroPiece" required value={formData.numeroPiece} onChange={handleChange('numeroPiece')} error={errors.numeroPiece} placeholder="N° Document..." />
+                <Select label={t.id_type} id="typePiece" required value={formData.typePiece} onChange={handleChange('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Select label="Pays d'origine / Émission" id="pays" value={formData.pays} onChange={handleChange('pays')} options={PAYS_OPTIONS} icon={Globe} />
+                <Input label="NIN / Code Identité" id="nin" value={formData.nin} onChange={handleChange('nin')} icon={CreditCard} placeholder="NIN / Code Consulaire..." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label={t.birth_date} id="dateNaissance" type="date" value={formData.dateNaissance} onChange={handleChange('dateNaissance')} icon={Calendar} />
+                <Select label="Sexe" id="sexe" value={formData.sexe} onChange={handleChange('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Date de délivrance" id="dateDelivrance" type="date" value={formData.dateDelivrance} onChange={handleChange('dateDelivrance')} icon={CalendarDays} />
+                <Input label="Date d'expiration" id="dateExpiration" type="date" value={formData.dateExpiration} onChange={handleChange('dateExpiration')} icon={CalendarDays} />
+              </div>
+              <Input label="Ambassade / Centre" id="centreEnregistrement" value={formData.centreEnregistrement} onChange={handleChange('centreEnregistrement')} icon={Home} placeholder="Ambassade / Consulat" />
+              <Input label="Adresse domicile" id="adresseDomicile" value={formData.adresseDomicile} onChange={handleChange('adresseDomicile')} icon={MapPinned} placeholder="Adresse domicile" />
+              <Input label="Numéro de Téléphone" id="telephone" value={formData.telephone} onChange={handleChange('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
+            </div>
+          )}
+
+          {/* CARTE GRISE */}
+          {docCategory === 'CARTE_GRISE' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Plaque d'Immatriculation" id="immatriculation" required value={formData.immatriculation || formData.numeroPiece} onChange={(e) => { handleChange('immatriculation')(e); handleChange('numeroPiece')(e); }} error={errors.numeroPiece} placeholder="Ex: DK-1234-AB" className="uppercase font-mono" />
+                <Select label={t.id_type} id="typePiece" required value={formData.typePiece} onChange={handleChange('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label={t.brand} id="marque" value={formData.marque || ''} onChange={handleChange('marque')} placeholder="Toyota..." />
+                <Input label={t.model} id="modele" value={formData.modele || ''} onChange={handleChange('modele')} placeholder="Hilux..." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label={t.color} id="couleur" value={formData.couleur || ''} onChange={handleChange('couleur')} placeholder="Gris..." />
+                <Select label="Type Véhicule" id="typeVehicule" value={formData.typeVehicule || ''} onChange={handleChange('typeVehicule')} options={['Berline', 'SUV / 4x4', 'Pick-up', 'Camion', 'Moto', 'Bus', 'Autre']} placeholder="Choisir..." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Nom Titulaire" id="nom" value={formData.nom} onChange={handleChange('nom')} placeholder="NOM" />
+                <Input label="Prénom Titulaire" id="prenom" value={formData.prenom} onChange={handleChange('prenom')} placeholder="Prénom" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Centre d'immatriculation" id="centreEnregistrement" value={formData.centreEnregistrement} onChange={handleChange('centreEnregistrement')} icon={Home} placeholder="Centre..." />
+                <Input label="Téléphone Conducteur" id="telephone" value={formData.telephone} onChange={handleChange('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
+              </div>
+            </div>
+          )}
+
+          {/* CNI / DEFAULT */}
+          {docCategory === 'CNI' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <Input label={t.name} id="nom" required value={formData.nom} onChange={handleChange('nom')} error={errors.nom} placeholder="NOM" />
+                <Input label={t.firstname} id="prenom" required value={formData.prenom} onChange={handleChange('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label={t.id_number} id="numeroPiece" required value={formData.numeroPiece} onChange={handleChange('numeroPiece')} error={errors.numeroPiece} placeholder={t.number_placeholder} />
+                <Select label={t.id_type} id="typePiece" required value={formData.typePiece} onChange={handleChange('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Select label="Pays d'émission" id="pays" value={formData.pays} onChange={handleChange('pays')} options={PAYS_OPTIONS} icon={Globe} />
+                <Input label={t.birth_date} id="dateNaissance" type="date" value={formData.dateNaissance} onChange={handleChange('dateNaissance')} icon={Calendar} />
+              </div>
+
+              <div className="space-y-4 border-t border-slate-200 dark:border-slate-700 pt-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
+                  <FileText size={14} /> Infos complémentaires CNI
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <Select label="Sexe" id="sexe" value={formData.sexe} onChange={handleChange('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
+                  <Input label="Taille (cm)" id="taille" type="number" value={formData.taille} onChange={handleChange('taille')} icon={Ruler} placeholder="Taille" />
+                </div>
+                <Input label="Lieu de naissance" id="lieuNaissance" value={formData.lieuNaissance} onChange={handleChange('lieuNaissance')} icon={MapPin} placeholder="Lieu de naissance" />
+                <div className="grid grid-cols-2 gap-4">
+                  <Input label="Date de délivrance" id="dateDelivrance" type="date" value={formData.dateDelivrance} onChange={handleChange('dateDelivrance')} icon={CalendarDays} />
+                  <Input label="Date d'expiration" id="dateExpiration" type="date" value={formData.dateExpiration} onChange={handleChange('dateExpiration')} icon={CalendarDays} />
+                </div>
+                <Input label="Numéro de Téléphone" id="telephone" value={formData.telephone} onChange={handleChange('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
+                <Input label="Centre d'enregistrement" id="centreEnregistrement" value={formData.centreEnregistrement} onChange={handleChange('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
+                <Input label="Adresse du domicile" id="adresseDomicile" value={formData.adresseDomicile} onChange={handleChange('adresseDomicile')} icon={MapPinned} placeholder="Adresse domicile" />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Destination */}

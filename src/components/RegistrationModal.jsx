@@ -3,7 +3,7 @@ import {
   User, Car, CreditCard, Building,
   Clock, Calendar, Camera, CheckCircle2,
   ChevronRight, FileText, Ruler, MapPin, CalendarDays, Home, MapPinned, Phone, Search, UserX,
-  Globe, ShieldCheck, AlertTriangle, XCircle
+  Globe, ShieldCheck, AlertTriangle, XCircle, Award, FileBadge
 } from 'lucide-react';
 import { FormInput, FormSelect, Btn, Modal } from './UI';
 import { ScanPanel } from './ScanPanel';
@@ -194,6 +194,13 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   // Calcul dynamique de la fiabilité et de la cohérence du document
   const auditDoc = verifierFiabiliteDocument(form);
 
+  const activeDocType = normalizeTypePiece(form.typePiece);
+  const docCategory = 
+    activeDocType === 'Passeport' ? 'PASSPORT' :
+    activeDocType === 'Permis de Conduire' ? 'LICENSE' :
+    (activeDocType === 'Carte Consulaire' || activeDocType === 'Carte de Séjour') ? 'CONSULAR' :
+    activeDocType === 'Carte Grise' ? 'CARTE_GRISE' : 'CNI';
+
   const validate = () => {
     const e = {};
     if (!form.nom.trim()) e.nom = t.required_field;
@@ -334,140 +341,239 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
           </div>
         )}
 
-        {/* Identité */}
+        {/* Formulaire Dynamique par Type de Document */}
         <div className="space-y-4">
-          <p className="text-[10px] font-black text-slate-400 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
-            <CreditCard size={14} /> {t.id_doc}
-          </p>
-          <div className="grid grid-cols-2 gap-4">
-            <FormInput label={t.name} id="nom" required value={form.nom} onChange={set('nom')} error={errors.nom} placeholder="NOM" />
-            <FormInput label={t.firstname} id="prenom" required value={form.prenom} onChange={set('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <FormInput label={t.id_number} id="numeroPiece" required value={form.numeroPiece} onChange={set('numeroPiece')} error={errors.numeroPiece} placeholder={t.number_placeholder} />
-            <FormSelect
-              label={t.id_type}
-              id="typePiece"
-              required
-              value={form.typePiece}
-              onChange={set('typePiece')}
-              options={Object.values(t.id_types)}
-              placeholder={t.choose}
-              error={errors.typePiece}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <FormSelect
-              label="Pays d'émission"
-              id="pays"
-              value={form.pays}
-              onChange={set('pays')}
-              options={PAYS_OPTIONS}
-              icon={Globe}
-            />
-            <FormInput label={t.birth_date} id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
-          </div>
-        </div>
-
-        {/* Infos complémentaires (carte d’identité) */}
-        <div className="space-y-4 border-t border-slate-200 dark:border-slate-700 pt-4">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
-            <FileText size={14} /> Informations détaillées (carte d'identité)
-          </p>
-          <div className="grid grid-cols-2 gap-4">
-            <FormSelect
-              label="Sexe"
-              id="sexe"
-              value={form.sexe}
-              onChange={set('sexe')}
-              options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]}
-              placeholder="Non renseigné"
-            />
-            <FormInput label="Taille (cm)" id="taille" type="number" value={form.taille} onChange={set('taille')} icon={Ruler} placeholder="Taille" />
-          </div>
-          <FormInput label="Lieu de naissance" id="lieuNaissance" value={form.lieuNaissance} onChange={set('lieuNaissance')} icon={MapPin} placeholder="Lieu de naissance" />
-          <div className="grid grid-cols-2 gap-4">
-            <FormInput label="Date de délivrance" id="dateDelivrance" type="date" value={form.dateDelivrance} onChange={set('dateDelivrance')} icon={CalendarDays} />
-            <FormInput label="Date d'expiration" id="dateExpiration" type="date" value={form.dateExpiration} onChange={set('dateExpiration')} icon={CalendarDays} />
-          </div>
-          <FormInput 
-            label="Numéro de Téléphone" 
-            id="telephone" 
-            value={form.telephone} 
-            onChange={set('telephone')} 
-            icon={Phone} 
-            placeholder="Ex: +221 77 123 45 67" 
-          />
-          <FormInput label="Centre d'enregistrement" id="centreEnregistrement" value={form.centreEnregistrement} onChange={set('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
-          <FormInput label="Adresse du domicile" id="adresseDomicile" value={form.adresseDomicile} onChange={set('adresseDomicile')} icon={MapPinned} placeholder="Adresse domicile" />
-
-          {/* Recherche automatique par NIN avec liste déroulante instantanée */}
-          <div className="relative space-y-1">
-            <div className="flex gap-2 items-end">
-              <div className="flex-1">
-                <FormInput 
-                  label="NIN (Numéro d'Identification Nationale)" 
-                  id="nin" 
-                  value={form.nin} 
-                  onChange={handleNinInputChange}
-                  icon={CreditCard} 
-                  placeholder="Tapez les premiers chiffres du NIN (ex: 1751)..." 
-                />
+          {/* Badge d'identification du document */}
+          <div className={`p-3.5 rounded-xl border-2 transition-all flex items-center justify-between gap-3 ${
+            docCategory === 'PASSPORT' ? 'bg-blue-500/10 border-blue-500/30 text-blue-900 dark:text-blue-200' :
+            docCategory === 'LICENSE' ? 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200' :
+            docCategory === 'CONSULAR' ? 'bg-purple-500/10 border-purple-500/30 text-purple-900 dark:text-purple-200' :
+            docCategory === 'CARTE_GRISE' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200' :
+            'bg-brand-blue-light/30 border-brand-blue-bright/30 text-slate-900 dark:text-white'
+          }`}>
+            <div className="flex items-center gap-2.5">
+              {docCategory === 'PASSPORT' && <Globe size={20} className="text-blue-500 shrink-0" />}
+              {docCategory === 'LICENSE' && <Award size={20} className="text-amber-500 shrink-0" />}
+              {docCategory === 'CONSULAR' && <FileBadge size={20} className="text-purple-500 shrink-0" />}
+              {docCategory === 'CARTE_GRISE' && <Car size={20} className="text-emerald-500 shrink-0" />}
+              {docCategory === 'CNI' && <CreditCard size={20} className="text-brand-blue-bright shrink-0" />}
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-wider">
+                  Formulaire {activeDocType}
+                </h4>
+                <p className="text-[10px] font-bold opacity-80 mt-0.5">
+                  Formulaire adapté automatiquement au document détecté
+                </p>
               </div>
-              <button
-                type="button"
-                onClick={() => handleSearchNIN(form.nin)}
-                disabled={searchingNIN || !form.nin}
-                className="h-[42px] px-3.5 bg-brand-blue-bright text-white rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-blue-600 disabled:opacity-50 transition-all shadow-sm active:scale-95 mb-0.5 shrink-0"
-                title="Rechercher ce visiteur par son NIN"
-              >
-                <Search size={14} />
-                <span className="hidden sm:inline">{searchingNIN ? 'Recherche...' : 'Vérifier'}</span>
-              </button>
             </div>
-
-            {/* Liste déroulante des suggestions NIN en temps réel */}
-            {showNinSuggestions && ninSuggestions.length > 0 && (
-              <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border-2 border-brand-blue-bright shadow-2xl rounded-xl max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase tracking-wider text-brand-blue-bright flex items-center justify-between">
-                  <span>NINs trouvés ({ninSuggestions.length})</span>
-                  <span className="text-[9px] opacity-70">Cliquez pour remplir</span>
-                </div>
-                {ninSuggestions.map(v => (
-                  <button
-                    key={v._id || v.id}
-                    type="button"
-                    onClick={() => selectVisitorFromSuggestion(v)}
-                    className="w-full p-2.5 text-left hover:bg-brand-blue-light/20 dark:hover:bg-brand-blue-bright/20 flex items-center justify-between transition-colors group cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-brand-blue-light text-brand-blue-bright font-black text-xs flex items-center justify-center shrink-0">
-                        {((v.prenom?.[0] || '') + (v.nom?.[0] || 'V')).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="text-xs font-black text-slate-900 dark:text-white group-hover:text-brand-blue-bright">
-                          {v.prenom} {v.nom}
-                        </p>
-                        <p className="text-[10px] font-mono text-slate-500">
-                          NIN: <span className="font-bold text-brand-blue-bright">{v.nin || '—'}</span> · {v.numeroPiece ? `Pièce: ${v.numeroPiece}` : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-black uppercase bg-brand-blue-bright text-white px-2 py-1 rounded-lg group-hover:scale-105 transition-transform">
-                      Sélectionner
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {foundVisitorMsg && (
-              <div className="mt-1.5 p-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-black flex items-center gap-2">
-                <ShieldCheck size={16} />
-                <span>{foundVisitorMsg}</span>
-              </div>
-            )}
+            <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg bg-white/80 dark:bg-slate-800 border border-current/20 shadow-sm shrink-0">
+              {activeDocType}
+            </span>
           </div>
+
+          {/* CAS 1 : FORMULAIRE PASSEPORT */}
+          {docCategory === 'PASSPORT' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label={t.name} id="nom" required value={form.nom} onChange={set('nom')} error={errors.nom} placeholder="NOM" />
+                <FormInput label={t.firstname} id="prenom" required value={form.prenom} onChange={set('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label="N° de Passeport" id="numeroPiece" required value={form.numeroPiece} onChange={(e) => { set('numeroPiece')(e); setForm(f => ({ ...f, nin: e.target.value })); }} error={errors.numeroPiece} placeholder="Ex: A12345678" />
+                <FormSelect label={t.id_type} id="typePiece" required value={form.typePiece} onChange={set('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormSelect label="Pays d'émission" id="pays" value={form.pays} onChange={set('pays')} options={PAYS_OPTIONS} icon={Globe} />
+                <FormInput label="Date d'expiration passeport" id="dateExpiration" type="date" value={form.dateExpiration} onChange={set('dateExpiration')} icon={CalendarDays} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label={t.birth_date} id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
+                <FormSelect label="Sexe" id="sexe" value={form.sexe} onChange={set('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label="Lieu de naissance" id="lieuNaissance" value={form.lieuNaissance} onChange={set('lieuNaissance')} icon={MapPin} placeholder="Ville / Pays" />
+                <FormInput label="Numéro de Téléphone" id="telephone" value={form.telephone} onChange={set('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
+              </div>
+            </div>
+          )}
+
+          {/* CAS 2 : FORMULAIRE PERMIS DE CONDUIRE */}
+          {docCategory === 'LICENSE' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label={t.name} id="nom" required value={form.nom} onChange={set('nom')} error={errors.nom} placeholder="NOM" />
+                <FormInput label={t.firstname} id="prenom" required value={form.prenom} onChange={set('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label="N° Permis de Conduire" id="numeroPiece" required value={form.numeroPiece} onChange={set('numeroPiece')} error={errors.numeroPiece} placeholder="Ex: 12345678" />
+                <FormSelect label={t.id_type} id="typePiece" required value={form.typePiece} onChange={set('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label="Catégories Permis (ex: A, B, C...)" id="categoriesPermis" value={form.categoriesPermis || ''} onChange={set('categoriesPermis')} placeholder="Ex: B, C" />
+                <FormSelect label="Pays d'émission" id="pays" value={form.pays} onChange={set('pays')} options={PAYS_OPTIONS} icon={Globe} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label="Date de délivrance" id="dateDelivrance" type="date" value={form.dateDelivrance} onChange={set('dateDelivrance')} icon={CalendarDays} />
+                <FormInput label="Date d'expiration" id="dateExpiration" type="date" value={form.dateExpiration} onChange={set('dateExpiration')} icon={CalendarDays} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label="Centre / Lieu de délivrance" id="centreEnregistrement" value={form.centreEnregistrement} onChange={set('centreEnregistrement')} icon={Home} placeholder="Centre / Préfecture" />
+                <FormInput label="Numéro de Téléphone" id="telephone" value={form.telephone} onChange={set('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
+              </div>
+            </div>
+          )}
+
+          {/* CAS 3 : FORMULAIRE CARTE CONSULAIRE / SÉJOUR */}
+          {docCategory === 'CONSULAR' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label={t.name} id="nom" required value={form.nom} onChange={set('nom')} error={errors.nom} placeholder="NOM" />
+                <FormInput label={t.firstname} id="prenom" required value={form.prenom} onChange={set('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label={`N° ${activeDocType}`} id="numeroPiece" required value={form.numeroPiece} onChange={set('numeroPiece')} error={errors.numeroPiece} placeholder="N° Document..." />
+                <FormSelect label={t.id_type} id="typePiece" required value={form.typePiece} onChange={set('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormSelect label="Pays d'origine / Émission" id="pays" value={form.pays} onChange={set('pays')} options={PAYS_OPTIONS} icon={Globe} />
+                <FormInput label="NIN / Code Identité" id="nin" value={form.nin} onChange={set('nin')} icon={CreditCard} placeholder="NIN / Code Consulaire..." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label={t.birth_date} id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
+                <FormSelect label="Sexe" id="sexe" value={form.sexe} onChange={set('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label="Date de délivrance" id="dateDelivrance" type="date" value={form.dateDelivrance} onChange={set('dateDelivrance')} icon={CalendarDays} />
+                <FormInput label="Date d'expiration" id="dateExpiration" type="date" value={form.dateExpiration} onChange={set('dateExpiration')} icon={CalendarDays} />
+              </div>
+              <FormInput label="Ambassade / Centre d'enregistrement" id="centreEnregistrement" value={form.centreEnregistrement} onChange={set('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
+              <FormInput label="Adresse du domicile" id="adresseDomicile" value={form.adresseDomicile} onChange={set('adresseDomicile')} icon={MapPinned} placeholder="Adresse domicile" />
+              <FormInput label="Numéro de Téléphone" id="telephone" value={form.telephone} onChange={set('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
+            </div>
+          )}
+
+          {/* CAS 4 : FORMULAIRE CARTE GRISE */}
+          {docCategory === 'CARTE_GRISE' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label="Plaque d'Immatriculation" id="immatriculation" required value={form.immatriculation || form.numeroPiece} onChange={(e) => { set('immatriculation')(e); set('numeroPiece')(e); }} error={errors.numeroPiece} placeholder="Ex: DK-1234-AB" className="uppercase font-mono" />
+                <FormSelect label={t.id_type} id="typePiece" required value={form.typePiece} onChange={set('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label={t.brand} id="marque" value={form.marque || ''} onChange={set('marque')} placeholder="Toyota, Peugeot..." />
+                <FormInput label={t.model} id="modele" value={form.modele || ''} onChange={set('modele')} placeholder="Hilux, 308..." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label={t.color} id="couleur" value={form.couleur || ''} onChange={set('couleur')} placeholder="Gris, Noir..." />
+                <FormSelect label="Genre / Type Véhicule" id="typeVehicule" value={form.typeVehicule || ''} onChange={set('typeVehicule')} options={['Berline', 'SUV / 4x4', 'Pick-up', 'Camion', 'Moto', 'Bus', 'Autre']} placeholder="Choisir..." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label="Nom Titulaire / Conducteur" id="nom" value={form.nom} onChange={set('nom')} placeholder="NOM" />
+                <FormInput label="Prénom Titulaire / Conducteur" id="prenom" value={form.prenom} onChange={set('prenom')} placeholder="Prénom" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label="Centre d'immatriculation" id="centreEnregistrement" value={form.centreEnregistrement} onChange={set('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
+                <FormInput label="Téléphone Conducteur" id="telephone" value={form.telephone} onChange={set('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
+              </div>
+            </div>
+          )}
+
+          {/* CAS 5 : FORMULAIRE CNI / DOCUMENT STANDARD */}
+          {docCategory === 'CNI' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label={t.name} id="nom" required value={form.nom} onChange={set('nom')} error={errors.nom} placeholder="NOM" />
+                <FormInput label={t.firstname} id="prenom" required value={form.prenom} onChange={set('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label={t.id_number} id="numeroPiece" required value={form.numeroPiece} onChange={set('numeroPiece')} error={errors.numeroPiece} placeholder={t.number_placeholder} />
+                <FormSelect label={t.id_type} id="typePiece" required value={form.typePiece} onChange={set('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormSelect label="Pays d'émission" id="pays" value={form.pays} onChange={set('pays')} options={PAYS_OPTIONS} icon={Globe} />
+                <FormInput label={t.birth_date} id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
+              </div>
+
+              {/* Infos détaillées CNI */}
+              <div className="space-y-4 border-t border-slate-200 dark:border-slate-700 pt-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
+                  <FileText size={14} /> Informations détaillées CNI
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormSelect label="Sexe" id="sexe" value={form.sexe} onChange={set('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
+                  <FormInput label="Taille (cm)" id="taille" type="number" value={form.taille} onChange={set('taille')} icon={Ruler} placeholder="Taille" />
+                </div>
+                <FormInput label="Lieu de naissance" id="lieuNaissance" value={form.lieuNaissance} onChange={set('lieuNaissance')} icon={MapPin} placeholder="Lieu de naissance" />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormInput label="Date de délivrance" id="dateDelivrance" type="date" value={form.dateDelivrance} onChange={set('dateDelivrance')} icon={CalendarDays} />
+                  <FormInput label="Date d'expiration" id="dateExpiration" type="date" value={form.dateExpiration} onChange={set('dateExpiration')} icon={CalendarDays} />
+                </div>
+                <FormInput label="Numéro de Téléphone" id="telephone" value={form.telephone} onChange={set('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
+                <FormInput label="Centre d'enregistrement" id="centreEnregistrement" value={form.centreEnregistrement} onChange={set('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
+                <FormInput label="Adresse du domicile" id="adresseDomicile" value={form.adresseDomicile} onChange={set('adresseDomicile')} icon={MapPinned} placeholder="Adresse domicile" />
+
+                {/* Recherche NIN avec autocomplétion */}
+                <div className="relative space-y-1">
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <FormInput label="NIN (Numéro d'Identification Nationale)" id="nin" value={form.nin} onChange={handleNinInputChange} icon={CreditCard} placeholder="Tapez les premiers chiffres du NIN..." />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSearchNIN(form.nin)}
+                      disabled={searchingNIN || !form.nin}
+                      className="h-[42px] px-3.5 bg-brand-blue-bright text-white rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-blue-600 disabled:opacity-50 transition-all shadow-sm active:scale-95 mb-0.5 shrink-0"
+                      title="Rechercher ce visiteur par son NIN"
+                    >
+                      <Search size={14} />
+                      <span className="hidden sm:inline">{searchingNIN ? 'Recherche...' : 'Vérifier'}</span>
+                    </button>
+                  </div>
+
+                  {showNinSuggestions && ninSuggestions.length > 0 && (
+                    <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border-2 border-brand-blue-bright shadow-2xl rounded-xl max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase tracking-wider text-brand-blue-bright flex items-center justify-between">
+                        <span>NINs trouvés ({ninSuggestions.length})</span>
+                        <span className="text-[9px] opacity-70">Cliquez pour remplir</span>
+                      </div>
+                      {ninSuggestions.map(v => (
+                        <button
+                          key={v._id || v.id}
+                          type="button"
+                          onClick={() => selectVisitorFromSuggestion(v)}
+                          className="w-full p-2.5 text-left hover:bg-brand-blue-light/20 dark:hover:bg-brand-blue-bright/20 flex items-center justify-between transition-colors group cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-brand-blue-light text-brand-blue-bright font-black text-xs flex items-center justify-center shrink-0">
+                              {((v.prenom?.[0] || '') + (v.nom?.[0] || 'V')).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-xs font-black text-slate-900 dark:text-white group-hover:text-brand-blue-bright">
+                                {v.prenom} {v.nom}
+                              </p>
+                              <p className="text-[10px] font-mono text-slate-500">
+                                NIN: <span className="font-bold text-brand-blue-bright">{v.nin || '—'}</span> · {v.numeroPiece ? `Pièce: ${v.numeroPiece}` : ''}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-black uppercase bg-brand-blue-bright text-white px-2 py-1 rounded-lg group-hover:scale-105 transition-transform">
+                            Sélectionner
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {foundVisitorMsg && (
+                    <div className="mt-1.5 p-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-black flex items-center gap-2">
+                      <ShieldCheck size={16} />
+                      <span>{foundVisitorMsg}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Destination */}

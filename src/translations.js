@@ -164,6 +164,7 @@ export const TRANSLATIONS = {
       license: "Permis de Conduire",
       residence: "Carte de Séjour",
       consular: "Carte Consulaire",
+      carte_grise: "Carte Grise",
       other: "Autre Document Officiel"
     },
     vehicle_types: {
