@@ -137,9 +137,11 @@ export function normaliserDonneesOCR(res) {
   const nationalite = getVal('nationalite', 'nationality');
   const centreEnregistrement = getVal('centreEnregistrement', 'issuer', 'autorite', 'emetteur');
 
-  const isCar = (typePieceRaw || '').toUpperCase() === 'CARTE_GRISE' || (!!immatriculation && !numeroPiece);
+  const typePieceUpper = (typePieceRaw || '').toUpperCase();
+  const isPersonDoc = !!(nin || numeroPiece || nom || prenom || rawDateNaissance);
+  const isCar = typePieceUpper === 'CARTE_GRISE' || (!isPersonDoc && !!immatriculation && !!marque);
   const typePieceNormalized = normalizeTypePiece(typePieceRaw);
-  const isPassport = typePieceNormalized === 'Passeport' || (typePieceRaw || '').toUpperCase().includes('PASSPORT');
+  const isPassport = typePieceNormalized === 'Passeport' || typePieceUpper.includes('PASSPORT');
 
   // Pour les passeports, à la place du NIN, on récupère/utilise le numéro de passeport
   const finalNin = isPassport ? (numeroPiece || nin) : nin;
@@ -159,10 +161,10 @@ export function normaliserDonneesOCR(res) {
     telephone,
     pays,
     immatriculation: isCar ? (immatriculation || numeroPiece) : '',
-    marque,
-    modele,
-    couleur,
-    typeVehicule,
+    marque: isCar ? marque : '',
+    modele: isCar ? modele : '',
+    couleur: isCar ? couleur : '',
+    typeVehicule: isCar ? typeVehicule : '',
     categoriesPermis,
     nationalite,
     centreEnregistrement,
