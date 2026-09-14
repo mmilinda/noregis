@@ -280,7 +280,7 @@ export default function AgentsManagement({ isMobile }) {
               : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
           }`}
         >
-          Agents ({agents.length})
+          {t.active_agents || 'Agents'} ({agents.length})
         </button>
         <button
           onClick={() => setActiveTab('demandes')}
@@ -291,7 +291,7 @@ export default function AgentsManagement({ isMobile }) {
           }`}
         >
           <Bell size={13} />
-          Demandes
+          {t.access_requests || 'Demandes'}
           {demandes.length > 0 && (
             <span className="w-5 h-5 rounded-full bg-brand-amber-bright text-white text-[9px] font-black flex items-center justify-center">
               {demandes.length}
@@ -307,7 +307,7 @@ export default function AgentsManagement({ isMobile }) {
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue-bright transition-colors" />
             <input
               type="text"
-              placeholder="Rechercher un agent par nom, email..."
+              placeholder={t.search || "Rechercher un agent par nom, email..."}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 focus:border-brand-blue-bright/20 rounded-lg py-2.5 pl-12 pr-4 text-sm font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"

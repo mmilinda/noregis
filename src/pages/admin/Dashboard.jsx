@@ -200,15 +200,15 @@ export default function AdminDashboard({ isMobile }) {
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <BarChart2 className="text-brand-blue-bright fill-brand-blue-bright/10" size={26} />
-            Supervision & Statistiques
+            {t.supervision_title}
           </h1>
           <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">
-            Consultez les indicateurs d'accès en temps réel et analysez la fréquentation du site.
+            {t.supervision_desc}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Btn variant="secondary" size="sm" icon={RefreshCw} onClick={() => fetchStats(true)} className="text-[10px] font-black uppercase">
-            Actualiser
+            {t.refresh}
           </Btn>
         </div>
       </div>
@@ -220,9 +220,9 @@ export default function AdminDashboard({ isMobile }) {
             <Users size={24} />
           </div>
           <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total Visites</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{t.total_visits}</p>
             <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1 leading-none">{stats.total}</h3>
-            <p className="text-[10px] font-bold text-slate-500 mt-1">Depuis le lancement</p>
+            <p className="text-[10px] font-bold text-slate-500 mt-1">{t.since_launch}</p>
           </div>
         </div>
 
@@ -232,9 +232,9 @@ export default function AdminDashboard({ isMobile }) {
             <span className="w-2.5 h-2.5 rounded-full bg-brand-green-bright relative" />
           </div>
           <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Sur Site Actuels</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{t.on_site_active}</p>
             <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1 leading-none">{stats.active}</h3>
-            <p className="text-[10px] font-bold text-brand-green mt-1">Flux en temps réel</p>
+            <p className="text-[10px] font-bold text-brand-green mt-1">{t.realtime_flow}</p>
           </div>
         </div>
 
@@ -243,9 +243,9 @@ export default function AdminDashboard({ isMobile }) {
             <Car size={24} />
           </div>
           <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Véhicules Enregistrés</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{t.registered_vehicles}</p>
             <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1 leading-none">{stats.vehicles}</h3>
-            <p className="text-[10px] font-bold text-slate-500 mt-1">Total engins roulants</p>
+            <p className="text-[10px] font-bold text-slate-500 mt-1">{t.total_rolling}</p>
           </div>
         </div>
 
@@ -254,11 +254,11 @@ export default function AdminDashboard({ isMobile }) {
             <Clock size={24} />
           </div>
           <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Heure de Pointe</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{t.peak_hour}</p>
             <h3 className={`font-black text-slate-900 dark:text-white mt-2 leading-none truncate max-w-[150px] ${stats.peakHour === '—' ? 'text-2xl' : 'text-sm'}`}>
               {stats.peakHour}
             </h3>
-            <p className="text-[10px] font-bold text-slate-500 mt-1">30 derniers jours</p>
+            <p className="text-[10px] font-bold text-slate-500 mt-1">{t.daily_peak}</p>
           </div>
         </div>
       </div>
@@ -268,7 +268,7 @@ export default function AdminDashboard({ isMobile }) {
         
         {/* SVG Line Chart (Hourly Traffic) */}
         <Card className="lg:col-span-2 border-slate-200 dark:border-slate-800">
-          <CardHeader title="Courbe d'Affluence (Aujourd'hui)" subtitle="Volume des entrées cumulées par tranches de 2 heures." />
+          <CardHeader title={t.hourly_attendance} subtitle={t.tracking_desc} />
           <div className="p-6">
             {loading ? (
               <div className="h-48 flex items-center justify-center">
@@ -378,7 +378,7 @@ export default function AdminDashboard({ isMobile }) {
 
         {/* Popular Destinations / Services list */}
         <Card className="border-slate-200 dark:border-slate-800">
-          <CardHeader title="Départements Populaires" subtitle="Top 5 des destinations les plus fréquentées." />
+          <CardHeader title={t.repartition_by_dept} subtitle={t.service_dept} />
           <div className="p-6">
             {loading ? (
               <div className="h-48 flex items-center justify-center">
@@ -386,7 +386,7 @@ export default function AdminDashboard({ isMobile }) {
               </div>
             ) : departmentsList.length === 0 ? (
               <div className="h-48 flex flex-col items-center justify-center text-slate-400">
-                <p className="text-xs font-bold">Aucune donnée</p>
+                <p className="text-xs font-bold">{t.no_dept_data}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -397,7 +397,7 @@ export default function AdminDashboard({ isMobile }) {
                     <div key={index} className="space-y-1.5">
                       <div className="flex justify-between items-center text-xs font-bold text-slate-700 dark:text-slate-300">
                         <span className="truncate max-w-[150px]">{d.name}</span>
-                        <span className="font-mono text-slate-500">{d.count} visite(s)</span>
+                        <span className="font-mono text-slate-500">{d.count} {t.all.toLowerCase()}</span>
                       </div>
                       <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                         <div 
@@ -418,12 +418,12 @@ export default function AdminDashboard({ isMobile }) {
       {/* Table des passages & Gestion pour l'Admin */}
       <Card className="border-slate-200 dark:border-slate-800">
         <CardHeader 
-          title="Dernières Visites & Gestion des Passages" 
-          subtitle="Registre complet des visites avec option de suppression réservée aux administrateurs."
+          title={t.dashboard} 
+          subtitle={t.tracking_desc}
         />
         {visits.length === 0 ? (
           <div className="p-12 text-center text-slate-400 font-bold text-xs">
-            Aucune visite enregistrée pour le moment.
+            {t.no_results}
           </div>
         ) : (
           <VisitorTable 

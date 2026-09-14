@@ -262,8 +262,8 @@ function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
           {showNotifications && (
             <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-100 dark:border-white/5 p-4 z-[100]">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Notifications</h3>
-                <button onClick={markAllAsRead} className="text-xs text-brand-blue-bright hover:underline">Tout marquer comme lu</button>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t.notifications || "Notifications"}</h3>
+                <button onClick={markAllAsRead} className="text-xs text-brand-blue-bright hover:underline">{t.mark_all_read || "Tout marquer comme lu"}</button>
               </div>
               <div className="space-y-3">
                 {notificationsList.map(n => (

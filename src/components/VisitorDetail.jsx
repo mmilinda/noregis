@@ -27,15 +27,15 @@ export default function VisitorDetail({ visitor: initialVisitor, onClose, onChec
 
   const handleDeleteVisit = async () => {
     const id = visitor._id || visitor.id;
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette visite ?")) return;
+    if (!window.confirm(t.confirm_delete_visit || "Êtes-vous sûr de vouloir supprimer cette visite ?")) return;
     setDeleting(true);
     try {
       await visitService.deleteVisit(id);
       dispatch({ type: 'DELETE_VISIT', payload: id });
-      notify('success', 'Visite supprimée avec succès.');
+      notify('success', t.visit_deleted || 'Visite supprimée avec succès.');
       onClose();
     } catch (err) {
-      notify('error', 'Erreur lors de la suppression: ' + (err.message || err));
+      notify('error', (t.error_prefix || 'Erreur') + ': ' + (err.message || err));
     } finally {
       setDeleting(false);
     }
@@ -111,7 +111,7 @@ export default function VisitorDetail({ visitor: initialVisitor, onClose, onChec
                 {auditDoc.statut === 'conforme' && <ShieldCheck size={12} />}
                 {auditDoc.statut === 'attention' && <AlertTriangle size={12} />}
                 {auditDoc.statut === 'suspect' && <XCircle size={12} />}
-                {auditDoc.statut === 'conforme' ? 'Doc Valide' : auditDoc.statut === 'attention' ? 'À vérifier' : 'Doc Suspect'}
+                {auditDoc.statut === 'conforme' ? (t.doc_valid || 'Doc Valide') : auditDoc.statut === 'attention' ? (t.doc_check || 'À vérifier') : (t.doc_suspect || 'Doc Suspect')}
               </span>
             )}
           </div>
@@ -144,7 +144,7 @@ export default function VisitorDetail({ visitor: initialVisitor, onClose, onChec
             <Row label={t.fullname} value={fetching ? '...' : (`${visitor.nom || visData.nom || visitor.Nom || ''} ${visitor.prenom || visData.prenom || visitor.Prenom || ''}`.trim() || visitor.nomComplet || visitor.fullName || '—')} />
             <Row label={t.id_number} value={fetching ? '...' : (visitor.numeroPiece || visData.numeroPiece)} mono />
             <Row label={t.id_type} value={fetching ? '...' : (visitor.typePiece || visData.typePiece)} />
-            <Row label="Pays d'émission" value={fetching ? '...' : paysVal} />
+            <Row label={t.issue_country || "Pays d'émission"} value={fetching ? '...' : paysVal} />
             {(visitor.dateNaissance || visData.dateNaissance) && (
               <Row label={t.birth_date} value={fetching ? '...' : formatBackendDate(visitor.dateNaissance || visData.dateNaissance)} />
             )}
@@ -180,7 +180,7 @@ export default function VisitorDetail({ visitor: initialVisitor, onClose, onChec
 
         {isAdmin && (
           <Btn variant="danger" icon={Trash2} loading={deleting} onClick={handleDeleteVisit} fullWidth size="lg">
-            Supprimer la visite
+            {t.delete_visit || "Supprimer la visite"}
           </Btn>
         )}
       </div>
