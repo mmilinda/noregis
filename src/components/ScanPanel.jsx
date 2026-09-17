@@ -32,7 +32,7 @@ function preparerImageOCR(base64OrFile) {
     }
     const img = new Image();
     img.onload = () => {
-      const MAX = 1200; // Format optimal pour IA vision rapide et lisibilité maximale
+      const MAX = 1000; // Format ultra-rapide pour IA vision
       let w = img.width;
       let h = img.height;
       if (w > MAX || h > MAX) {
@@ -51,7 +51,7 @@ function preparerImageOCR(base64OrFile) {
       const ctx = canvas.getContext('2d');
 
       ctx.drawImage(img, 0, 0, w, h);
-      const compressed = canvas.toDataURL('image/jpeg', 0.82);
+      const compressed = canvas.toDataURL('image/jpeg', 0.78);
       if (typeof src === 'string' && src.startsWith('blob:')) URL.revokeObjectURL(src);
       resolve(compressed);
     };

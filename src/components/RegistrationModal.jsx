@@ -228,31 +228,33 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     const photoToSave = img || data.photo || null;
     if (photoToSave) setDocImage(photoToSave);
 
-    const extractedTypePiece = (data.typePiece || data.documentType) ? normalizeTypePiece(data.typePiece || data.documentType) : prev.typePiece;
-    const extractedNumPiece = (data.numeroPiece || data.documentNumber || data.cardNumber) ? String(data.numeroPiece || data.documentNumber || data.cardNumber).trim() : prev.numeroPiece;
-    const extractedNin = (data.nin || data.idNumber || data.ninNumber) ? String(data.nin || data.idNumber || data.ninNumber).trim() : prev.nin;
+    setForm(prev => {
+      const extractedTypePiece = (data.typePiece || data.documentType) ? normalizeTypePiece(data.typePiece || data.documentType) : prev.typePiece;
+      const extractedNumPiece = (data.numeroPiece || data.documentNumber || data.cardNumber) ? String(data.numeroPiece || data.documentNumber || data.cardNumber).trim() : prev.numeroPiece;
+      const extractedNin = (data.nin || data.idNumber || data.ninNumber) ? String(data.nin || data.idNumber || data.ninNumber).trim() : prev.nin;
 
-    setForm(prev => ({
-      ...prev,
-      nom: (data.nom || data.lastName) ? String(data.nom || data.lastName).trim() : prev.nom,
-      prenom: (data.prenom || data.firstName) ? String(data.prenom || data.firstName).trim() : prev.prenom,
-      nin: extractedNin,
-      pays: (data.pays || data.country) ? String(data.pays || data.country).trim() : prev.pays,
-      numeroPiece: extractedNumPiece,
-      typePiece: extractedTypePiece,
-      dateNaissance: formatDateForInput(data.dateNaissance || data.birthDate) || prev.dateNaissance,
-      sexe: normalizeSexe(data.sexe || data.sex || data.gender) || prev.sexe,
-      taille: (data.taille || data.height) ? String(data.taille || data.height).trim() : prev.taille,
-      lieuNaissance: (data.lieuNaissance || data.birthPlace) ? String(data.lieuNaissance || data.birthPlace).trim() : prev.lieuNaissance,
-      dateDelivrance: formatDateForInput(data.dateDelivrance || data.issuedAt || data.issueDate) || prev.dateDelivrance,
-      dateExpiration: formatDateForInput(data.dateExpiration || data.expiresAt || data.expiryDate) || prev.dateExpiration,
-      telephone: (data.telephone || data.phone || data.phoneNumber) ? String(data.telephone || data.phone || data.phoneNumber).trim() : prev.telephone,
-      centreEnregistrement: (data.centreEnregistrement || data.issuer || data.authority) ? String(data.centreEnregistrement || data.issuer || data.authority).trim() : prev.centreEnregistrement,
-      adresseDomicile: (data.adresseDomicile || data.address) ? String(data.adresseDomicile || data.address).trim() : prev.adresseDomicile,
-      profession: data.profession ? String(data.profession).trim() : prev.profession,
-      heureEntree: scanTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-      date: scanTime.toLocaleDateString('fr-FR'),
-    }));
+      return {
+        ...prev,
+        nom: (data.nom || data.lastName) ? String(data.nom || data.lastName).trim() : prev.nom,
+        prenom: (data.prenom || data.firstName) ? String(data.prenom || data.firstName).trim() : prev.prenom,
+        nin: extractedNin,
+        pays: (data.pays || data.country) ? String(data.pays || data.country).trim() : prev.pays,
+        numeroPiece: extractedNumPiece,
+        typePiece: extractedTypePiece,
+        dateNaissance: formatDateForInput(data.dateNaissance || data.birthDate) || prev.dateNaissance,
+        sexe: normalizeSexe(data.sexe || data.sex || data.gender) || prev.sexe,
+        taille: (data.taille || data.height) ? String(data.taille || data.height).trim() : prev.taille,
+        lieuNaissance: (data.lieuNaissance || data.birthPlace) ? String(data.lieuNaissance || data.birthPlace).trim() : prev.lieuNaissance,
+        dateDelivrance: formatDateForInput(data.dateDelivrance || data.issuedAt || data.issueDate) || prev.dateDelivrance,
+        dateExpiration: formatDateForInput(data.dateExpiration || data.expiresAt || data.expiryDate) || prev.dateExpiration,
+        telephone: (data.telephone || data.phone || data.phoneNumber) ? String(data.telephone || data.phone || data.phoneNumber).trim() : prev.telephone,
+        centreEnregistrement: (data.centreEnregistrement || data.issuer || data.authority) ? String(data.centreEnregistrement || data.issuer || data.authority).trim() : prev.centreEnregistrement,
+        adresseDomicile: (data.adresseDomicile || data.address) ? String(data.adresseDomicile || data.address).trim() : prev.adresseDomicile,
+        profession: data.profession ? String(data.profession).trim() : prev.profession,
+        heureEntree: scanTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        date: scanTime.toLocaleDateString('fr-FR'),
+      };
+    });
     if (shouldClose) setScanOpen(false);
   };
 
