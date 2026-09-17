@@ -143,8 +143,7 @@ export function normaliserDonneesOCR(res) {
   const typePieceNormalized = normalizeTypePiece(typePieceRaw);
   const isPassport = typePieceNormalized === 'Passeport' || typePieceUpper.includes('PASSPORT');
 
-  // Pour les passeports, à la place du NIN, on récupère/utilise le numéro de passeport
-  const finalNin = isPassport ? (numeroPiece || nin) : nin;
+  const finalNin = nin;
 
   const norm = {
     nom,

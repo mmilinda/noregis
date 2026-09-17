@@ -94,8 +94,7 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
     const data = rawData?.infosExtraites || rawData?.extracted || rawData || {};
     const extractedTypePiece = (data.typePiece || data.documentType) ? normalizeTypePiece(data.typePiece || data.documentType) : formData.typePiece;
     const extractedNumPiece = (data.numeroPiece || data.documentNumber) ? String(data.numeroPiece || data.documentNumber).trim() : formData.numeroPiece;
-    const isPassportDoc = extractedTypePiece === 'Passeport';
-    const extractedNin = isPassportDoc ? (extractedNumPiece || data.nin || formData.nin) : (data.nin ?? formData.nin);
+    const extractedNin = (data.nin || data.idNumber) ? String(data.nin || data.idNumber).trim() : formData.nin;
 
     setFormData(prev => ({
       ...prev,

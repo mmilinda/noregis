@@ -230,8 +230,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
 
     const extractedTypePiece = (data.typePiece || data.documentType) ? normalizeTypePiece(data.typePiece || data.documentType) : prev.typePiece;
     const extractedNumPiece = (data.numeroPiece || data.documentNumber || data.cardNumber) ? String(data.numeroPiece || data.documentNumber || data.cardNumber).trim() : prev.numeroPiece;
-    const isPassportDoc = extractedTypePiece === 'Passeport';
-    const extractedNin = isPassportDoc ? (extractedNumPiece || data.nin || prev.nin) : ((data.nin || data.idNumber || data.ninNumber) ? String(data.nin || data.idNumber || data.ninNumber).trim() : prev.nin);
+    const extractedNin = (data.nin || data.idNumber || data.ninNumber) ? String(data.nin || data.idNumber || data.ninNumber).trim() : prev.nin;
 
     setForm(prev => ({
       ...prev,
