@@ -3,18 +3,30 @@ import { createWorker } from 'tesseract.js';
 export function toISODate(dateStr) {
   if (!dateStr) return '';
   const s = String(dateStr).trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const m = s.match(/^(\d{2})[/.-](\d{2})[/.-](\d{4})$/);
-  if (m) {
-    const [, day, month, year] = m;
-    return `${year}-${month}-${day}`;
+  
+  // match YYYY-MM-DD n'importe où dans la chaîne
+  const mIso = s.match(/\b(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})\b/);
+  if (mIso) {
+    const [, year, month, day] = mIso;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
-  const m2 = s.match(/^(\d{4})[/.-](\d{2})[/.-](\d{2})$/);
-  if (m2) {
-    const [, year, month, day] = m2;
-    return `${year}-${month}-${day}`;
+
+  // match DD/MM/YYYY n'importe où dans la chaîne
+  const mFr = s.match(/\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})\b/);
+  if (mFr) {
+    const [, day, month, year] = mFr;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
+
   return s;
+}
+
+export function nettoyerValeurChamp(val) {
+  if (!val || typeof val !== 'string') return val || '';
+  return val
+    .replace(/^(?:1|2|3|4a|4b|4c|4d|5|6|7|8|9|10|11|12)[\.\s:\-]+/i, '')
+    .replace(/^(?:SURNAME|GIVEN\s*NAMES?|NAMES?|NOM|PRENOM|PRÉNOM|NOMS?|PRÉNOMS?|LIEU\s*DE\s*NAISSANCE|PLACE\s*OF\s*BIRTH|A|À|VILLE\s*DE)\s*(\/|\\|\:|-|\s)*\s*/i, '')
+    .trim();
 }
 
 export function verifierFiabiliteDocument(doc = {}) {
@@ -114,16 +126,48 @@ export function normaliserDonneesOCR(res) {
     return '';
   };
 
-  const nom = getVal('nom', 'lastName', 'last_name', 'surname', 'family_name', 'nomFamille');
-  const prenom = getVal('prenom', 'firstName', 'first_name', 'given_name', 'prenoms');
-  const numeroPiece = getVal('numeroPiece', 'numero_piece', 'documentNumber', 'document_number', 'card_number', 'cni', 'numPiece', 'numero');
-  const nin = getVal('nin', 'ninNumber', 'nin_number', 'idNumber', 'id_number', 'nationalId', 'national_id', 'numNational', 'codeNational');
-  const rawDateNaissance = getVal('dateNaissance', 'date_naissance', 'birthDate', 'birth_date', 'dob');
-  const sexe = getVal('sexe', 'sex', 'gender');
+  let rawNom = getVal('nom', 'lastName', 'last_name', 'surname', 'family_name', 'nomFamille');
+  let rawPrenom = getVal('prenom', 'firstName', 'first_name', 'given_name', 'prenoms');
+  let rawNumeroPiece = getVal('numeroPiece', 'numeroPermis', 'numero_piece', 'documentNumber', 'document_number', 'card_number', 'cni', 'numPiece', 'numero');
+  let rawNin = getVal('nin', 'ninNumber', 'nin_number', 'idNumber', 'id_number', 'nationalId', 'national_id', 'numNational', 'codeNational');
+  let rawDateNaissance = getVal('dateNaissance', 'date_naissance', 'birthDate', 'birth_date', 'dob');
+  let rawLieuNaissance = getVal('lieuNaissance', 'lieu_naissance', 'birthPlace', 'pob');
+  let rawDateDelivrance = getVal('dateDelivrance', 'date_delivrance', 'issueDate', 'issued_date', 'issuedAt');
+  let rawDateExpiration = getVal('dateExpiration', 'date_expiration', 'expiryDate', 'expirationDate', 'expiresAt', 'exp', 'validUntil', 'dateExp', 'expiration');
+  let rawCentreEnregistrement = getVal('centreEnregistrement', 'issuer', 'autorite', 'emetteur');
+  const categoriesPermis = getVal('categoriesPermis', 'categories', 'permisCategory');
+
   const typePieceRaw = getVal('typePiece', 'type_piece', 'documentType', 'docType');
-  const lieuNaissance = getVal('lieuNaissance', 'lieu_naissance', 'birthPlace', 'pob');
-  const rawDateDelivrance = getVal('dateDelivrance', 'date_delivrance', 'issueDate', 'issued_date', 'issuedAt');
-  const rawDateExpiration = getVal('dateExpiration', 'date_expiration', 'expiryDate', 'expirationDate', 'expiresAt', 'exp', 'validUntil', 'dateExp', 'expiration');
+  const typePieceUpper = (typePieceRaw || '').toUpperCase();
+  const isPermisDoc = !!(categoriesPermis || typePieceUpper.includes('PERMIS') || typePieceUpper.includes('DRIVER') || typePieceUpper.includes('CONDUIRE'));
+
+  let nom = nettoyerValeurChamp(rawNom);
+  let prenom = nettoyerValeurChamp(rawPrenom);
+  let lieuNaissance = nettoyerValeurChamp(rawLieuNaissance);
+  let numeroPiece = nettoyerValeurChamp(rawNumeroPiece);
+  let centreEnregistrement = nettoyerValeurChamp(rawCentreEnregistrement);
+
+  // Si rawDateNaissance contient une date + lieu combinés (ex: "14.05.1985 DAKAR")
+  if (rawDateNaissance && (rawDateNaissance.includes(' ') || /[a-zA-Z]/.test(rawDateNaissance))) {
+    const textParts = rawDateNaissance.replace(/^[3][\.\s:\-]+/, '').trim();
+    const dateMatch = textParts.match(/(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4}|\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2})/);
+    if (dateMatch) {
+      rawDateNaissance = dateMatch[1];
+      const lieuPart = textParts.replace(dateMatch[0], '').replace(/^[\s,:\-\/]+|[\s,:\-\/]+$/g, '').trim();
+      if (!lieuNaissance && lieuPart && lieuPart.length >= 2) {
+        lieuNaissance = nettoyerValeurChamp(lieuPart);
+      }
+    }
+  }
+
+  let finalNin = rawNin;
+  if (isPermisDoc) {
+    if (finalNin === numeroPiece || (finalNin && !/^\d{13,14}$/.test(finalNin.replace(/\D/g, '')))) {
+      finalNin = '';
+    }
+  }
+
+  const sexe = getVal('sexe', 'sex', 'gender');
   const adresseDomicile = getVal('adresseDomicile', 'adresse', 'address');
   const telephone = getVal('telephone', 'phone', 'phoneNumber', 'phone_number', 'tel', 'mobile');
   const pays = getVal('pays', 'country', 'paysEmetteur', 'issuingCountry', 'nationality', 'nationalite', 'paysOrigine') || 'Sénégal';
@@ -133,17 +177,12 @@ export function normaliserDonneesOCR(res) {
   const modele = getVal('modele', 'model');
   const couleur = getVal('couleur', 'color');
   const typeVehicule = getVal('typeVehicule', 'type_vehicule', 'vehicleType', 'genre');
-  const categoriesPermis = getVal('categoriesPermis', 'categories', 'permisCategory');
   const nationalite = getVal('nationalite', 'nationality');
-  const centreEnregistrement = getVal('centreEnregistrement', 'issuer', 'autorite', 'emetteur');
 
-  const typePieceUpper = (typePieceRaw || '').toUpperCase();
-  const isPersonDoc = !!(nin || numeroPiece || nom || prenom || rawDateNaissance);
+  const isPersonDoc = !!(finalNin || numeroPiece || nom || prenom || rawDateNaissance);
   const isCar = typePieceUpper === 'CARTE_GRISE' || (!isPersonDoc && !!immatriculation && !!marque);
-  const typePieceNormalized = normalizeTypePiece(typePieceRaw);
+  const typePieceNormalized = isPermisDoc ? 'Permis de Conduire' : normalizeTypePiece(typePieceRaw);
   const isPassport = typePieceNormalized === 'Passeport' || typePieceUpper.includes('PASSPORT');
-
-  const finalNin = nin;
 
   const norm = {
     nom,
@@ -152,7 +191,7 @@ export function normaliserDonneesOCR(res) {
     nin: finalNin,
     dateNaissance: toISODate(rawDateNaissance),
     sexe: sexe ? sexe.toUpperCase().slice(0, 1) : '',
-    typePiece: isPassport ? 'Passeport' : (typePieceRaw ? typePieceNormalized : (isCar ? 'CARTE_GRISE' : (numeroPiece ? 'CNI' : ''))),
+    typePiece: isPassport ? 'Passeport' : (isPermisDoc ? 'Permis de Conduire' : (typePieceRaw ? typePieceNormalized : (isCar ? 'CARTE_GRISE' : (numeroPiece ? 'CNI' : '')))),
     lieuNaissance,
     dateDelivrance: toISODate(rawDateDelivrance),
     dateExpiration: toISODate(rawDateExpiration),
@@ -164,7 +203,7 @@ export function normaliserDonneesOCR(res) {
     modele: isCar ? modele : '',
     couleur: isCar ? couleur : '',
     typeVehicule: isCar ? typeVehicule : '',
-    categoriesPermis,
+    categoriesPermis: categoriesPermis ? categoriesPermis.replace(/^[9][\.\s:\-]+/, '').trim() : '',
     nationalite,
     centreEnregistrement,
   };
