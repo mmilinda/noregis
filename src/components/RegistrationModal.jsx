@@ -795,9 +795,10 @@ function VehiculeForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   );
 }
 
-// ========== FORMULAIRE RECHERCHE PAR NIN (VISITEUR EXISTANT) ==========
+// ========== FORMULAIRE RECHERCHE VISITEUR EXISTANT (NIN, PASSEPORT, PERMIS, CARTE GRISE, ETC.) ==========
 function NINSearchForm({ onSelectVisitor, onCancel, t }) {
   const { state } = useApp();
+  const [searchType, setSearchType] = useState('all');
   const [ninNumber, setNinNumber] = useState('');
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
@@ -832,22 +833,62 @@ function NINSearchForm({ onSelectVisitor, onCancel, t }) {
       const mappedVisitors = new Map();
       const queryDigits = query.replace(/\D/g, '');
 
+      const isMatch = (v) => {
+        const visObj = v.visiteur || v.visitor || v.visiteurId || v;
+        const ninStr = String(visObj.nin || v.nin || '').toLowerCase();
+        const ninDigits = ninStr.replace(/\D/g, '');
+        const nom = String(visObj.nom || v.nom || '').toLowerCase();
+        const prenom = String(visObj.prenom || v.prenom || '').toLowerCase();
+        const tel = String(visObj.telephone || v.telephone || '').toLowerCase();
+        const piece = String(visObj.numeroPiece || v.numeroPiece || visObj.numeroDocument || v.numeroDocument || '').toLowerCase();
+        const typeP = String(visObj.typePiece || v.typePiece || '').toLowerCase();
+        const immat = String(
+          visObj.immatriculation || v.immatriculation ||
+          visObj.plaque || v.plaque ||
+          visObj.numeroCarteGrise || v.numeroCarteGrise || ''
+        ).toLowerCase();
+
+        if (searchType === 'nin') {
+          return ninStr.includes(query) || (queryDigits.length >= 1 && ninDigits.includes(queryDigits));
+        }
+        if (searchType === 'numeroPiece') {
+          return piece.includes(query) || typeP.includes(query);
+        }
+        if (searchType === 'immatriculation') {
+          return immat.includes(query);
+        }
+        if (searchType === 'nom_tel') {
+          return (
+            `${nom} ${prenom}`.includes(query) ||
+            `${prenom} ${nom}`.includes(query) ||
+            nom.includes(query) ||
+            prenom.includes(query) ||
+            tel.includes(query) ||
+            (queryDigits.length >= 3 && tel.replace(/\D/g, '').includes(queryDigits))
+          );
+        }
+        // searchType === 'all'
+        return (
+          ninStr.includes(query) ||
+          (queryDigits.length >= 1 && ninDigits.includes(queryDigits)) ||
+          piece.includes(query) ||
+          immat.includes(query) ||
+          typeP.includes(query) ||
+          `${nom} ${prenom}`.includes(query) ||
+          `${prenom} ${nom}`.includes(query) ||
+          nom.includes(query) ||
+          prenom.includes(query) ||
+          tel.includes(query)
+        );
+      };
+
       // 1. Chercher dans l'état local (visitors)
       if (Array.isArray(state.visitors)) {
         state.visitors.forEach(v => {
           const visObj = v.visiteur || v.visitor || v.visiteurId || v;
           const id = visObj._id || visObj.id || v.visiteurId || v._id || v.id;
-          const ninStr = String(visObj.nin || v.nin || '').toLowerCase();
-          const ninDigits = ninStr.replace(/\D/g, '');
-          const nom = String(visObj.nom || v.nom || '').toLowerCase();
-          const prenom = String(visObj.prenom || v.prenom || '').toLowerCase();
-          const piece = String(visObj.numeroPiece || v.numeroPiece || '').toLowerCase();
 
-          if (
-            ninStr.includes(query) ||
-            (queryDigits.length >= 1 && ninDigits.includes(queryDigits)) ||
-            (query.length >= 2 && (`${nom} ${prenom}`.includes(query) || piece.includes(query)))
-          ) {
+          if (isMatch(v)) {
             if (id && !mappedVisitors.has(id)) {
               mappedVisitors.set(id, {
                 _id: id,
@@ -855,9 +896,10 @@ function NINSearchForm({ onSelectVisitor, onCancel, t }) {
                 nom: visObj.nom || v.nom || '—',
                 prenom: visObj.prenom || v.prenom || '',
                 telephone: visObj.telephone || v.telephone || '—',
-                numeroPiece: visObj.numeroPiece || v.numeroPiece || '—',
+                numeroPiece: visObj.numeroPiece || v.numeroPiece || visObj.numeroDocument || v.numeroDocument || '—',
                 typePiece: visObj.typePiece || v.typePiece || 'CNI',
                 nin: visObj.nin || v.nin || '',
+                immatriculation: visObj.immatriculation || v.immatriculation || visObj.plaque || v.plaque || '',
                 dateNaissance: visObj.dateNaissance || v.dateNaissance || '',
                 sexe: visObj.sexe || v.sexe || '',
                 adresseDomicile: visObj.adresseDomicile || v.adresseDomicile || '',
@@ -868,27 +910,29 @@ function NINSearchForm({ onSelectVisitor, onCancel, t }) {
         });
       }
 
-      // 2. Chercher via l'API backend dédiée par NIN
-      try {
-        const apiRes = await visitorService.searchByNIN(query);
-        const apiList = apiRes?.visiteurs || (apiRes?.visiteur ? [apiRes.visiteur] : []);
-        apiList.forEach(vis => {
-          const id = vis._id || vis.id;
-          if (id && !mappedVisitors.has(id)) {
-            mappedVisitors.set(id, vis);
-          }
-        });
-      } catch (err) {
-        console.warn("Recherche API NIN directe:", err);
+      // 2. Chercher via API dédiée par NIN si critère NIN ou All
+      if (searchType === 'nin' || searchType === 'all') {
+        try {
+          const apiRes = await visitorService.searchByNIN(query);
+          const apiList = apiRes?.visiteurs || (apiRes?.visiteur ? [apiRes.visiteur] : []);
+          apiList.forEach(vis => {
+            const id = vis._id || vis.id;
+            if (id && !mappedVisitors.has(id)) {
+              mappedVisitors.set(id, vis);
+            }
+          });
+        } catch (err) {
+          console.warn("Recherche API NIN directe:", err);
+        }
       }
 
-      // 3. Fallback recherche générale API
+      // 3. Fallback recherche générale API backend
       try {
         const apiRes = await visitorService.search(query);
         const apiList = apiRes?.visiteurs || apiRes?.results || (Array.isArray(apiRes) ? apiRes : []);
         apiList.forEach(vis => {
           const id = vis._id || vis.id;
-          if (id && !mappedVisitors.has(id)) {
+          if (id && !mappedVisitors.has(id) && isMatch(vis)) {
             mappedVisitors.set(id, vis);
           }
         });
@@ -898,7 +942,7 @@ function NINSearchForm({ onSelectVisitor, onCancel, t }) {
 
       setSearchResults(Array.from(mappedVisitors.values()));
     } catch (err) {
-      console.error("Erreur lors de la recherche par NIN:", err);
+      console.error("Erreur lors de la recherche:", err);
     } finally {
       setSearching(false);
     }
@@ -953,31 +997,64 @@ function NINSearchForm({ onSelectVisitor, onCancel, t }) {
         </div>
         <div>
           <h4 className="text-xs font-black text-amber-700 dark:text-amber-300 uppercase tracking-wider">
-            Recherche par NIN (Numéro d'Identification National)
+            Recherche de Visiteur Existant
           </h4>
           <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 mt-0.5">
-            Retrouvez rapidement un visiteur déjà enregistré en saisissant son NIN ou son numéro de pièce.
+            Sélectionnez le critère (NIN, N° Passeport, Permis, Carte Grise, Nom...) pour retrouver un visiteur déjà enregistré.
           </p>
         </div>
       </div>
 
-      {/* Barre de recherche */}
-      <form onSubmit={handleSearch} className="flex gap-2">
-        <div className="relative flex-1">
-          <CreditCard size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Tapez les premiers chiffres du NIN (ex: 1751)..."
-            value={ninNumber}
-            onChange={handleInputChange}
-            className="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl py-2.5 pl-10 pr-3 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"
-            autoFocus
-          />
-        </div>
-        <Btn variant="primary" type="submit" loading={searching} icon={Search} className="!rounded-xl bg-amber-600 hover:bg-amber-700 text-white border-none text-xs">
-          Rechercher
-        </Btn>
-      </form>
+      {/* Barre de recherche avec Menu Déroulant */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <select
+          value={searchType}
+          onChange={(e) => {
+            setSearchType(e.target.value);
+            if (ninNumber.trim()) {
+              handleSearch(ninNumber);
+            }
+          }}
+          className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 dark:text-slate-200 outline-none transition-all cursor-pointer"
+        >
+          <option value="all">🔍 Recherche Globale (Tous)</option>
+          <option value="nin">🪪 Recherche par NIN</option>
+          <option value="numeroPiece">📘 N° Passeport / Permis / CNI</option>
+          <option value="immatriculation">🚗 Immatriculation / Carte Grise</option>
+          <option value="nom_tel">👤 Nom, Prénom ou Téléphone</option>
+        </select>
+
+        <form onSubmit={handleSearch} className="flex flex-1 gap-2">
+          <div className="relative flex-1">
+            {searchType === 'nin' && <CreditCard size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />}
+            {searchType === 'numeroPiece' && <FileText size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />}
+            {searchType === 'immatriculation' && <Car size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />}
+            {searchType === 'nom_tel' && <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />}
+            {searchType === 'all' && <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />}
+            <input
+              type="text"
+              placeholder={
+                searchType === 'nin'
+                  ? "Saisissez les chiffres du NIN (ex: 1751...)"
+                  : searchType === 'numeroPiece'
+                  ? "Saisissez le N° de passeport, permis, CNI..."
+                  : searchType === 'immatriculation'
+                  ? "Saisissez l'immatriculation / carte grise..."
+                  : searchType === 'nom_tel'
+                  ? "Saisissez le nom, prénom ou téléphone..."
+                  : "Saisissez NIN, passeport, permis, immat, nom..."
+              }
+              value={ninNumber}
+              onChange={handleInputChange}
+              className="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl py-2.5 pl-10 pr-3 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"
+              autoFocus
+            />
+          </div>
+          <Btn variant="primary" type="submit" loading={searching} icon={Search} className="!rounded-xl bg-amber-600 hover:bg-amber-700 text-white border-none text-xs shrink-0">
+            Rechercher
+          </Btn>
+        </form>
+      </div>
 
       {/* Résultats de recherche */}
       {searched && !selectedVisitor && (
@@ -989,8 +1066,8 @@ function NINSearchForm({ onSelectVisitor, onCancel, t }) {
           {searchResults.length === 0 ? (
             <div className="p-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl text-center border border-slate-100 dark:border-slate-800">
               <UserX className="mx-auto text-slate-400 mb-2" size={32} />
-              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Aucun visiteur trouvé avec ce NIN</p>
-              <p className="text-[10px] text-slate-400 mt-1">Vérifiez le NIN ou effectuez un premier enregistrement avec pièce d'identité.</p>
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Aucun visiteur trouvé avec ces critères</p>
+              <p className="text-[10px] text-slate-400 mt-1">Vérifiez la saisie ou enregistrez le visiteur avec sa pièce d'identité.</p>
             </div>
           ) : (
             <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
@@ -1009,7 +1086,7 @@ function NINSearchForm({ onSelectVisitor, onCancel, t }) {
                         {vis.prenom} {vis.nom}
                       </p>
                       <p className="text-[10px] font-mono text-slate-500">
-                        {vis.nin ? `NIN: ${vis.nin}` : ''} {vis.numeroPiece ? `· Piece: ${vis.numeroPiece}` : ''} {vis.telephone ? `· Tel: ${vis.telephone}` : ''}
+                        {vis.nin ? `NIN: ${vis.nin}` : ''} {vis.numeroPiece ? `· Pièce: ${vis.numeroPiece}` : ''} {vis.immatriculation ? `· Immat: ${vis.immatriculation}` : ''} {vis.telephone ? `· Tel: ${vis.telephone}` : ''}
                       </p>
                     </div>
                   </div>
