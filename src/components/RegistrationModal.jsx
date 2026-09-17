@@ -414,6 +414,14 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
                 <FormSelect label="Pays d'émission" id="pays" value={form.pays} onChange={set('pays')} options={PAYS_OPTIONS} icon={Globe} />
               </div>
               <div className="grid grid-cols-2 gap-4">
+                <FormInput label={t.birth_date} id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
+                <FormSelect label="Sexe" id="sexe" value={form.sexe} onChange={set('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label="Lieu de naissance" id="lieuNaissance" value={form.lieuNaissance} onChange={set('lieuNaissance')} icon={MapPin} placeholder="Ville / Lieu" />
+                <FormInput label="NIN (Numéro d'Identité)" id="nin" value={form.nin} onChange={handleNinInputChange} icon={CreditCard} placeholder="NIN (si présent)..." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <FormInput label="Date de délivrance" id="dateDelivrance" type="date" value={form.dateDelivrance} onChange={set('dateDelivrance')} icon={CalendarDays} />
                 <FormInput label="Date d'expiration" id="dateExpiration" type="date" value={form.dateExpiration} onChange={set('dateExpiration')} icon={CalendarDays} />
               </div>
