@@ -41,6 +41,7 @@ const formatDateForInput = (dateStr) => {
 
 // ========== FORMULAIRE PERSONNE ==========
 function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
+  const { state } = useApp();
   const now = new Date();
   const [form, setForm] = useState({
     nom: initial.nom || '',
