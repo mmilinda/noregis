@@ -25,14 +25,15 @@ const normalizeSexe = (val) => {
 const formatDateForInput = (dateStr) => {
   if (!dateStr) return '';
   const str = String(dateStr).trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-  if (/^\d{4}-\d{2}-\d{2}T/.test(str)) return str.slice(0, 10);
-  const dmyMatch = str.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})$/);
-  if (dmyMatch) {
-    const day = dmyMatch[1].padStart(2, '0');
-    const month = dmyMatch[2].padStart(2, '0');
-    const year = dmyMatch[3];
-    return `${year}-${month}-${day}`;
+  const matchIso = str.match(/\b(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})\b/);
+  if (matchIso) {
+    const [, y, m, d] = matchIso;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+  const matchFr = str.match(/\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})\b/);
+  if (matchFr) {
+    const [, d, m, y] = matchFr;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
   }
   return str;
 };
@@ -52,6 +53,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     lieuNaissance: initial.lieuNaissance || '',
     numeroPiece: initial.numeroPiece || '',
     typePiece: initial.typePiece || '',
+    categoriesPermis: initial.categoriesPermis || '',
     dateDelivrance: initial.dateDelivrance || '',
     dateExpiration: initial.dateExpiration || '',
     telephone: initial.telephone || '',
@@ -220,7 +222,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     }
   };
 
-  // ✅ Mapping des clés renvoyées par l'OCR y compris le pays
+  // ✅ Mapping des clés renvoyées par l'OCR y compris le pays et catégories permis
   const handleScanData = (rawData, img, shouldClose = true) => {
     const data = rawData?.infosExtraites || rawData?.extracted || rawData || {};
     console.log('📋 Données réceptionnées dans PersonForm :', data);
@@ -229,7 +231,9 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     if (photoToSave) setDocImage(photoToSave);
 
     setForm(prev => {
-      const extractedTypePiece = (data.typePiece || data.documentType) ? normalizeTypePiece(data.typePiece || data.documentType) : prev.typePiece;
+      const rawType = data.typePiece || data.documentType;
+      const isPermis = !!(data.categoriesPermis || (rawType && (String(rawType).toUpperCase().includes('PERMIS') || String(rawType).toUpperCase().includes('DRIVER') || String(rawType).toUpperCase().includes('CONDUIRE'))));
+      const extractedTypePiece = isPermis ? "Permis de Conduire" : (rawType ? normalizeTypePiece(rawType) : prev.typePiece);
       const extractedNumPiece = (data.numeroPiece || data.documentNumber || data.cardNumber) ? String(data.numeroPiece || data.documentNumber || data.cardNumber).trim() : prev.numeroPiece;
       const extractedNin = (data.nin || data.idNumber || data.ninNumber) ? String(data.nin || data.idNumber || data.ninNumber).trim() : prev.nin;
 
@@ -241,6 +245,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
         pays: (data.pays || data.country) ? String(data.pays || data.country).trim() : prev.pays,
         numeroPiece: extractedNumPiece,
         typePiece: extractedTypePiece,
+        categoriesPermis: (data.categoriesPermis || data.categories) ? String(data.categoriesPermis || data.categories).trim() : prev.categoriesPermis,
         dateNaissance: formatDateForInput(data.dateNaissance || data.birthDate) || prev.dateNaissance,
         sexe: normalizeSexe(data.sexe || data.sex || data.gender) || prev.sexe,
         taille: (data.taille || data.height) ? String(data.taille || data.height).trim() : prev.taille,
