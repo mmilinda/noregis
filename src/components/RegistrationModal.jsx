@@ -198,6 +198,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
 
   const activeDocType = normalizeTypePiece(form.typePiece);
   const docCategory = 
+    activeDocType === "Sans pièce d'identité" ? 'NO_ID' :
     activeDocType === 'Passeport' ? 'PASSPORT' :
     activeDocType === 'Permis de Conduire' ? 'LICENSE' :
     (activeDocType === 'Carte Consulaire' || activeDocType === 'Carte de Séjour') ? 'CONSULAR' :
@@ -207,7 +208,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     const e = {};
     if (!form.nom.trim()) e.nom = t.required_field;
     if (!form.prenom.trim()) e.prenom = t.required_field;
-    if (!form.numeroPiece.trim()) e.numeroPiece = t.required_field;
+    if (docCategory !== 'NO_ID' && !form.numeroPiece.trim()) e.numeroPiece = t.required_field;
     if (!form.typePiece) e.typePiece = t.select_type;
     if (!form.personneVisitee.trim()) e.personneVisitee = t.required_field;
     if (!form.service) e.service = t.select_service;
@@ -223,7 +224,10 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
           String(form.sexe || '').toUpperCase().startsWith('F') ? 'F' : null
         )
       );
-      onSubmit({ ...form, sexe: cleanSexe, type: 'person', statut: 'present', heureSortie: null, photo: docImage });
+      const finalNumPiece = (docCategory === 'NO_ID' && !form.numeroPiece.trim())
+        ? `SP_${Date.now().toString().slice(-6)}`
+        : form.numeroPiece;
+      onSubmit({ ...form, numeroPiece: finalNumPiece, sexe: cleanSexe, type: 'person', statut: 'present', heureSortie: null, photo: docImage });
     }
   };
 
@@ -359,6 +363,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
         <div className="space-y-4">
           {/* Badge d'identification du document */}
           <div className={`p-3.5 rounded-xl border-2 transition-all flex items-center justify-between gap-3 ${
+            docCategory === 'NO_ID' ? 'bg-orange-500/10 border-orange-500/30 text-orange-900 dark:text-orange-200' :
             docCategory === 'PASSPORT' ? 'bg-blue-500/10 border-blue-500/30 text-blue-900 dark:text-blue-200' :
             docCategory === 'LICENSE' ? 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200' :
             docCategory === 'CONSULAR' ? 'bg-purple-500/10 border-purple-500/30 text-purple-900 dark:text-purple-200' :
@@ -366,6 +371,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
             'bg-brand-blue-light/30 border-brand-blue-bright/30 text-slate-900 dark:text-white'
           }`}>
             <div className="flex items-center gap-2.5">
+              {docCategory === 'NO_ID' && <UserX size={20} className="text-orange-500 shrink-0" />}
               {docCategory === 'PASSPORT' && <Globe size={20} className="text-blue-500 shrink-0" />}
               {docCategory === 'LICENSE' && <Award size={20} className="text-amber-500 shrink-0" />}
               {docCategory === 'CONSULAR' && <FileBadge size={20} className="text-purple-500 shrink-0" />}
@@ -376,7 +382,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
                   Formulaire {activeDocType}
                 </h4>
                 <p className="text-[10px] font-bold opacity-80 mt-0.5">
-                  Formulaire adapté automatiquement au document détecté
+                  {docCategory === 'NO_ID' ? "Visiteur enregistré sans présentation de pièce d'identité" : "Formulaire adapté automatiquement au document détecté"}
                 </p>
               </div>
             </div>
@@ -384,6 +390,32 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
               {activeDocType}
             </span>
           </div>
+
+          {/* CAS 0 : FORMULAIRE SANS PIÈCE D'IDENTITÉ */}
+          {docCategory === 'NO_ID' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label={t.name} id="nom" required value={form.nom} onChange={set('nom')} error={errors.nom} placeholder="NOM" />
+                <FormInput label={t.firstname} id="prenom" required value={form.prenom} onChange={set('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label="N° Pièce / Réf (Optionnel)" id="numeroPiece" value={form.numeroPiece} onChange={set('numeroPiece')} placeholder="Auto (Ex: SP_123456)..." />
+                <FormSelect label={t.id_type} id="typePiece" required value={form.typePiece} onChange={set('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label="Numéro de Téléphone" id="telephone" value={form.telephone} onChange={set('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
+                <FormSelect label="Sexe" id="sexe" value={form.sexe} onChange={set('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label={t.birth_date} id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
+                <FormSelect label="Nationalité / Pays" id="pays" value={form.pays} onChange={set('pays')} options={PAYS_OPTIONS} icon={Globe} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput label="Adresse du domicile" id="adresseDomicile" value={form.adresseDomicile} onChange={set('adresseDomicile')} icon={MapPinned} placeholder="Adresse..." />
+                <FormInput label="Profession" id="profession" value={form.profession} onChange={set('profession')} placeholder="Profession..." />
+              </div>
+            </div>
+          )}
 
           {/* CAS 1 : FORMULAIRE PASSEPORT */}
           {docCategory === 'PASSPORT' && (
@@ -1337,7 +1369,7 @@ export function RegistrationModal({ isOpen, onClose, initialMode = null }) {
       isOpen={isOpen}
       onClose={() => { setMode(null); onClose(); }}
       title={
-        mode === 'person' ? t.person_entry :
+        (mode === 'person' || mode === 'no_id_person') ? t.person_entry :
         mode === 'vehicule' ? t.vehicle_entry :
         (mode === 'nin_search' || mode === 'phone_search') ? 'Recherche Visiteur Existant (NIN)' :
         t.new_entry_title
@@ -1363,6 +1395,20 @@ export function RegistrationModal({ isOpen, onClose, initialMode = null }) {
               <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter mt-1 opacity-70 group-hover:opacity-100">{t.person_desc}</p>
             </div>
             <ChevronRight className={`text-slate-300 group-hover:text-brand-blue-bright transition-all ${state.settings?.language === 'ar' ? 'rotate-180 group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} size={16} />
+          </button>
+
+          <button
+            onClick={() => setMode('no_id_person')}
+            className="group relative p-4 rounded-xl border-2 border-orange-200 dark:border-orange-900/40 bg-orange-50/40 dark:bg-orange-950/10 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-all duration-300 flex items-center gap-4 text-left shadow-sm active:scale-[0.98]"
+          >
+            <div className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <UserX size={24} />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">Visiteur sans pièce d'identité</h4>
+              <p className="text-[9px] font-bold text-orange-600/80 dark:text-orange-400/80 uppercase tracking-tighter mt-1 opacity-80 group-hover:opacity-100">Enregistrement direct sans pièce officielle</p>
+            </div>
+            <ChevronRight className={`text-slate-300 group-hover:text-orange-500 transition-all ${state.settings?.language === 'ar' ? 'rotate-180 group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} size={16} />
           </button>
 
           <button
@@ -1393,8 +1439,8 @@ export function RegistrationModal({ isOpen, onClose, initialMode = null }) {
             <ChevronRight className={`text-slate-300 group-hover:text-brand-green-bright transition-all ${state.settings?.language === 'ar' ? 'rotate-180 group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} size={16} />
           </button>
         </div>
-      ) : mode === 'person' ? (
-        <PersonForm onSubmit={handleSubmit} onCancel={() => setMode(null)} loading={loading} t={t} />
+      ) : (mode === 'person' || mode === 'no_id_person') ? (
+        <PersonForm initial={mode === 'no_id_person' ? { typePiece: "Sans pièce d'identité" } : {}} onSubmit={handleSubmit} onCancel={() => setMode(null)} loading={loading} t={t} />
       ) : (mode === 'nin_search' || mode === 'phone_search') ? (
         <NINSearchForm onSelectVisitor={handleExistingVisitorSubmit} onCancel={() => setMode(null)} t={t} />
       ) : (

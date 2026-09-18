@@ -40,8 +40,19 @@ export function verifierFiabiliteDocument(doc = {}) {
   const dateExp = doc.dateExpiration ? toISODate(doc.dateExpiration) : '';
   const dateNaissance = doc.dateNaissance ? toISODate(doc.dateNaissance) : '';
   const dateDelivrance = doc.dateDelivrance ? toISODate(doc.dateDelivrance) : '';
-  const numeroPiece = (doc.numeroPiece || '').trim();
   const typePiece = (doc.typePiece || '').trim();
+
+  // Si c'est un visiteur sans pièce d'identité
+  if (typePiece === "Sans pièce d'identité" || typePiece.toUpperCase().includes('SANS')) {
+    return {
+      statut: 'conforme',
+      score: 100,
+      errors: [],
+      warnings: ["Visiteur enregistré sans pièce d'identité"],
+      isFiable: true,
+      pays,
+    };
+  }
 
   // 1. Expiration check
   if (dateExp) {
@@ -283,6 +294,7 @@ export const PAYS_OPTIONS = [
 export function normalizeTypePiece(value) {
   if (!value) return "Carte Nationale d'Identité";
   const v = String(value).toUpperCase().trim();
+  if (v.includes('SANS') || v.includes('NO_ID') || v.includes('AUCUN')) return "Sans pièce d'identité";
   if (v === 'CNI' || v.includes('NATIONAL') || v.includes('IDENTIT')) return "Carte Nationale d'Identité";
   if (v === 'PASSEPORT' || v.includes('PASSPORT') || v === 'P') return "Passeport";
   if (v === 'PERMIS' || v.includes('DRIVER') || v.includes('CONDUIRE')) return "Permis de Conduire";

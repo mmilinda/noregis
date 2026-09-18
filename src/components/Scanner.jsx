@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Calendar, Building2, User, CreditCard, CheckCircle2, Camera, Clock, MapPin, Ruler, CalendarDays, UserRound, FileText, Home, MapPinned, Phone, Globe, Award, FileBadge, Car } from 'lucide-react';
+import { Calendar, Building2, User, UserX, CreditCard, CheckCircle2, Camera, Clock, MapPin, Ruler, CalendarDays, UserRound, FileText, Home, MapPinned, Phone, Globe, Award, FileBadge, Car } from 'lucide-react';
 import { Btn, Input, Select, Modal } from './UI';
 import { ScanPanel } from './ScanPanel';
 import { useApp } from '../context/useAppState';
@@ -55,6 +55,7 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
 
   const activeDocType = normalizeTypePiece(formData.typePiece);
   const docCategory = 
+    activeDocType === "Sans pièce d'identité" ? 'NO_ID' :
     activeDocType === 'Passeport' ? 'PASSPORT' :
     activeDocType === 'Permis de Conduire' ? 'LICENSE' :
     (activeDocType === 'Carte Consulaire' || activeDocType === 'Carte de Séjour') ? 'CONSULAR' :
@@ -69,7 +70,7 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
     const err = {};
     if (!formData.nom.trim()) err.nom = t.required_field;
     if (!formData.prenom.trim()) err.prenom = t.required_field;
-    if (!formData.numeroPiece.trim()) err.numeroPiece = t.required_field;
+    if (docCategory !== 'NO_ID' && !formData.numeroPiece.trim()) err.numeroPiece = t.required_field;
     if (!formData.typePiece) err.typePiece = t.select_type;
     if (!formData.personneVisitee.trim()) err.personneVisitee = t.required_field;
     if (!formData.service) err.service = t.select_service;
@@ -80,8 +81,12 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
+      const finalNumPiece = (docCategory === 'NO_ID' && !formData.numeroPiece.trim())
+        ? `SP_${Date.now().toString().slice(-6)}`
+        : formData.numeroPiece;
       onSubmit({
         ...formData,
+        numeroPiece: finalNumPiece,
         type: 'person',
         statut: 'present',
         heureSortie: null,
@@ -160,6 +165,7 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
         {/* Formulaire Dynamique selon le document */}
         <div className="space-y-4">
           <div className={`p-3.5 rounded-xl border-2 transition-all flex items-center justify-between gap-3 ${
+            docCategory === 'NO_ID' ? 'bg-orange-500/10 border-orange-500/30 text-orange-900 dark:text-orange-200' :
             docCategory === 'PASSPORT' ? 'bg-blue-500/10 border-blue-500/30 text-blue-900 dark:text-blue-200' :
             docCategory === 'LICENSE' ? 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200' :
             docCategory === 'CONSULAR' ? 'bg-purple-500/10 border-purple-500/30 text-purple-900 dark:text-purple-200' :
@@ -167,6 +173,7 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
             'bg-brand-blue-light/30 border-brand-blue-bright/30 text-slate-900 dark:text-white'
           }`}>
             <div className="flex items-center gap-2.5">
+              {docCategory === 'NO_ID' && <UserX size={20} className="text-orange-500 shrink-0" />}
               {docCategory === 'PASSPORT' && <Globe size={20} className="text-blue-500 shrink-0" />}
               {docCategory === 'LICENSE' && <Award size={20} className="text-amber-500 shrink-0" />}
               {docCategory === 'CONSULAR' && <FileBadge size={20} className="text-purple-500 shrink-0" />}
@@ -174,13 +181,41 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
               {docCategory === 'CNI' && <CreditCard size={20} className="text-brand-blue-bright shrink-0" />}
               <div>
                 <h4 className="text-xs font-black uppercase tracking-wider">Formulaire {activeDocType}</h4>
-                <p className="text-[10px] font-bold opacity-80 mt-0.5">Adapté au document détecté</p>
+                <p className="text-[10px] font-bold opacity-80 mt-0.5">
+                  {docCategory === 'NO_ID' ? "Visiteur enregistré sans présentation de pièce d'identité" : "Adapté au document détecté"}
+                </p>
               </div>
             </div>
             <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg bg-white/80 dark:bg-slate-800 border border-current/20 shadow-sm shrink-0">
               {activeDocType}
             </span>
           </div>
+
+          {/* SANS PIÈCE D'IDENTITÉ */}
+          {docCategory === 'NO_ID' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <Input label={t.name} id="nom" required value={formData.nom} onChange={handleChange('nom')} error={errors.nom} placeholder="NOM" />
+                <Input label={t.firstname} id="prenom" required value={formData.prenom} onChange={handleChange('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="N° Pièce / Réf (Optionnel)" id="numeroPiece" value={formData.numeroPiece} onChange={handleChange('numeroPiece')} placeholder="Auto (Ex: SP_123456)..." />
+                <Select label={t.id_type} id="typePiece" required value={formData.typePiece} onChange={handleChange('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Numéro de Téléphone" id="telephone" value={formData.telephone} onChange={handleChange('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
+                <Select label="Sexe" id="sexe" value={formData.sexe} onChange={handleChange('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label={t.birth_date} id="dateNaissance" type="date" value={formData.dateNaissance} onChange={handleChange('dateNaissance')} icon={Calendar} />
+                <Select label="Nationalité / Pays" id="pays" value={formData.pays} onChange={handleChange('pays')} options={PAYS_OPTIONS} icon={Globe} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Adresse du domicile" id="adresseDomicile" value={formData.adresseDomicile} onChange={handleChange('adresseDomicile')} icon={MapPinned} placeholder="Adresse..." />
+                <Input label="Profession" id="profession" value={formData.profession} onChange={handleChange('profession')} placeholder="Profession..." />
+              </div>
+            </div>
+          )}
 
           {/* PASSEPORT */}
           {docCategory === 'PASSPORT' && (

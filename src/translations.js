@@ -205,6 +205,7 @@ export const TRANSLATIONS = {
       residence: "Carte de Séjour",
       consular: "Carte Consulaire",
       carte_grise: "Carte Grise",
+      no_id: "Sans pièce d'identité",
       other: "Autre Document Officiel"
     },
     vehicle_types: {
@@ -420,6 +421,8 @@ export const TRANSLATIONS = {
       license: "Driver's License",
       residence: "Residence Card",
       consular: "Consular Card",
+      carte_grise: "Vehicle Registration Card",
+      no_id: "Without ID Document",
       other: "Other Official Doc"
     },
     vehicle_types: {
@@ -634,6 +637,8 @@ export const TRANSLATIONS = {
       license: "رخصة سياقة",
       residence: "بطاقة إقامة",
       consular: "بطاقة قنصلية",
+      carte_grise: "بطاقة رمادية",
+      no_id: "بدون وثيقة هوية",
       other: "وثيقة رسمية أخرى"
     },
     vehicle_types: {
