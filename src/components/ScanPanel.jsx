@@ -452,39 +452,34 @@ export function ScanPanel({ mode = 'person', onDataExtracted, onClose }) {
     fileInputRef.current?.click();
   };
 
-  // Validation finale (fusion sécurisée sans écraser le Recto par le Verso)
   const handleFinalValidation = () => {
     const rData = (extractedRef.current.recto && Object.keys(extractedRef.current.recto).length > 0) ? extractedRef.current.recto : rectoData;
     const vData = (extractedRef.current.verso && Object.keys(extractedRef.current.verso).length > 0) ? extractedRef.current.verso : versoData;
     const rImg = extractedRef.current.rectoImg || rectoImg;
     const vImg = extractedRef.current.versoImg || versoImg;
 
-    const merged = { ...rData };
-    
-    for (const [key, val] of Object.entries(vData || {})) {
-      if (val !== undefined && val !== null && String(val).trim() !== '') {
-        merged[key] = val;
-      }
+    // Priorité absolue au RECTO pour l'identité principale (Nom, Prénom, N° Pièce, Type, Catégories)
+    const merged = { ...vData, ...rData };
+
+    // Le VERSO apporte en priorité : le NIN, l'adresse, et la date d'expiration si manquante
+    if (vData.nin && String(vData.nin).trim()) {
+      merged.nin = String(vData.nin).trim();
+    }
+    if (vData.adresseDomicile && String(vData.adresseDomicile).trim()) {
+      merged.adresseDomicile = String(vData.adresseDomicile).trim();
+    }
+    if (vData.dateExpiration && !merged.dateExpiration) {
+      merged.dateExpiration = vData.dateExpiration;
     }
 
-    merged.nom = rData.nom || vData.nom || merged.nom || '';
-    merged.prenom = rData.prenom || vData.prenom || merged.prenom || '';
-    merged.pays = rData.pays || vData.pays || merged.pays || 'Sénégal';
-    merged.dateNaissance = rData.dateNaissance || vData.dateNaissance || merged.dateNaissance || '';
-    merged.lieuNaissance = rData.lieuNaissance || vData.lieuNaissance || merged.lieuNaissance || '';
-    merged.numeroPiece = rData.numeroPiece || vData.numeroPiece || merged.numeroPiece || '';
-    merged.typePiece = rData.typePiece || vData.typePiece || merged.typePiece || '';
-    if (merged.typePiece === 'Passeport' || String(merged.typePiece).toUpperCase().includes('PASSPORT')) {
+    if (merged.typePiece === 'Passeport' || String(merged.typePiece || '').toUpperCase().includes('PASSPORT')) {
       merged.nin = merged.numeroPiece || merged.nin || '';
-    } else {
-      merged.nin = vData.nin || rData.nin || merged.nin || '';
     }
-    merged.dateExpiration = vData.dateExpiration || rData.dateExpiration || merged.dateExpiration || '';
-    merged.dateDelivrance = vData.dateDelivrance || rData.dateDelivrance || merged.dateDelivrance || '';
+
     merged.photo = rImg;
     merged.photoVerso = vImg;
 
-    console.log('🚀 Final validation sending merged data:', merged);
+    console.log('🚀 Validation finale données fusionnées :', merged);
     if (onDataExtracted) {
       onDataExtracted(merged, rImg, true);
     }
