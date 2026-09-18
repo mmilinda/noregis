@@ -36,6 +36,7 @@ export function verifierFiabiliteDocument(doc = {}) {
 
   const pays = (doc.pays || doc.country || doc.nationalite || 'Sénégal').trim();
   const nin = (doc.nin || '').trim();
+  const numeroPiece = (doc.numeroPiece || doc.documentNumber || doc.immatriculation || '').trim();
   const sexe = (doc.sexe || '').toUpperCase().slice(0, 1);
   const dateExp = doc.dateExpiration ? toISODate(doc.dateExpiration) : '';
   const dateNaissance = doc.dateNaissance ? toISODate(doc.dateNaissance) : '';

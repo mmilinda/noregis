@@ -40,33 +40,35 @@ const formatDateForInput = (dateStr) => {
 
 
 // ========== FORMULAIRE PERSONNE ==========
-function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
+function PersonForm({ initial = {}, onSubmit, onCancel, loading, t: translations }) {
   const { state } = useApp();
+  const t = translations || TRANSLATIONS[state?.settings?.language || 'fr'] || TRANSLATIONS.fr;
+  const init = initial || {};
   const now = new Date();
   const [form, setForm] = useState({
-    nom: initial.nom || '',
-    prenom: initial.prenom || '',
-    nin: initial.nin || '',
-    pays: initial.pays || 'Sénégal',
-    dateNaissance: initial.dateNaissance || '',
-    sexe: initial.sexe || '',
-    taille: initial.taille || '',
-    lieuNaissance: initial.lieuNaissance || '',
-    numeroPiece: initial.numeroPiece || '',
-    typePiece: initial.typePiece || '',
-    categoriesPermis: initial.categoriesPermis || '',
-    dateDelivrance: initial.dateDelivrance || '',
-    dateExpiration: initial.dateExpiration || '',
-    telephone: initial.telephone || '',
-    centreEnregistrement: initial.centreEnregistrement || '',
-    adresseDomicile: initial.adresseDomicile || '',
-    personneVisitee: initial.personneVisitee || '',
-    service: initial.service || '',
-    motif: initial.motif || '',
-    profession: initial.profession || '',
+    nom: init.nom || '',
+    prenom: init.prenom || '',
+    nin: init.nin || '',
+    pays: init.pays || 'Sénégal',
+    dateNaissance: init.dateNaissance || '',
+    sexe: init.sexe || '',
+    taille: init.taille || '',
+    lieuNaissance: init.lieuNaissance || '',
+    numeroPiece: init.numeroPiece || '',
+    typePiece: init.typePiece || '',
+    categoriesPermis: init.categoriesPermis || '',
+    dateDelivrance: init.dateDelivrance || '',
+    dateExpiration: init.dateExpiration || '',
+    telephone: init.telephone || '',
+    centreEnregistrement: init.centreEnregistrement || '',
+    adresseDomicile: init.adresseDomicile || '',
+    personneVisitee: init.personneVisitee || '',
+    service: init.service || '',
+    motif: init.motif || '',
+    profession: init.profession || '',
     heureEntree: now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0'),
-    date: now.toLocaleDateString(t.locale || 'fr-FR'),
-    ...initial,
+    date: now.toLocaleDateString(t?.locale || 'fr-FR'),
+    ...init,
   });
   const [errors, setErrors] = useState({});
   const [scanOpen, setScanOpen] = useState(false);
