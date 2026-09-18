@@ -218,7 +218,12 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
-      onSubmit({ ...form, type: 'person', statut: 'present', heureSortie: null, photo: docImage });
+      const cleanSexe = (form.sexe === 'M' || form.sexe === 'F') ? form.sexe : (
+        String(form.sexe || '').toUpperCase().startsWith('M') ? 'M' : (
+          String(form.sexe || '').toUpperCase().startsWith('F') ? 'F' : null
+        )
+      );
+      onSubmit({ ...form, sexe: cleanSexe, type: 'person', statut: 'present', heureSortie: null, photo: docImage });
     }
   };
 
