@@ -233,9 +233,12 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
     setForm(prev => {
       const rawType = data.typePiece || data.documentType;
       const isPermis = !!(data.categoriesPermis || (rawType && (String(rawType).toUpperCase().includes('PERMIS') || String(rawType).toUpperCase().includes('DRIVER') || String(rawType).toUpperCase().includes('CONDUIRE'))));
-      const extractedTypePiece = isPermis ? "Permis de Conduire" : (rawType ? normalizeTypePiece(rawType) : prev.typePiece);
+      const isPassport = !!(rawType && (String(rawType).toUpperCase().includes('PASSPORT') || String(rawType).toUpperCase().includes('PASSEPORT')));
+      const extractedTypePiece = isPermis ? "Permis de Conduire" : (isPassport ? "Passeport" : (rawType ? normalizeTypePiece(rawType) : prev.typePiece));
+      
       const extractedNumPiece = (data.numeroPiece || data.documentNumber || data.cardNumber) ? String(data.numeroPiece || data.documentNumber || data.cardNumber).trim() : prev.numeroPiece;
-      const extractedNin = (data.nin || data.idNumber || data.ninNumber) ? String(data.nin || data.idNumber || data.ninNumber).trim() : prev.nin;
+      const rawNin = (data.nin || data.idNumber || data.ninNumber) ? String(data.nin || data.idNumber || data.ninNumber).trim() : '';
+      const extractedNin = rawNin || (isPassport ? extractedNumPiece : (extractedNumPiece && /^\d{13,15}$/.test(extractedNumPiece) ? extractedNumPiece : prev.nin));
 
       return {
         ...prev,
