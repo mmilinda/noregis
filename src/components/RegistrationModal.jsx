@@ -362,7 +362,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
         {/* Formulaire Dynamique par Type de Document */}
         <div className="space-y-4">
           {/* Badge d'identification du document */}
-          <div className={`p-3.5 rounded-xl border-2 transition-all flex items-center justify-between gap-3 ${
+          <div className={`p-3 sm:p-3.5 rounded-xl border-2 transition-all flex items-center justify-between gap-2 sm:gap-3 ${
             docCategory === 'NO_ID' ? 'bg-orange-500/10 border-orange-500/30 text-orange-900 dark:text-orange-200' :
             docCategory === 'PASSPORT' ? 'bg-blue-500/10 border-blue-500/30 text-blue-900 dark:text-blue-200' :
             docCategory === 'LICENSE' ? 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200' :
@@ -370,47 +370,47 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
             docCategory === 'CARTE_GRISE' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200' :
             'bg-brand-blue-light/30 border-brand-blue-bright/30 text-slate-900 dark:text-white'
           }`}>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
               {docCategory === 'NO_ID' && <UserX size={20} className="text-orange-500 shrink-0" />}
               {docCategory === 'PASSPORT' && <Globe size={20} className="text-blue-500 shrink-0" />}
               {docCategory === 'LICENSE' && <Award size={20} className="text-amber-500 shrink-0" />}
               {docCategory === 'CONSULAR' && <FileBadge size={20} className="text-purple-500 shrink-0" />}
               {docCategory === 'CARTE_GRISE' && <Car size={20} className="text-emerald-500 shrink-0" />}
               {docCategory === 'CNI' && <CreditCard size={20} className="text-brand-blue-bright shrink-0" />}
-              <div>
-                <h4 className="text-xs font-black uppercase tracking-wider">
+              <div className="min-w-0 flex-1">
+                <h4 className="text-xs font-black uppercase tracking-wider truncate">
                   Formulaire {activeDocType}
                 </h4>
-                <p className="text-[10px] font-bold opacity-80 mt-0.5">
-                  {docCategory === 'NO_ID' ? "Visiteur enregistré sans présentation de pièce d'identité" : "Formulaire adapté automatiquement au document détecté"}
+                <p className="text-[10px] font-bold opacity-80 mt-0.5 truncate">
+                  {docCategory === 'NO_ID' ? "Visiteur enregistré sans pièce d'identité" : "Formulaire adapté automatiquement au document"}
                 </p>
               </div>
             </div>
-            <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg bg-white/80 dark:bg-slate-800 border border-current/20 shadow-sm shrink-0">
-              {activeDocType}
+            <span className="text-[9px] sm:text-[10px] font-black uppercase px-2 py-1 rounded-lg bg-white/80 dark:bg-slate-800 border border-current/20 shadow-sm shrink-0 truncate max-w-[90px] sm:max-w-none text-center">
+              {activeDocType === "Carte Nationale d'Identité" ? 'CNI' : activeDocType}
             </span>
           </div>
 
           {/* CAS 0 : FORMULAIRE SANS PIÈCE D'IDENTITÉ */}
           {docCategory === 'NO_ID' && (
             <div className="space-y-4 animate-in fade-in duration-300">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label={t.name} id="nom" required value={form.nom} onChange={set('nom')} error={errors.nom} placeholder="NOM" />
                 <FormInput label={t.firstname} id="prenom" required value={form.prenom} onChange={set('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label="N° Pièce / Réf (Optionnel)" id="numeroPiece" value={form.numeroPiece} onChange={set('numeroPiece')} placeholder="Auto (Ex: SP_123456)..." />
                 <FormSelect label={t.id_type} id="typePiece" required value={form.typePiece} onChange={set('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label="Numéro de Téléphone" id="telephone" value={form.telephone} onChange={set('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
                 <FormSelect label="Sexe" id="sexe" value={form.sexe} onChange={set('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label={t.birth_date} id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
                 <FormSelect label="Nationalité / Pays" id="pays" value={form.pays} onChange={set('pays')} options={PAYS_OPTIONS} icon={Globe} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label="Adresse du domicile" id="adresseDomicile" value={form.adresseDomicile} onChange={set('adresseDomicile')} icon={MapPinned} placeholder="Adresse..." />
                 <FormInput label="Profession" id="profession" value={form.profession} onChange={set('profession')} placeholder="Profession..." />
               </div>
@@ -420,23 +420,23 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
           {/* CAS 1 : FORMULAIRE PASSEPORT */}
           {docCategory === 'PASSPORT' && (
             <div className="space-y-4 animate-in fade-in duration-300">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label={t.name} id="nom" required value={form.nom} onChange={set('nom')} error={errors.nom} placeholder="NOM" />
                 <FormInput label={t.firstname} id="prenom" required value={form.prenom} onChange={set('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label="N° de Passeport" id="numeroPiece" required value={form.numeroPiece} onChange={(e) => { set('numeroPiece')(e); setForm(f => ({ ...f, nin: e.target.value })); }} error={errors.numeroPiece} placeholder="Ex: A12345678" />
                 <FormSelect label={t.id_type} id="typePiece" required value={form.typePiece} onChange={set('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormSelect label="Pays d'émission" id="pays" value={form.pays} onChange={set('pays')} options={PAYS_OPTIONS} icon={Globe} />
                 <FormInput label="Date d'expiration passeport" id="dateExpiration" type="date" value={form.dateExpiration} onChange={set('dateExpiration')} icon={CalendarDays} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label={t.birth_date} id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
                 <FormSelect label="Sexe" id="sexe" value={form.sexe} onChange={set('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label="Lieu de naissance" id="lieuNaissance" value={form.lieuNaissance} onChange={set('lieuNaissance')} icon={MapPin} placeholder="Ville / Pays" />
                 <FormInput label="Numéro de Téléphone" id="telephone" value={form.telephone} onChange={set('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
               </div>
@@ -446,31 +446,31 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
           {/* CAS 2 : FORMULAIRE PERMIS DE CONDUIRE */}
           {docCategory === 'LICENSE' && (
             <div className="space-y-4 animate-in fade-in duration-300">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label={t.name} id="nom" required value={form.nom} onChange={set('nom')} error={errors.nom} placeholder="NOM" />
                 <FormInput label={t.firstname} id="prenom" required value={form.prenom} onChange={set('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label="N° Permis de Conduire" id="numeroPiece" required value={form.numeroPiece} onChange={set('numeroPiece')} error={errors.numeroPiece} placeholder="Ex: 12345678" />
                 <FormSelect label={t.id_type} id="typePiece" required value={form.typePiece} onChange={set('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label="Catégories Permis (ex: A, B, C...)" id="categoriesPermis" value={form.categoriesPermis || ''} onChange={set('categoriesPermis')} placeholder="Ex: B, C" />
                 <FormSelect label="Pays d'émission" id="pays" value={form.pays} onChange={set('pays')} options={PAYS_OPTIONS} icon={Globe} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label={t.birth_date} id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
                 <FormSelect label="Sexe" id="sexe" value={form.sexe} onChange={set('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label="Lieu de naissance" id="lieuNaissance" value={form.lieuNaissance} onChange={set('lieuNaissance')} icon={MapPin} placeholder="Ville / Lieu" />
                 <FormInput label="NIN (Numéro d'Identité)" id="nin" value={form.nin} onChange={handleNinInputChange} icon={CreditCard} placeholder="NIN (si présent)..." />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label="Date de délivrance" id="dateDelivrance" type="date" value={form.dateDelivrance} onChange={set('dateDelivrance')} icon={CalendarDays} />
                 <FormInput label="Date d'expiration" id="dateExpiration" type="date" value={form.dateExpiration} onChange={set('dateExpiration')} icon={CalendarDays} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label="Centre / Lieu de délivrance" id="centreEnregistrement" value={form.centreEnregistrement} onChange={set('centreEnregistrement')} icon={Home} placeholder="Centre / Préfecture" />
                 <FormInput label="Numéro de Téléphone" id="telephone" value={form.telephone} onChange={set('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
               </div>
@@ -480,23 +480,23 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
           {/* CAS 3 : FORMULAIRE CARTE CONSULAIRE / SÉJOUR */}
           {docCategory === 'CONSULAR' && (
             <div className="space-y-4 animate-in fade-in duration-300">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label={t.name} id="nom" required value={form.nom} onChange={set('nom')} error={errors.nom} placeholder="NOM" />
                 <FormInput label={t.firstname} id="prenom" required value={form.prenom} onChange={set('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label={`N° ${activeDocType}`} id="numeroPiece" required value={form.numeroPiece} onChange={set('numeroPiece')} error={errors.numeroPiece} placeholder="N° Document..." />
                 <FormSelect label={t.id_type} id="typePiece" required value={form.typePiece} onChange={set('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormSelect label="Pays d'origine / Émission" id="pays" value={form.pays} onChange={set('pays')} options={PAYS_OPTIONS} icon={Globe} />
                 <FormInput label="NIN / Code Identité" id="nin" value={form.nin} onChange={set('nin')} icon={CreditCard} placeholder="NIN / Code Consulaire..." />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label={t.birth_date} id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
                 <FormSelect label="Sexe" id="sexe" value={form.sexe} onChange={set('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label="Date de délivrance" id="dateDelivrance" type="date" value={form.dateDelivrance} onChange={set('dateDelivrance')} icon={CalendarDays} />
                 <FormInput label="Date d'expiration" id="dateExpiration" type="date" value={form.dateExpiration} onChange={set('dateExpiration')} icon={CalendarDays} />
               </div>
@@ -509,23 +509,23 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
           {/* CAS 4 : FORMULAIRE CARTE GRISE */}
           {docCategory === 'CARTE_GRISE' && (
             <div className="space-y-4 animate-in fade-in duration-300">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label="Plaque d'Immatriculation" id="immatriculation" required value={form.immatriculation || form.numeroPiece} onChange={(e) => { set('immatriculation')(e); set('numeroPiece')(e); }} error={errors.numeroPiece} placeholder="Ex: DK-1234-AB" className="uppercase font-mono" />
                 <FormSelect label={t.id_type} id="typePiece" required value={form.typePiece} onChange={set('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label={t.brand} id="marque" value={form.marque || ''} onChange={set('marque')} placeholder="Toyota, Peugeot..." />
                 <FormInput label={t.model} id="modele" value={form.modele || ''} onChange={set('modele')} placeholder="Hilux, 308..." />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label={t.color} id="couleur" value={form.couleur || ''} onChange={set('couleur')} placeholder="Gris, Noir..." />
                 <FormSelect label="Genre / Type Véhicule" id="typeVehicule" value={form.typeVehicule || ''} onChange={set('typeVehicule')} options={['Berline', 'SUV / 4x4', 'Pick-up', 'Camion', 'Moto', 'Bus', 'Autre']} placeholder="Choisir..." />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label="Nom Titulaire / Conducteur" id="nom" value={form.nom} onChange={set('nom')} placeholder="NOM" />
                 <FormInput label="Prénom Titulaire / Conducteur" id="prenom" value={form.prenom} onChange={set('prenom')} placeholder="Prénom" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label="Centre d'immatriculation" id="centreEnregistrement" value={form.centreEnregistrement} onChange={set('centreEnregistrement')} icon={Home} placeholder="Centre d'enregistrement" />
                 <FormInput label="Téléphone Conducteur" id="telephone" value={form.telephone} onChange={set('telephone')} icon={Phone} placeholder="Ex: +221 77 123 45 67" />
               </div>
@@ -535,15 +535,15 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
           {/* CAS 5 : FORMULAIRE CNI / DOCUMENT STANDARD */}
           {docCategory === 'CNI' && (
             <div className="space-y-4 animate-in fade-in duration-300">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label={t.name} id="nom" required value={form.nom} onChange={set('nom')} error={errors.nom} placeholder="NOM" />
                 <FormInput label={t.firstname} id="prenom" required value={form.prenom} onChange={set('prenom')} error={errors.prenom} placeholder={t.firstname_placeholder} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput label={t.id_number} id="numeroPiece" required value={form.numeroPiece} onChange={set('numeroPiece')} error={errors.numeroPiece} placeholder={t.number_placeholder} />
                 <FormSelect label={t.id_type} id="typePiece" required value={form.typePiece} onChange={set('typePiece')} options={Object.values(t.id_types)} placeholder={t.choose} error={errors.typePiece} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormSelect label="Pays d'émission" id="pays" value={form.pays} onChange={set('pays')} options={PAYS_OPTIONS} icon={Globe} />
                 <FormInput label={t.birth_date} id="dateNaissance" type="date" value={form.dateNaissance} onChange={set('dateNaissance')} icon={Calendar} />
               </div>
@@ -553,12 +553,12 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2 ml-1">
                   <FileText size={14} /> Informations détaillées CNI
                 </p>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <FormSelect label="Sexe" id="sexe" value={form.sexe} onChange={set('sexe')} options={[{ value: 'M', label: 'Masculin' }, { value: 'F', label: 'Féminin' }]} placeholder="Non renseigné" />
                   <FormInput label="Taille (cm)" id="taille" type="number" value={form.taille} onChange={set('taille')} icon={Ruler} placeholder="Taille" />
                 </div>
                 <FormInput label="Lieu de naissance" id="lieuNaissance" value={form.lieuNaissance} onChange={set('lieuNaissance')} icon={MapPin} placeholder="Lieu de naissance" />
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <FormInput label="Date de délivrance" id="dateDelivrance" type="date" value={form.dateDelivrance} onChange={set('dateDelivrance')} icon={CalendarDays} />
                   <FormInput label="Date d'expiration" id="dateExpiration" type="date" value={form.dateExpiration} onChange={set('dateExpiration')} icon={CalendarDays} />
                 </div>
@@ -637,7 +637,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t }) {
           </p>
           <div className="flex flex-col gap-4">
             <FormInput label={t.host_name} id="personneVisitee" required value={form.personneVisitee} onChange={set('personneVisitee')} error={errors.personneVisitee} icon={User} placeholder={t.host_placeholder} />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <FormSelect label={t.service_dept} id="service" required value={form.service} onChange={set('service')} options={SERVICES} placeholder={t.select} error={errors.service} icon={Building} />
               <FormInput label={t.visit_reason} id="motif" required value={form.motif} onChange={set('motif')} placeholder={t.reason_placeholder} />
             </div>

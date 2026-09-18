@@ -135,13 +135,13 @@ export function CardHeader({ title, subtitle, actions, icon: Icon }) {
 ============================================ */
 export function FormInput({ label, id, error, icon: Icon, required, ...props }) {
   return (
-    <div className="flex flex-col gap-1 w-full">
+    <div className="flex flex-col gap-1 w-full min-w-0">
       {label && (
-        <label htmlFor={id} className="text-[10px] font-extrabold text-slate-400 dark:text-slate-300 uppercase tracking-wider ml-1">
+        <label htmlFor={id} className="text-[10px] font-extrabold text-slate-400 dark:text-slate-300 uppercase tracking-wider ml-1 truncate">
           {label} {required && <span className="text-brand-red">*</span>}
         </label>
       )}
-      <div className="relative group">
+      <div className="relative group w-full min-w-0">
         {Icon && (
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue-bright transition-colors">
             <Icon size={14} />
@@ -150,7 +150,7 @@ export function FormInput({ label, id, error, icon: Icon, required, ...props }) 
         <input
           id={id}
           className={`
-            w-full bg-slate-50 dark:bg-slate-900 border-2 rounded-lg py-3 px-3.5 text-base md:text-xs font-black outline-none transition-all
+            w-full bg-slate-50 dark:bg-slate-900 border-2 rounded-lg py-2.5 sm:py-3 px-3.5 text-xs font-black outline-none transition-all truncate
             ${Icon ? 'pl-10' : ''}
             ${error ? 'border-brand-red bg-red-50 dark:bg-red-900/10' : 'border-slate-200 dark:border-slate-800 focus:border-brand-blue-bright focus:bg-white dark:focus:bg-slate-800'}
             text-slate-900 dark:text-slate-100 placeholder:text-slate-400 placeholder:font-normal
@@ -165,13 +165,13 @@ export function FormInput({ label, id, error, icon: Icon, required, ...props }) 
 
 export function FormSelect({ label, id, options = [], error, icon: Icon, required, ...props }) {
   return (
-    <div className="flex flex-col gap-1 w-full">
+    <div className="flex flex-col gap-1 w-full min-w-0">
       {label && (
-        <label htmlFor={id} className="text-[10px] font-extrabold text-slate-400 dark:text-slate-300 uppercase tracking-wider ml-1">
+        <label htmlFor={id} className="text-[10px] font-extrabold text-slate-400 dark:text-slate-300 uppercase tracking-wider ml-1 truncate">
           {label} {required && <span className="text-brand-red">*</span>}
         </label>
       )}
-      <div className="relative group">
+      <div className="relative group w-full min-w-0">
         {Icon && (
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue-bright transition-colors z-10">
             <Icon size={14} />
@@ -180,7 +180,7 @@ export function FormSelect({ label, id, options = [], error, icon: Icon, require
         <select
           id={id}
           className={`
-            w-full bg-white dark:bg-slate-900 border-2 rounded-lg py-3 px-3.5 pr-9 text-base md:text-xs font-black outline-none transition-all appearance-none cursor-pointer
+            w-full bg-white dark:bg-slate-900 border-2 rounded-lg py-2.5 sm:py-3 px-3.5 pr-9 text-xs font-black outline-none transition-all appearance-none cursor-pointer truncate
             ${Icon ? 'pl-10' : ''}
             ${error ? 'border-brand-red bg-red-50 dark:bg-red-900/10' : 'border-slate-300 dark:border-slate-700 focus:border-brand-blue-bright'}
             text-black dark:text-white
@@ -202,7 +202,7 @@ export function FormSelect({ label, id, options = [], error, icon: Icon, require
             );
           })}
         </select>
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 z-10">
           <ChevronRight size={14} className="rotate-90" />
         </div>
       </div>
@@ -210,6 +210,9 @@ export function FormSelect({ label, id, options = [], error, icon: Icon, require
     </div>
   );
 }
+
+export const Input = FormInput;
+export const Select = FormSelect;
 
 /* ============================================
    BADGES
