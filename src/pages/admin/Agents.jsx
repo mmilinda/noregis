@@ -6,7 +6,7 @@ import {
   Building2, Briefcase, Award, Calendar, Edit3,
   ShieldAlert, RefreshCw, AlertTriangle, Bell,
   CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, QrCode, Loader2, History,
-  UserCheck, UserX, AlertCircle,
+  UserCheck, UserX, AlertCircle, Key,
 } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
 import { Card, CardHeader, Btn, FormInput, FormSelect, Modal } from '../../components/UI';
@@ -14,6 +14,7 @@ import { authService } from '../../services/authService';
 import { entrepriseService } from '../../services/entrepriseService';
 import { demandeService } from '../../services/demandeService';
 import { TRANSLATIONS } from '../../translations';
+import { ResetPasswordModal } from '../../components/ResetPasswordModal';
 
 const EMPTY_FORM = {
   email: '', password: '', prenom: '', nom: '', role: 'AGENT',
@@ -56,6 +57,9 @@ export default function AgentsManagement({ isMobile }) {
   const [editForm, setEditForm]   = useState({});
   const [editError, setEditError] = useState('');
   const [saving, setSaving]       = useState(false);
+
+  // Reset password modal
+  const [resetUser, setResetUser] = useState(null);
 
   // ── Demandes state ────────────────────────────────────────
   const [demandes, setDemandes]           = useState([]);
@@ -491,6 +495,14 @@ export default function AgentsManagement({ isMobile }) {
                               >
                                 <QrCode size={13} />
                               </button>
+                              <button
+                                type="button"
+                                onClick={() => setResetUser(agent)}
+                                className="p-1.5 rounded-lg text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 transition-all shrink-0"
+                                title="Réinitialiser le mot de passe"
+                              >
+                                <Key size={13} />
+                              </button>
                               {!self && (
                                 <>
                                   {currentStatus !== 'ACTIF' && (
@@ -813,6 +825,16 @@ export default function AgentsManagement({ isMobile }) {
           </div>
         </div>
       </Modal>
+
+      {/* Modal Réinitialisation Mot de passe */}
+      {resetUser && (
+        <ResetPasswordModal
+          isOpen={!!resetUser}
+          onClose={() => setResetUser(null)}
+          user={resetUser}
+          notify={notify}
+        />
+      )}
     </div>
   );
 }

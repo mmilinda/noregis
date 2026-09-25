@@ -159,6 +159,15 @@ export const authService = {
     return { success: true, message: 'Statut du compte mis à jour localement.' };
   },
 
+  resetPassword: async (id, nouveauMotDePasse) => {
+    try {
+      const res = await api.put(`/api/auth/users/${id}/reset-password`, { nouveauMotDePasse });
+      return res;
+    } catch (err) {
+      return api.put(`/api/auth/users/${id}`, { password: nouveauMotDePasse, motDePasse: nouveauMotDePasse });
+    }
+  },
+
   updateUserStatus: async (id, targetStatus) => {
     return authService.toggleUserStatus(id, targetStatus);
   },

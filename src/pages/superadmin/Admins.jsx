@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Plus, Search, Mail, Lock, User, Phone, Building2, Briefcase, RefreshCw, CheckCircle2, Edit, History, UserCheck, UserX, AlertCircle } from 'lucide-react';
+import { Shield, Plus, Search, Mail, Lock, User, Phone, Building2, Briefcase, RefreshCw, CheckCircle2, Edit, History, UserCheck, UserX, AlertCircle, Key } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
 import { Card, CardHeader, Btn, FormInput, FormSelect, Modal } from '../../components/UI';
 import { authService } from '../../services/authService';
 import { entrepriseService } from '../../services/entrepriseService';
 import { TRANSLATIONS } from '../../translations';
+import { ResetPasswordModal } from '../../components/ResetPasswordModal';
 
 const EMPTY_ADMIN = {
   email: '',
@@ -43,6 +44,9 @@ export default function AdminsManagement({ isMobile }) {
   const [editForm, setEditForm] = useState(null);
   const [editing, setEditing] = useState(false);
   const [editError, setEditError] = useState('');
+
+  // Modal reset password
+  const [resetUser, setResetUser] = useState(null);
 
   const fetchAdminsAndEntreprises = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -321,6 +325,15 @@ export default function AdminsManagement({ isMobile }) {
                           <Edit size={13} />
                         </button>
 
+                        <button
+                          type="button"
+                          onClick={() => setResetUser(adm)}
+                          className="p-1.5 rounded-lg text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 transition-all shrink-0"
+                          title="Réinitialiser le mot de passe"
+                        >
+                          <Key size={13} />
+                        </button>
+
                         {currentStatus !== 'ACTIF' && (
                           <button
                             type="button"
@@ -552,6 +565,16 @@ export default function AdminsManagement({ isMobile }) {
             </div>
           </form>
         </Modal>
+      )}
+
+      {/* Modal Réinitialisation Mot de passe */}
+      {resetUser && (
+        <ResetPasswordModal
+          isOpen={!!resetUser}
+          onClose={() => setResetUser(null)}
+          user={resetUser}
+          notify={notify}
+        />
       )}
     </div>
   );
