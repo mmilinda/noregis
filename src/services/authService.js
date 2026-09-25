@@ -110,31 +110,36 @@ export const authService = {
     localStorage.removeItem('user');
   },
 
-  getAllUsers: async (entrepriseIdFilter = null) => {
+  getAllUsers: async (entrepriseIdFilter = null, roleFilter = null) => {
     try {
-      const res = await api.get('/api/auth/users');
+      const params = new URLSearchParams();
+      if (entrepriseIdFilter) params.append('entrepriseId', entrepriseIdFilter);
+      if (roleFilter) params.append('role', roleFilter);
+      const query = params.toString() ? '?' + params.toString() : '';
+
+      const res = await api.get(`/api/auth/users${query}`);
       let list = res?.utilisateurs || (Array.isArray(res) ? res : []);
       if (list && list.length > 0) {
         saveStoredUsers(list);
-        if (entrepriseIdFilter) {
-          list = list.filter(u => u.entrepriseId === entrepriseIdFilter);
-        }
-        return { utilisateurs: list };
       }
+      return { utilisateurs: list };
     } catch (err) {
       console.warn('Erreur API getAllUsers, fallback local:', err.message);
     }
 
     let users = getStoredUsers();
     if (entrepriseIdFilter) {
-      users = users.filter(u => u.entrepriseId === entrepriseIdFilter);
+      users = users.filter(u => String(u.entrepriseId?._id || u.entrepriseId) === String(entrepriseIdFilter));
+    }
+    if (roleFilter) {
+      users = users.filter(u => u.role === roleFilter);
     }
     return { utilisateurs: users };
   },
 
   toggleUserStatus: async (id, targetStatus = null) => {
     try {
-      const res = await api.put(`/api/auth/users/${id}/toggle`, { statut: targetStatus });
+      const res = await api.put(`/api/auth/users/${id}/toggle`, { statutCompte: targetStatus });
       if (res && res.success) {
         return res;
       }
@@ -145,8 +150,8 @@ export const authService = {
     const current = getStoredUsers();
     const updated = current.map(u => {
       if (u.id === id || u._id === id) {
-        const nextStatus = targetStatus ? targetStatus : (u.statut === 'ACTIF' ? 'SUSPENDU' : 'ACTIF');
-        return { ...u, statut: nextStatus };
+        const nextStatus = targetStatus ? targetStatus : (u.statutCompte === 'ACTIF' ? 'SUSPENDU' : 'ACTIF');
+        return { ...u, statutCompte: nextStatus, isActif: nextStatus === 'ACTIF' };
       }
       return u;
     });

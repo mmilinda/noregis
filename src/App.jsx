@@ -10,8 +10,8 @@ import { visitService } from './services/visitService';
 import { PublicScan } from './pages/PublicScan';
 import { connectSocket, disconnectSocket } from './services/socketService';
 
-// SuperAdmin Pages
-import SuperAdminDashboard from './pages/superadmin/Dashboard';
+// SuperAdmin Components
+import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import EntreprisesManagement from './pages/superadmin/Entreprises';
 import ComptesManagement from './pages/superadmin/Comptes';
 
@@ -108,8 +108,8 @@ function AppInner() {
     );
   }
 
-  const role = state.agent?.role;
-  const isSuperAdmin = role === 'SUPERADMIN';
+  const role = (state.agent?.role || state.user?.role || '').toUpperCase();
+  const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'SUPERADMIN';
   const isAdmin = role === 'ADMIN';
 
   return (
@@ -122,8 +122,9 @@ function AppInner() {
               isSuperAdmin ? <SuperAdminDashboard /> : (isAdmin ? <AdminDashboard /> : <AgentDashboard />)
             }
           />
-          {isSuperAdmin && <Route path="/entreprises" element={<EntreprisesManagement />} />}
-          {isSuperAdmin && <Route path="/comptes" element={<ComptesManagement />} />}
+          {isSuperAdmin && <Route path="/superadmin" element={<SuperAdminDashboard />} />}
+          {isSuperAdmin && <Route path="/entreprises" element={<SuperAdminDashboard />} />}
+          {isSuperAdmin && <Route path="/comptes" element={<SuperAdminDashboard />} />}
           {isAdmin && <Route path="/agents" element={<AgentsManagement />} />}
           <Route path="/history" element={<AgentHistorique />} />
           <Route path="/settings" element={<Parametres />} />

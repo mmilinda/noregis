@@ -302,15 +302,17 @@ export function Layout({ children, activeTab, onTabChange }) {
   const { state } = useApp();
   const t = TRANSLATIONS[state.settings?.language || 'fr'];
 
-  const role = state.agent?.role;
+  const role = (state.agent?.role || state.user?.role || '').toUpperCase();
+  const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'SUPERADMIN';
+  const isAdmin = role === 'ADMIN';
+
   const navItems = [
-    { id: 'dashboard', label: role === 'SUPERADMIN' ? 'Supervision' : t.dashboard, icon: LayoutDashboard },
-    ...(role === 'SUPERADMIN' ? [
-      { id: 'entreprises', label: t.entreprises || 'Entreprises', icon: Building2 },
-      { id: 'comptes', label: t.comptes || 'Comptes & Accès', icon: Users },
+    { id: 'dashboard', label: isSuperAdmin ? 'Supervision Global' : t.dashboard, icon: LayoutDashboard },
+    ...(isSuperAdmin ? [
+      { id: 'superadmin', label: 'Dashboard SuperAdmin', icon: Shield },
     ] : []),
-    ...(role === 'ADMIN' ? [
-      { id: 'agents', label: t.agents || 'Agents', icon: Shield },
+    ...(isAdmin ? [
+      { id: 'agents', label: t.agents || 'Agents & Accès', icon: Users },
     ] : []),
     { id: 'history', label: t.history, icon: History },
     { id: 'settings', label: t.settings, icon: Settings },
