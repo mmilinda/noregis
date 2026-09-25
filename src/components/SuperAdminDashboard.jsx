@@ -41,12 +41,16 @@ export function SuperAdminDashboard({ t }) {
       const [resEnt, resUsr, resVis] = await Promise.all([
         entrepriseService.getAll().catch(() => ({ entreprises: [] })),
         authService.getAllUsers().catch(() => ({ utilisateurs: [] })),
-        visitService.getAllVisits().catch(() => ({ visites: [] })),
+        visitService.getAll().catch(() => ({ visites: [] })),
       ]);
 
-      setEntreprises(resEnt.entreprises || []);
-      setUtilisateurs(resUsr.utilisateurs || []);
-      setVisitesGlobales(resVis.visites || []);
+      const rawEnt = resEnt.entreprises || (Array.isArray(resEnt) ? resEnt : []);
+      const rawUsr = resUsr.utilisateurs || (Array.isArray(resUsr) ? resUsr : []);
+      const rawVis = resVis.visites || (Array.isArray(resVis) ? resVis : []);
+
+      setEntreprises(rawEnt);
+      setUtilisateurs(rawUsr);
+      setVisitesGlobales(rawVis);
     } catch (err) {
       console.error('Erreur chargement SuperAdmin:', err);
     } finally {
@@ -57,6 +61,23 @@ export function SuperAdminDashboard({ t }) {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Compute live real-time statistics
+  const totalEntreprises = entreprises.length;
+  const activeEntreprises = entreprises.filter(e => (e.statut || 'ACTIF') === 'ACTIF').length;
+  const suspendedEntreprises = entreprises.filter(e => (e.statut || '') === 'SUSPENDU').length;
+
+  const totalAdmins = utilisateurs.filter(u => String(u.role || '').toUpperCase() === 'ADMIN').length;
+  const activeAdmins = utilisateurs.filter(u => String(u.role || '').toUpperCase() === 'ADMIN' && (u.statutCompte || 'ACTIF') === 'ACTIF').length;
+
+  const totalAgents = utilisateurs.filter(u => String(u.role || '').toUpperCase() === 'AGENT').length;
+  const activeAgents = utilisateurs.filter(u => String(u.role || '').toUpperCase() === 'AGENT' && (u.statutCompte || 'ACTIF') === 'ACTIF').length;
+
+  const totalVisites = visitesGlobales.length;
+  const ongoingVisites = visitesGlobales.filter(v => {
+    const s = String(v.statut || '').toUpperCase();
+    return s === 'EN_COURS' || s === 'PRESENT' || (!v.heureSortie && s !== 'SORTI' && s !== 'TERMINÉ');
+  }).length;
 
   // Handler Création Entreprise
   const handleCreateEntreprise = async (e) => {
@@ -165,38 +186,50 @@ export function SuperAdminDashboard({ t }) {
         </div>
 
         {/* Cartes Statistiques Globales */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/10">
-          <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/10">
+          <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 flex flex-col justify-between">
             <div className="flex items-center justify-between text-slate-400 mb-1">
               <span className="text-[11px] font-black uppercase tracking-wider">Entreprises</span>
               <Building2 size={18} className="text-brand-blue-bright" />
             </div>
-            <p className="text-2xl font-black text-white">{entreprises.length}</p>
-          </div>
-          <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10">
-            <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-[11px] font-black uppercase tracking-wider">Admins Boîtes</span>
-              <Users size={18} className="text-purple-400" />
-            </div>
-            <p className="text-2xl font-black text-white">
-              {utilisateurs.filter(u => u.role === 'ADMIN').length}
+            <p className="text-2xl font-black text-white">{totalEntreprises}</p>
+            <p className="text-[10px] text-slate-300 mt-1.5 font-bold flex items-center gap-1.5 flex-wrap">
+              <span className="text-emerald-400 font-extrabold">{activeEntreprises} active(s)</span>
+              {suspendedEntreprises > 0 && <span className="text-amber-400 font-extrabold">• {suspendedEntreprises} suspendue(s)</span>}
             </p>
           </div>
-          <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10">
+
+          <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-400 mb-1">
+              <span className="text-[11px] font-black uppercase tracking-wider">Admins Boîtes</span>
+              <Shield size={18} className="text-purple-400" />
+            </div>
+            <p className="text-2xl font-black text-white">{totalAdmins}</p>
+            <p className="text-[10px] text-slate-300 mt-1.5 font-bold">
+              <span className="text-purple-300 font-extrabold">{activeAdmins} compte(s) actif(s)</span>
+            </p>
+          </div>
+
+          <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 flex flex-col justify-between">
             <div className="flex items-center justify-between text-slate-400 mb-1">
               <span className="text-[11px] font-black uppercase tracking-wider">Agents Sécurité</span>
               <Users size={18} className="text-brand-green-bright" />
             </div>
-            <p className="text-2xl font-black text-white">
-              {utilisateurs.filter(u => u.role === 'AGENT').length}
+            <p className="text-2xl font-black text-white">{totalAgents}</p>
+            <p className="text-[10px] text-slate-300 mt-1.5 font-bold">
+              <span className="text-emerald-400 font-extrabold">{activeAgents} agent(s) actif(s)</span>
             </p>
           </div>
-          <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10">
+
+          <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 flex flex-col justify-between">
             <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-[11px] font-black uppercase tracking-wider">Visites Enregistrées</span>
+              <span className="text-[11px] font-black uppercase tracking-wider">Visites Globales</span>
               <CheckCircle2 size={18} className="text-amber-400" />
             </div>
-            <p className="text-2xl font-black text-white">{visitesGlobales.length}</p>
+            <p className="text-2xl font-black text-white">{totalVisites}</p>
+            <p className="text-[10px] text-slate-300 mt-1.5 font-bold">
+              <span className="text-amber-300 font-extrabold">{ongoingVisites} actuellement sur site</span>
+            </p>
           </div>
         </div>
       </div>

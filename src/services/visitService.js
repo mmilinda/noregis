@@ -5,6 +5,10 @@ export const visitService = {
     return api.get('/api/visites');
   },
 
+  getAllVisits: async () => {
+    return api.get('/api/visites');
+  },
+
   getOngoing: async () => {
     return api.get('/api/visites/en-cours');
   },
