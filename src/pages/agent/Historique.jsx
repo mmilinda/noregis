@@ -47,6 +47,24 @@ export default function AgentHistorique({ isMobile }) {
     }
   }, [isSuperAdmin]);
 
+  useEffect(() => {
+    let ignore = false;
+    const loadVisits = async () => {
+      try {
+        const data = await visitService.getAll();
+        if (!ignore && data?.visites) {
+          const rawVisits = data.visites || [];
+          const uniqueVisits = Array.from(new Map(rawVisits.map(v => [v._id || v.id, v])).values());
+          dispatch({ type: 'SET_VISITORS', payload: uniqueVisits });
+        }
+      } catch (err) {
+        console.error("Erreur chargement historique:", err);
+      }
+    };
+    loadVisits();
+    return () => { ignore = true; };
+  }, [dispatch]);
+
   const all = state.visitors.filter(v => {
     const userObj = state.agent || state.user || {};
     const role = (userObj.role || '').toUpperCase();
@@ -67,20 +85,23 @@ export default function AgentHistorique({ isMobile }) {
       if (entId && vEntId && String(vEntId) !== String(entId)) return false;
     } else {
       // AGENT: voit uniquement son propre historique de visites enregistrées
-      const currentId = userObj.id || userObj._id;
-      const currentEmail = userObj.email;
-      const currentNom = `${userObj.prenom || ''} ${userObj.nom || ''}`.trim().toLowerCase();
+      if (!state.isAuthenticated) {
+        const currentId = userObj._id || userObj.id;
+        const currentEmail = userObj.email;
+        const currentNom = `${userObj.prenom || ''} ${userObj.nom || ''}`.trim().toLowerCase();
 
-      const vAgentId = v.agentId?._id || v.agentId || v.createdBy || v.agent?._id || v.agent?.id;
-      const vEmail = v.agentEmail || v.agent?.email;
-      const vAuthorName = String(v.enregistrePar || v.agentNom || '').toLowerCase();
+        const vAgentId = v.agentId?._id || v.agentId || v.createdBy || v.agent?._id || v.agent?.id;
+        const vEmail = v.agentEmail || v.agent?.email;
+        const vAuthorName = String(v.enregistrePar || v.agentNom || '').toLowerCase();
 
-      const isOwn = (
-        (vAgentId && currentId && String(vAgentId) === String(currentId)) ||
-        (vEmail && currentEmail && String(vEmail).toLowerCase() === String(currentEmail).toLowerCase()) ||
-        (vAuthorName && currentNom && currentNom.length > 2 && vAuthorName.includes(currentNom))
-      );
-      if (!isOwn) return false;
+        const isOwn = (
+          (vAgentId && currentId && String(vAgentId) === String(currentId)) ||
+          (vEmail && currentEmail && String(vEmail).toLowerCase() === String(currentEmail).toLowerCase()) ||
+          (vAuthorName && currentNom && currentNom.length > 2 && vAuthorName.includes(currentNom)) ||
+          (!vAgentId && !vEmail && !vAuthorName)
+        );
+        if (!isOwn) return false;
+      }
     }
 
     // 2. Date filtering

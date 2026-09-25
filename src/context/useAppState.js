@@ -25,7 +25,7 @@ export const initialState = {
   scanMode: null,     
   isAuthenticated: !!storedToken,
   agent: parsedUser ? {
-    ...AGENT_PROFILE,
+    id: parsedUser._id || parsedUser.id,
     ...parsedUser,
     initials: (parsedUser.prenom?.[0] || 'A') + (parsedUser.nom?.[0] || 'U')
   } : AGENT_PROFILE,
@@ -110,11 +110,11 @@ export function reducer(state, action) {
       return { 
         ...state, 
         isAuthenticated: true, 
-        agent: {
-          ...AGENT_PROFILE,
-          ...action.payload,
-          ...(action.payload.user || {})
-        } 
+        agent: user ? {
+          id: user._id || user.id,
+          ...user,
+          initials: (user.prenom?.[0] || 'A') + (user.nom?.[0] || 'U')
+        } : null 
       };
     }
     case 'LOGOUT':

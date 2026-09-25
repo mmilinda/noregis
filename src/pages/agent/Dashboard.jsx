@@ -72,7 +72,12 @@ export default function AgentDashboard({ isMobile }) {
     }
 
     // Role === 'AGENT': Agent sees ONLY visitors registered by him/herself
-    const currentId = userObj.id || userObj._id;
+    // If state.isAuthenticated is true, backend API (/api/visites) already applies agentId perimeter
+    if (state.isAuthenticated) {
+      return visitors;
+    }
+
+    const currentId = userObj._id || userObj.id;
     const currentEmail = userObj.email;
     const currentNom = `${userObj.prenom || ''} ${userObj.nom || ''}`.trim().toLowerCase();
 
@@ -84,9 +89,10 @@ export default function AgentDashboard({ isMobile }) {
       if (vAgentId && currentId && String(vAgentId) === String(currentId)) return true;
       if (vEmail && currentEmail && String(vEmail).toLowerCase() === String(currentEmail).toLowerCase()) return true;
       if (vAuthorName && currentNom && vAuthorName.length > 2 && vAuthorName.includes(currentNom)) return true;
+      if (!vAgentId && !vEmail && !vAuthorName) return true;
       return false;
     });
-  }, [visitors, state.agent, state.user]);
+  }, [visitors, state.agent, state.user, state.isAuthenticated]);
 
   const stats = useMemo(() => {
     const total = myVisitors.length;
