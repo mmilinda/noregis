@@ -303,19 +303,20 @@ export function SuperAdminDashboard({ t }) {
             <table className="w-full min-w-[700px] table-fixed text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                  <th className="py-2.5 px-3 w-[28%]">Code & Entreprise</th>
-                  <th className="py-2.5 px-2 w-[22%]">Contact</th>
-                  <th className="py-2.5 px-2 w-[10%]">Admins</th>
-                  <th className="py-2.5 px-2 w-[10%]">Agents</th>
-                  <th className="py-2.5 px-2 w-[10%]">Visites</th>
-                  <th className="py-2.5 px-2 w-[10%]">Statut</th>
+                  <th className="py-2.5 px-3 w-[22%]">Code & Entreprise</th>
+                  <th className="py-2.5 px-2 w-[16%]">Secteur</th>
+                  <th className="py-2.5 px-2 w-[20%]">Contact</th>
+                  <th className="py-2.5 px-2 w-[8%]">Admins</th>
+                  <th className="py-2.5 px-2 w-[8%]">Agents</th>
+                  <th className="py-2.5 px-2 w-[8%]">Visites</th>
+                  <th className="py-2.5 px-2 w-[8%]">Statut</th>
                   <th className="py-2.5 px-3 w-[10%] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
                 {filteredEntreprises.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-slate-400">
+                    <td colSpan={8} className="py-8 text-center text-slate-400">
                       Aucune entreprise trouvée.
                     </td>
                   </tr>
@@ -329,6 +330,9 @@ export function SuperAdminDashboard({ t }) {
                           </span>
                           <span className="truncate text-xs">{ent.nom}</span>
                         </div>
+                      </td>
+                      <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 font-bold min-w-0">
+                        <p className="truncate text-xs">{ent.secteur || 'Maritime / Logistique'}</p>
                       </td>
                       <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 min-w-0">
                         <p className="truncate text-xs">{ent.telephone || '—'}</p>
