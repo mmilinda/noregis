@@ -185,50 +185,62 @@ export function SuperAdminDashboard({ t }) {
           </div>
         </div>
 
-        {/* Cartes Statistiques Globales */}
+        {/* Cartes Statistiques Globales (Colorées & Dynamiques) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/10">
-          <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 flex flex-col justify-between">
-            <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-[11px] font-black uppercase tracking-wider">Entreprises</span>
-              <Building2 size={18} className="text-brand-blue-bright" />
+          {/* Card 1 : Entreprises (Bleu) */}
+          <div className="bg-gradient-to-br from-blue-600/30 via-sky-600/20 to-blue-950/50 backdrop-blur-md rounded-2xl p-4 border border-blue-400/30 shadow-lg shadow-blue-500/10 flex flex-col justify-between hover:scale-[1.02] transition-all duration-300">
+            <div className="flex items-center justify-between text-blue-200 mb-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-blue-200/90">Entreprises</span>
+              <div className="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/40 flex items-center justify-center text-blue-300 shadow-inner">
+                <Building2 size={20} />
+              </div>
             </div>
-            <p className="text-2xl font-black text-white">{totalEntreprises}</p>
-            <p className="text-[10px] text-slate-300 mt-1.5 font-bold flex items-center gap-1.5 flex-wrap">
-              <span className="text-emerald-400 font-extrabold">{activeEntreprises} active(s)</span>
-              {suspendedEntreprises > 0 && <span className="text-amber-400 font-extrabold">• {suspendedEntreprises} suspendue(s)</span>}
+            <p className="text-3xl font-black text-white tracking-tight">{totalEntreprises}</p>
+            <p className="text-[10px] text-blue-100/90 mt-2 font-bold flex items-center gap-1.5 flex-wrap">
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-extrabold">{activeEntreprises} active(s)</span>
+              {suspendedEntreprises > 0 && <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 font-extrabold">• {suspendedEntreprises} suspendue(s)</span>}
             </p>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 flex flex-col justify-between">
-            <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-[11px] font-black uppercase tracking-wider">Admins Boîtes</span>
-              <Shield size={18} className="text-purple-400" />
+          {/* Card 2 : Admins Boîtes (Violet) */}
+          <div className="bg-gradient-to-br from-purple-600/30 via-indigo-600/20 to-purple-950/50 backdrop-blur-md rounded-2xl p-4 border border-purple-400/30 shadow-lg shadow-purple-500/10 flex flex-col justify-between hover:scale-[1.02] transition-all duration-300">
+            <div className="flex items-center justify-between text-purple-200 mb-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-purple-200/90">Admins Boîtes</span>
+              <div className="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-400/40 flex items-center justify-center text-purple-300 shadow-inner">
+                <Shield size={20} />
+              </div>
             </div>
-            <p className="text-2xl font-black text-white">{totalAdmins}</p>
-            <p className="text-[10px] text-slate-300 mt-1.5 font-bold">
-              <span className="text-purple-300 font-extrabold">{activeAdmins} compte(s) actif(s)</span>
+            <p className="text-3xl font-black text-white tracking-tight">{totalAdmins}</p>
+            <p className="text-[10px] text-purple-100/90 mt-2 font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/30 font-extrabold">{activeAdmins} compte(s) actif(s)</span>
             </p>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 flex flex-col justify-between">
-            <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-[11px] font-black uppercase tracking-wider">Agents Sécurité</span>
-              <Users size={18} className="text-brand-green-bright" />
+          {/* Card 3 : Agents Sécurité (Émeraude / Vert) */}
+          <div className="bg-gradient-to-br from-emerald-600/30 via-teal-600/20 to-emerald-950/50 backdrop-blur-md rounded-2xl p-4 border border-emerald-400/30 shadow-lg shadow-emerald-500/10 flex flex-col justify-between hover:scale-[1.02] transition-all duration-300">
+            <div className="flex items-center justify-between text-emerald-200 mb-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-200/90">Agents Sécurité</span>
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shadow-inner">
+                <Users size={20} />
+              </div>
             </div>
-            <p className="text-2xl font-black text-white">{totalAgents}</p>
-            <p className="text-[10px] text-slate-300 mt-1.5 font-bold">
-              <span className="text-emerald-400 font-extrabold">{activeAgents} agent(s) actif(s)</span>
+            <p className="text-3xl font-black text-white tracking-tight">{totalAgents}</p>
+            <p className="text-[10px] text-emerald-100/90 mt-2 font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-extrabold">{activeAgents} agent(s) actif(s)</span>
             </p>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 flex flex-col justify-between">
-            <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-[11px] font-black uppercase tracking-wider">Visites Globales</span>
-              <CheckCircle2 size={18} className="text-amber-400" />
+          {/* Card 4 : Visites Globales (Ambre / Orange) */}
+          <div className="bg-gradient-to-br from-amber-600/30 via-orange-600/20 to-amber-950/50 backdrop-blur-md rounded-2xl p-4 border border-amber-400/30 shadow-lg shadow-amber-500/10 flex flex-col justify-between hover:scale-[1.02] transition-all duration-300">
+            <div className="flex items-center justify-between text-amber-200 mb-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-amber-200/90">Visites Globales</span>
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-inner">
+                <CheckCircle2 size={20} />
+              </div>
             </div>
-            <p className="text-2xl font-black text-white">{totalVisites}</p>
-            <p className="text-[10px] text-slate-300 mt-1.5 font-bold">
-              <span className="text-amber-300 font-extrabold">{ongoingVisites} actuellement sur site</span>
+            <p className="text-3xl font-black text-white tracking-tight">{totalVisites}</p>
+            <p className="text-[10px] text-amber-100/90 mt-2 font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 font-extrabold">{ongoingVisites} actuellement sur site</span>
             </p>
           </div>
         </div>
