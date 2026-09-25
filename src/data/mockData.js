@@ -319,3 +319,51 @@ export const AGENT_PROFILE = {
   dateArrivee: '14 Janvier 2022',
   photo: null,
 };
+
+export const MOCK_SECTEURS = [
+  {
+    id: 'SEC-001',
+    _id: 'SEC-001',
+    code: 'SEC-001',
+    nom: 'Maritime / Logistique',
+    description: 'Port, transport maritime, transit, fret et manutention portuaire',
+    statut: 'ACTIF',
+    createdAt: '2025-01-10T10:00:00.000Z',
+  },
+  {
+    id: 'SEC-002',
+    _id: 'SEC-002',
+    code: 'SEC-002',
+    nom: 'Énergie',
+    description: 'Électricité, hydrocarbures, pétrole, gaz et énergies renouvelables',
+    statut: 'ACTIF',
+    createdAt: '2025-01-15T10:00:00.000Z',
+  },
+  {
+    id: 'SEC-003',
+    _id: 'SEC-003',
+    code: 'SEC-003',
+    nom: 'Télécommunications',
+    description: 'Opérateurs télécom, FAI, téléphonie et services numériques',
+    statut: 'ACTIF',
+    createdAt: '2025-01-20T10:00:00.000Z',
+  },
+  {
+    id: 'SEC-004',
+    _id: 'SEC-004',
+    code: 'SEC-004',
+    nom: 'Banque & Finance',
+    description: 'Établissements bancaires, microfinance et assurances',
+    statut: 'ACTIF',
+    createdAt: '2025-02-01T10:00:00.000Z',
+  },
+  {
+    id: 'SEC-005',
+    _id: 'SEC-005',
+    code: 'SEC-005',
+    nom: 'Santé & Pharmacie',
+    description: 'Hôpitaux, cliniques, laboratoires et industrie pharmaceutique',
+    statut: 'ACTIF',
+    createdAt: '2025-02-10T10:00:00.000Z',
+  },
+];

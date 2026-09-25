@@ -4,6 +4,7 @@ import { Building2, Plus, Search, Phone, Mail, MapPin, Briefcase, RefreshCw, Che
 import { useApp } from '../../context/useAppState';
 import { Card, CardHeader, Btn, FormInput, FormSelect, Modal } from '../../components/UI';
 import { entrepriseService } from '../../services/entrepriseService';
+import { secteurService } from '../../services/secteurService';
 import { TRANSLATIONS } from '../../translations';
 
 const EMPTY_ENTREPRISE = {
@@ -22,6 +23,7 @@ export default function EntreprisesManagement({ isMobile }) {
   const t = TRANSLATIONS[state.settings?.language || 'fr'];
 
   const [entreprises, setEntreprises] = useState([]);
+  const [secteursOptions, setSecteursOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatut, setFilterStatut] = useState('ALL');
@@ -41,8 +43,19 @@ export default function EntreprisesManagement({ isMobile }) {
   const fetchEntreprises = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const data = await entrepriseService.getAll();
+      const [data, secRes] = await Promise.all([
+        entrepriseService.getAll(),
+        secteurService.getAll().catch(() => ({ secteurs: [] })),
+      ]);
       setEntreprises(Array.isArray(data) ? data : (data?.entreprises || []));
+      
+      const activeSecteurs = (secRes?.secteurs || [])
+        .filter(s => s.statut === 'ACTIF')
+        .map(s => s.nom);
+      
+      const defaultSecteurs = ['Maritime / Logistique', 'Énergie', 'Télécommunications', 'Banque / Finance', 'Santé', 'Administration Publique', 'Industrie', 'Autre'];
+      const combined = Array.from(new Set([...activeSecteurs, ...defaultSecteurs]));
+      setSecteursOptions(combined);
     } catch (err) {
       notify('error', 'Erreur lors du chargement des entreprises.');
     } finally {
@@ -360,7 +373,7 @@ export default function EntreprisesManagement({ isMobile }) {
               id="secteur"
               value={createForm.secteur}
               onChange={e => setCreateForm(f => ({ ...f, secteur: e.target.value }))}
-              options={['Maritime / Logistique', 'Énergie', 'Télécommunications', 'Banque / Finance', 'Santé', 'Administration Publique', 'Industrie', 'Autre']}
+              options={secteursOptions.length > 0 ? secteursOptions : ['Maritime / Logistique', 'Énergie', 'Télécommunications', 'Banque / Finance', 'Santé', 'Administration Publique', 'Industrie', 'Autre']}
             />
             <FormSelect
               label="Statut Initial"
@@ -441,7 +454,7 @@ export default function EntreprisesManagement({ isMobile }) {
               id="edit_secteur"
               value={editForm.secteur}
               onChange={e => setEditForm(f => ({ ...f, secteur: e.target.value }))}
-              options={['Maritime / Logistique', 'Énergie', 'Télécommunications', 'Banque / Finance', 'Santé', 'Administration Publique', 'Industrie', 'Autre']}
+              options={secteursOptions.length > 0 ? secteursOptions : ['Maritime / Logistique', 'Énergie', 'Télécommunications', 'Banque / Finance', 'Santé', 'Administration Publique', 'Industrie', 'Autre']}
             />
 
             <FormInput

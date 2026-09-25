@@ -13,6 +13,7 @@ import { connectSocket, disconnectSocket } from './services/socketService';
 // SuperAdmin Components
 import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import EntreprisesManagement from './pages/superadmin/Entreprises';
+import SecteursManagement from './pages/superadmin/Secteurs';
 import AdminsManagement from './pages/superadmin/Admins';
 import ComptesManagement from './pages/superadmin/Comptes';
 
@@ -123,6 +124,7 @@ function AppInner() {
           />
           {isSuperAdmin && <Route path="/superadmin" element={<SuperAdminDashboard />} />}
           {isSuperAdmin && <Route path="/entreprises" element={<EntreprisesManagement />} />}
+          {isSuperAdmin && <Route path="/secteurs" element={<SecteursManagement />} />}
           {isSuperAdmin && <Route path="/admins" element={<AdminsManagement />} />}
           {(isSuperAdmin || isAdmin) && <Route path="/agents" element={<AgentsManagement />} />}
           {isSuperAdmin && <Route path="/comptes" element={<ComptesManagement />} />}

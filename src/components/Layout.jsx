@@ -310,6 +310,7 @@ export function Layout({ children, activeTab, onTabChange }) {
     { id: 'dashboard', label: isSuperAdmin ? 'Supervision Global' : t.dashboard, icon: LayoutDashboard },
     ...(isSuperAdmin ? [
       { id: 'entreprises', label: 'Entreprises & Boîtes', icon: Building2 },
+      { id: 'secteurs', label: "Secteurs d'Activité", icon: Briefcase },
       { id: 'admins', label: 'Admins de Boîte', icon: Shield },
       { id: 'agents', label: 'Agents de Sécurité', icon: Users },
       { id: 'comptes', label: 'Tous les Comptes', icon: UserIcon },
