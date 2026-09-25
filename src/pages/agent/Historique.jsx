@@ -15,11 +15,31 @@ export default function AgentHistorique({ isMobile }) {
   const [dateFilter, setDateFilter] = useState('');
 
   const all = state.visitors.filter(v => {
+    // 1. Filtrage par rôle et propriétaire
+    if (state.agent?.role === 'AGENT') {
+      const currentId = state.agent.id || state.agent._id;
+      const currentEmail = state.agent.email;
+      const currentNom = `${state.agent.prenom || ''} ${state.agent.nom || ''}`.trim().toLowerCase();
+
+      const vAgentId = v.agentId || v.createdBy || v.agent?._id || v.agent?.id;
+      const vEmail = v.agentEmail || v.agent?.email;
+      const vAuthorName = String(v.enregistrePar || v.agentNom || '').toLowerCase();
+
+      const isOwn = (
+        (vAgentId && currentId && String(vAgentId) === String(currentId)) ||
+        (vEmail && currentEmail && String(vEmail).toLowerCase() === String(currentEmail).toLowerCase()) ||
+        (vAuthorName && currentNom && vAuthorName.includes(currentNom)) ||
+        (!vAgentId && !vEmail && !vAuthorName)
+      );
+      if (!isOwn) return false;
+    } else if (state.agent?.role === 'ADMIN' && state.agent?.entrepriseId) {
+      if (v.entrepriseId && v.entrepriseId !== state.agent.entrepriseId) return false;
+    }
+
+    // 2. Filtrage par date
     if (!dateFilter) return true;
-    
     const filterDateStr = new Date(dateFilter).toLocaleDateString('fr-FR');
     const visitorDate = v.date || (v.createdAt ? new Date(v.createdAt).toLocaleDateString('fr-FR') : '');
-    
     return visitorDate === filterDateStr;
   });
 

@@ -65,14 +65,20 @@ export default function AgentsManagement({ isMobile }) {
   const fetchAgents = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await authService.getAllUsers();
-      setAgents(res?.utilisateurs || (Array.isArray(res) ? res : []));
+      const res = await authService.getAllUsers(state.agent?.entrepriseId);
+      let list = res?.utilisateurs || (Array.isArray(res) ? res : []);
+      if (state.agent?.entrepriseId) {
+        list = list.filter(u => u.entrepriseId === state.agent.entrepriseId);
+      }
+      // Seuls les agents de l'entreprise sont gérés par l'Admin
+      list = list.filter(u => u.role === 'AGENT' || u._id === state.agent?.id || u.id === state.agent?.id);
+      setAgents(list);
     } catch (err) {
       notify('error', err.message || 'Impossible de récupérer la liste des agents.');
     } finally {
       setLoading(false);
     }
-  }, [notify]);
+  }, [notify, state.agent]);
 
   const fetchDemandes = useCallback(async () => {
     setLoadingDemandes(true);
@@ -91,11 +97,11 @@ export default function AgentsManagement({ isMobile }) {
     if (activeTab === 'demandes') fetchDemandes();
   }, [activeTab, fetchDemandes]);
 
-  // ── Toggle active ─────────────────────────────────────────
-  const handleToggleStatus = async (id) => {
+  // ── Toggle active / suspend / deactivate ──────────────────
+  const handleToggleStatus = async (id, targetStatus = null) => {
     try {
-      const res = await authService.toggleUserStatus(id);
-      notify('success', res.message || 'Statut mis à jour.');
+      const res = await authService.updateUserStatus(id, targetStatus);
+      notify('success', res.message || 'Statut de l\'agent mis à jour.');
       fetchAgents(true);
     } catch (err) {
       notify('error', err.message || 'Impossible de modifier le statut.');
@@ -112,7 +118,13 @@ export default function AgentsManagement({ isMobile }) {
     setCreateError('');
     setCreating(true);
     try {
-      await authService.createUser({ ...createForm, password: createForm.password });
+      await authService.createUser({
+        ...createForm,
+        password: createForm.password,
+        role: 'AGENT',
+        entrepriseId: state.agent?.entrepriseId,
+        entrepriseNom: state.agent?.entrepriseNom,
+      });
       notify('success', 'Nouvel agent créé avec succès !');
       setCreateOpen(false);
       setCreateForm(EMPTY_FORM);
@@ -388,32 +400,43 @@ export default function AgentsManagement({ isMobile }) {
                           </td>
                           <td className="p-4">
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                              agent.isActif !== false
-                                ? 'bg-brand-green-light text-brand-green'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                              (agent.statut === 'ACTIF' || agent.isActif !== false)
+                                ? 'bg-emerald-500/10 text-emerald-600'
+                                : (agent.statut === 'SUSPENDU' ? 'bg-amber-500/10 text-amber-600' : 'bg-rose-500/10 text-rose-600')
                             }`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${agent.isActif !== false ? 'bg-brand-green animate-pulse' : 'bg-slate-400'}`} />
-                              {agent.isActif !== false ? 'Actif' : 'Inactif'}
+                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                (agent.statut === 'ACTIF' || agent.isActif !== false) ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                              }`} />
+                              {agent.statut || (agent.isActif !== false ? 'ACTIF' : 'DESACTIVE')}
                             </span>
                           </td>
                           <td className="p-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
+                            <div className="flex items-center justify-end gap-1.5 flex-wrap sm:flex-nowrap">
                               <Btn variant="ghost" size="sm" icon={Edit3} onClick={() => openEdit(agent)} className="text-brand-blue hover:bg-brand-blue/10">
                                 Modifier
                               </Btn>
                               <Btn variant="ghost" size="sm" icon={QrCode} onClick={() => handleGenerateQr(agent)} className="text-brand-blue hover:bg-brand-blue/10">
                                 QR
                               </Btn>
-                              <Btn
-                                variant={agent.isActif !== false ? 'ghost' : 'success'}
-                                size="sm"
-                                icon={Power}
-                                disabled={self}
-                                onClick={() => handleToggleStatus(agent._id)}
-                                className={agent.isActif !== false ? 'text-brand-red hover:bg-brand-red/10' : 'text-brand-green hover:bg-brand-green/10'}
-                              >
-                                {agent.isActif !== false ? 'Désactiver' : 'Activer'}
-                              </Btn>
+                              {!self && (
+                                <>
+                                  {agent.statut !== 'ACTIF' && (
+                                    <Btn variant="success" size="sm" onClick={() => handleToggleStatus(agent._id || agent.id, 'ACTIF')} className="text-[10px] font-black uppercase">
+                                      Activer
+                                    </Btn>
+                                  )}
+                                  {agent.statut !== 'SUSPENDU' && (
+                                    <Btn variant="warning" size="sm" onClick={() => handleToggleStatus(agent._id || agent.id, 'SUSPENDU')} className="text-[10px] font-black uppercase">
+                                      Suspendre
+                                    </Btn>
+                                  )}
+                                  {agent.statut !== 'DESACTIVE' && (
+                                    <Btn variant="danger" size="sm" onClick={() => handleToggleStatus(agent._id || agent.id, 'DESACTIVE')} className="text-[10px] font-black uppercase">
+                                      Désactiver
+                                    </Btn>
+                                  )}
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>

@@ -44,7 +44,11 @@ export default function AdminDashboard({ isMobile }) {
     if (!isRefresh) setLoading(true);
     try {
       const data = await visitService.getAll();
-      const rawVisits = data.visites || [];
+      let rawVisits = data.visites || [];
+      const userEntId = state.agent?.entrepriseId;
+      if (userEntId && state.agent?.role !== 'SUPERADMIN') {
+        rawVisits = rawVisits.filter(v => !v.entrepriseId || v.entrepriseId === userEntId || v.entrepriseNom === state.agent?.entrepriseNom);
+      }
       // Deduplicate
       const uniqueVisits = Array.from(new Map(rawVisits.map(v => [v._id || v.id, v])).values());
       setVisits(uniqueVisits);

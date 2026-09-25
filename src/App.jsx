@@ -10,6 +10,11 @@ import { visitService } from './services/visitService';
 import { PublicScan } from './pages/PublicScan';
 import { connectSocket, disconnectSocket } from './services/socketService';
 
+// SuperAdmin Pages
+import SuperAdminDashboard from './pages/superadmin/Dashboard';
+import EntreprisesManagement from './pages/superadmin/Entreprises';
+import ComptesManagement from './pages/superadmin/Comptes';
+
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
 import AgentsManagement from './pages/admin/Agents';
@@ -103,15 +108,24 @@ function AppInner() {
     );
   }
 
-  const isAdmin = state.agent?.role === 'ADMIN';
+  const role = state.agent?.role;
+  const isSuperAdmin = role === 'SUPERADMIN';
+  const isAdmin = role === 'ADMIN';
 
   return (
     <div className={state.darkMode ? 'dark' : ''} style={{ minHeight: '100vh' }}>
       <Layout activeTab={activeTab} onTabChange={handleTabChange}>
         <Routes>
-          <Route path="/dashboard" element={isAdmin ? <AdminDashboard /> : <AgentDashboard />} />
-          <Route path="/history" element={<AgentHistorique />} />
+          <Route
+            path="/dashboard"
+            element={
+              isSuperAdmin ? <SuperAdminDashboard /> : (isAdmin ? <AdminDashboard /> : <AgentDashboard />)
+            }
+          />
+          {isSuperAdmin && <Route path="/entreprises" element={<EntreprisesManagement />} />}
+          {isSuperAdmin && <Route path="/comptes" element={<ComptesManagement />} />}
           {isAdmin && <Route path="/agents" element={<AgentsManagement />} />}
+          <Route path="/history" element={<AgentHistorique />} />
           <Route path="/settings" element={<Parametres />} />
           <Route path="/profile" element={<ProfilAgent />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

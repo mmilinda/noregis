@@ -54,22 +54,41 @@ export default function AgentDashboard({ isMobile }) {
     return () => { ignore = true; };
   }, [dispatch, notify, t]);
 
+  const myVisitors = useMemo(() => {
+    if (!state.agent || state.agent.role === 'SUPERADMIN' || state.agent.role === 'ADMIN') return visitors;
+    const currentId = state.agent.id || state.agent._id;
+    const currentEmail = state.agent.email;
+    const currentNom = `${state.agent.prenom || ''} ${state.agent.nom || ''}`.trim().toLowerCase();
+
+    return visitors.filter(v => {
+      const vAgentId = v.agentId || v.createdBy || v.agent?._id || v.agent?.id;
+      const vEmail = v.agentEmail || v.agent?.email;
+      const vAuthorName = String(v.enregistrePar || v.agentNom || '').toLowerCase();
+
+      if (vAgentId && currentId && String(vAgentId) === String(currentId)) return true;
+      if (vEmail && currentEmail && String(vEmail).toLowerCase() === String(currentEmail).toLowerCase()) return true;
+      if (vAuthorName && currentNom && vAuthorName.includes(currentNom)) return true;
+      if (!vAgentId && !vEmail && !vAuthorName) return true;
+      return false;
+    });
+  }, [visitors, state.agent]);
+
   const stats = useMemo(() => {
-    const total = visitors.length;
-    const present = visitors.filter(v => {
+    const total = myVisitors.length;
+    const present = myVisitors.filter(v => {
       const s = String(v.statut || '').toLowerCase();
       return (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!v.heureSortie && s !== 'sorti' && s !== 'sortis');
     }).length;
-    const sortis = visitors.filter(v => {
+    const sortis = myVisitors.filter(v => {
       const s = String(v.statut || '').toLowerCase();
       return s === 'sorti' || s === 'sortis' || s === 'exited' || s === 'terminé' || v.heureSortie;
     }).length;
-    const vehicules = visitors.filter(v => (v.type || (v.vehicule ? 'vehicule' : 'person')) === 'vehicule').length;
+    const vehicules = myVisitors.filter(v => (v.type || (v.vehicule ? 'vehicule' : 'person')) === 'vehicule').length;
     
     return { total, present, sortis, vehicules };
-  }, [visitors]);
+  }, [myVisitors]);
 
-  const filtered = visitors.filter(v => {
+  const filtered = myVisitors.filter(v => {
     const q = (searchQuery || '').trim().toLowerCase();
     
     const s = String(v.statut || '').toLowerCase();

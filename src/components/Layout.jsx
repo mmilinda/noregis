@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard, History, Settings, User as UserIcon,
-  Shield, Clock, Plus, Bell, Search, LogOut, Camera } from 'lucide-react';
+  Shield, Clock, Plus, Bell, Search, LogOut, Camera, Building2, Users } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { RegistrationModal } from './RegistrationModal';
 import { TRANSLATIONS } from '../translations';
@@ -302,12 +302,19 @@ export function Layout({ children, activeTab, onTabChange }) {
   const { state } = useApp();
   const t = TRANSLATIONS[state.settings?.language || 'fr'];
 
+  const role = state.agent?.role;
   const navItems = [
-    { id: 'dashboard', label: t.dashboard, icon: LayoutDashboard },
-    { id: 'history',   label: t.history,   icon: History },
-    ...(state.agent?.role === 'ADMIN' ? [{ id: 'agents', label: t.agents || 'Agents', icon: Shield }] : []),
-    { id: 'settings',  label: t.settings,  icon: Settings },
-    { id: 'profile',   label: t.profile,   icon: UserIcon },
+    { id: 'dashboard', label: role === 'SUPERADMIN' ? 'Supervision' : t.dashboard, icon: LayoutDashboard },
+    ...(role === 'SUPERADMIN' ? [
+      { id: 'entreprises', label: t.entreprises || 'Entreprises', icon: Building2 },
+      { id: 'comptes', label: t.comptes || 'Comptes & Accès', icon: Users },
+    ] : []),
+    ...(role === 'ADMIN' ? [
+      { id: 'agents', label: t.agents || 'Agents', icon: Shield },
+    ] : []),
+    { id: 'history', label: t.history, icon: History },
+    { id: 'settings', label: t.settings, icon: Settings },
+    { id: 'profile', label: t.profile, icon: UserIcon },
   ];
 
   useEffect(() => {
