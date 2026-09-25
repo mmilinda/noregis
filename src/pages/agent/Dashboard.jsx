@@ -55,23 +55,38 @@ export default function AgentDashboard({ isMobile }) {
   }, [dispatch, notify, t]);
 
   const myVisitors = useMemo(() => {
-    if (!state.agent || state.agent.role === 'SUPERADMIN' || state.agent.role === 'ADMIN') return visitors;
-    const currentId = state.agent.id || state.agent._id;
-    const currentEmail = state.agent.email;
-    const currentNom = `${state.agent.prenom || ''} ${state.agent.nom || ''}`.trim().toLowerCase();
+    const userObj = state.agent || state.user || {};
+    const role = (userObj.role || '').toUpperCase();
+
+    if (role === 'SUPER_ADMIN' || role === 'SUPERADMIN') {
+      return visitors;
+    }
+
+    if (role === 'ADMIN') {
+      const adminEntId = userObj.entrepriseId?._id || userObj.entrepriseId;
+      if (!adminEntId) return visitors;
+      return visitors.filter(v => {
+        const vEntId = v.entrepriseId?._id || v.entrepriseId;
+        return !vEntId || String(vEntId) === String(adminEntId);
+      });
+    }
+
+    // Role === 'AGENT': Agent sees ONLY visitors registered by him/herself
+    const currentId = userObj.id || userObj._id;
+    const currentEmail = userObj.email;
+    const currentNom = `${userObj.prenom || ''} ${userObj.nom || ''}`.trim().toLowerCase();
 
     return visitors.filter(v => {
-      const vAgentId = v.agentId || v.createdBy || v.agent?._id || v.agent?.id;
+      const vAgentId = v.agentId?._id || v.agentId || v.createdBy || v.agent?._id || v.agent?.id;
       const vEmail = v.agentEmail || v.agent?.email;
       const vAuthorName = String(v.enregistrePar || v.agentNom || '').toLowerCase();
 
       if (vAgentId && currentId && String(vAgentId) === String(currentId)) return true;
       if (vEmail && currentEmail && String(vEmail).toLowerCase() === String(currentEmail).toLowerCase()) return true;
-      if (vAuthorName && currentNom && vAuthorName.includes(currentNom)) return true;
-      if (!vAgentId && !vEmail && !vAuthorName) return true;
+      if (vAuthorName && currentNom && vAuthorName.length > 2 && vAuthorName.includes(currentNom)) return true;
       return false;
     });
-  }, [visitors, state.agent]);
+  }, [visitors, state.agent, state.user]);
 
   const stats = useMemo(() => {
     const total = myVisitors.length;
