@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Plus, Search, Phone, Mail, MapPin, Briefcase, RefreshCw, CheckCircle2, Edit, History } from 'lucide-react';
+import { Building2, Plus, Search, Phone, Mail, MapPin, Briefcase, RefreshCw, CheckCircle2, Edit, History, AlertCircle, Shield, Users } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
 import { Card, CardHeader, Btn, FormInput, FormSelect, Modal } from '../../components/UI';
 import { entrepriseService } from '../../services/entrepriseService';
@@ -15,6 +15,8 @@ const EMPTY_ENTREPRISE = {
   telephone: '',
   secteur: 'Maritime / Logistique',
   statut: 'ACTIF',
+  maxAdmins: 5,
+  maxAgents: 20,
 };
 
 export default function EntreprisesManagement({ isMobile }) {
@@ -87,6 +89,8 @@ export default function EntreprisesManagement({ isMobile }) {
         emailContact: createForm.email,
         secteur: createForm.secteur,
         statut: createForm.statut,
+        maxAdmins: Number(createForm.maxAdmins) || 5,
+        maxAgents: Number(createForm.maxAgents) || 20,
       });
       notify('success', `Entreprise "${createForm.nom}" créée avec succès.`);
       setCreateForm(EMPTY_ENTREPRISE);
@@ -109,6 +113,8 @@ export default function EntreprisesManagement({ isMobile }) {
       telephone: ent.telephone || '',
       secteur: ent.secteur || 'Maritime / Logistique',
       statut: ent.statut || 'ACTIF',
+      maxAdmins: ent.maxAdmins !== undefined ? ent.maxAdmins : 5,
+      maxAgents: ent.maxAgents !== undefined ? ent.maxAgents : 20,
     });
     setEditError('');
     setEditOpen(true);
@@ -133,6 +139,8 @@ export default function EntreprisesManagement({ isMobile }) {
         telephone: editForm.telephone,
         emailContact: editForm.email,
         secteur: editForm.secteur,
+        maxAdmins: Number(editForm.maxAdmins) || 5,
+        maxAgents: Number(editForm.maxAgents) || 20,
       });
       notify('success', `Entreprise "${editForm.nom}" mise à jour.`);
       setEditOpen(false);
@@ -178,7 +186,7 @@ export default function EntreprisesManagement({ isMobile }) {
             Gestion des Entreprises & Boîtes
           </h1>
           <p className="text-xs text-slate-500 font-bold mt-1">
-            Création, modification, suspension et consultation de l'historique des structures rattachées.
+            Création, modification, quotas d'utilisateurs, suspension et historique des structures rattachées.
           </p>
         </div>
         <Btn variant="primary" icon={Plus} onClick={() => setCreateOpen(true)} className="!rounded-xl">
@@ -190,7 +198,7 @@ export default function EntreprisesManagement({ isMobile }) {
       <Card className="border-slate-200 dark:border-slate-800">
         <CardHeader
           title={`Entreprises (${filtered.length})`}
-          subtitle="Liste globale des structures inscrites"
+          subtitle="Liste globale des structures et contrôle des quotas d'agents/admins"
           actions={
             <Btn variant="ghost" size="sm" icon={RefreshCw} onClick={() => fetchEntreprises(true)} loading={loading} className="text-[10px] font-black uppercase">
               Actualiser
@@ -227,18 +235,21 @@ export default function EntreprisesManagement({ isMobile }) {
           <table className="w-full table-fixed text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-50 dark:bg-slate-900/50">
-                <th className="py-2.5 px-3 w-[28%]">Entreprise</th>
-                <th className="py-2.5 px-2 w-[16%]">Code / NINEA</th>
-                <th className="py-2.5 px-2 w-[16%]">Secteur</th>
-                <th className="py-2.5 px-2 w-[20%]">Contact</th>
-                <th className="py-2.5 px-2 w-[10%]">Statut</th>
-                <th className="py-2.5 px-3 w-[10%] text-right">Actions</th>
+                <th className="py-2.5 px-3 w-[24%]">Entreprise</th>
+                <th className="py-2.5 px-2 w-[14%]">Code / NINEA</th>
+                <th className="py-2.5 px-2 w-[14%]">Secteur</th>
+                <th className="py-2.5 px-2 w-[16%]">Contact</th>
+                <th className="py-2.5 px-2 w-[16%]">Quotas Max</th>
+                <th className="py-2.5 px-2 w-[8%]">Statut</th>
+                <th className="py-2.5 px-3 w-[8%] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
               {filtered.map(ent => {
                 const entId = ent.id || ent._id;
                 const isActif = ent.statut === 'ACTIF';
+                const maxAdmins = ent.maxAdmins !== undefined ? ent.maxAdmins : 5;
+                const maxAgents = ent.maxAgents !== undefined ? ent.maxAgents : 20;
 
                 return (
                   <tr key={entId} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
@@ -264,6 +275,16 @@ export default function EntreprisesManagement({ isMobile }) {
                     <td className="py-2.5 px-2 text-xs min-w-0">
                       <p className="text-slate-900 dark:text-white truncate font-bold">{ent.emailContact || ent.email || '—'}</p>
                       <p className="text-[10px] text-slate-400 font-mono truncate">{ent.telephone}</p>
+                    </td>
+                    <td className="py-2.5 px-2 text-xs min-w-0">
+                      <div className="flex flex-col gap-1 text-[10px]">
+                        <span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold whitespace-nowrap inline-flex items-center gap-1 w-fit">
+                          <Shield size={10} /> Admins: {ent.nbAdmins || 0} / {maxAdmins}
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-bold whitespace-nowrap inline-flex items-center gap-1 w-fit">
+                          <Users size={10} /> Agents: {ent.nbAgents || 0} / {maxAgents}
+                        </span>
+                      </div>
                     </td>
                     <td className="py-2.5 px-2 min-w-0">
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider inline-block truncate max-w-full ${
@@ -309,7 +330,7 @@ export default function EntreprisesManagement({ isMobile }) {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400 text-xs font-bold">
+                  <td colSpan={7} className="py-8 text-center text-slate-400 text-xs font-bold">
                     Aucune entreprise ne correspond aux critères.
                   </td>
                 </tr>
@@ -384,6 +405,33 @@ export default function EntreprisesManagement({ isMobile }) {
             />
           </div>
 
+          {/* Quotas Max */}
+          <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+            <p className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Shield size={14} className="text-brand-blue-bright" /> Quotas & Limites d'Utilisateurs
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormInput
+                label="Nombre Max d'Admins"
+                id="maxAdmins"
+                type="number"
+                min="1"
+                value={createForm.maxAdmins}
+                onChange={e => setCreateForm(f => ({ ...f, maxAdmins: e.target.value }))}
+                icon={Shield}
+              />
+              <FormInput
+                label="Nombre Max d'Agents"
+                id="maxAgents"
+                type="number"
+                min="1"
+                value={createForm.maxAgents}
+                onChange={e => setCreateForm(f => ({ ...f, maxAgents: e.target.value }))}
+                icon={Users}
+              />
+            </div>
+          </div>
+
           <FormInput
             label="Adresse Siège Social"
             id="adresse"
@@ -456,6 +504,33 @@ export default function EntreprisesManagement({ isMobile }) {
               onChange={e => setEditForm(f => ({ ...f, secteur: e.target.value }))}
               options={secteursOptions.length > 0 ? secteursOptions : ['Maritime / Logistique', 'Énergie', 'Télécommunications', 'Banque / Finance', 'Santé', 'Administration Publique', 'Industrie', 'Autre']}
             />
+
+            {/* Quotas Max Modification */}
+            <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+              <p className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <Shield size={14} className="text-brand-blue-bright" /> Quotas & Limites d'Utilisateurs
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormInput
+                  label="Nombre Max d'Admins"
+                  id="edit_maxAdmins"
+                  type="number"
+                  min="1"
+                  value={editForm.maxAdmins}
+                  onChange={e => setEditForm(f => ({ ...f, maxAdmins: e.target.value }))}
+                  icon={Shield}
+                />
+                <FormInput
+                  label="Nombre Max d'Agents"
+                  id="edit_maxAgents"
+                  type="number"
+                  min="1"
+                  value={editForm.maxAgents}
+                  onChange={e => setEditForm(f => ({ ...f, maxAgents: e.target.value }))}
+                  icon={Users}
+                />
+              </div>
+            </div>
 
             <FormInput
               label="Adresse Siège Social"
