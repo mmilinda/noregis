@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard, History, Settings, User as UserIcon,
-  Shield, Clock, Plus, Bell, Search, LogOut, Camera, Building2, Users } from 'lucide-react';
+  Shield, Clock, Plus, Bell, Search, LogOut, Camera, Building2, Users, Briefcase } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { RegistrationModal } from './RegistrationModal';
 import { TRANSLATIONS } from '../translations';
@@ -41,8 +41,10 @@ function LiveClock({ light }) {
 ============================================ */
 function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
   const { state, dispatch } = useApp();
-  const { agent, visitors } = state;
+  const agent = state.agent || state.user || {};
+  const visitors = state.visitors || [];
   const present = visitors.filter(v => v.statut === 'present').length;
+  const initials = agent.initials || `${(agent.prenom||'S')[0] || ''}${(agent.nom||'A')[0] || ''}`.toUpperCase();
 
   return (
     <aside className="w-64 bg-brand-navy flex flex-col h-screen sticky top-0 border-r border-white/5 overflow-hidden z-[100]">
@@ -71,6 +73,7 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
       {/* Nav */}
       <nav className="p-3 flex-1 flex flex-col gap-1 overflow-y-auto">
         {navItems.map(({ id, label, icon: Icon }) => {
+          if (!Icon) return null;
           const active = activeTab === id;
           return (
             <button
@@ -111,11 +114,11 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
           onClick={() => onTabChange('profile')}
         >
           <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10 flex items-center justify-center text-white text-[11px] font-black shrink-0 overflow-hidden group-hover:border-brand-blue-bright/50 transition-colors">
-            {agent.photo ? <img src={agent.photo} alt="" className="w-full h-full object-cover" /> : agent.initials}
+            {agent.photo ? <img src={agent.photo} alt="" className="w-full h-full object-cover" /> : initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-white/90 truncate">{agent.prenom} {agent.nom}</p>
-            <p className="text-[9px] font-black text-white/30 uppercase truncate">{agent.role}</p>
+            <p className="text-xs font-bold text-white/90 truncate">{agent.prenom || ''} {agent.nom || ''}</p>
+            <p className="text-[9px] font-black text-white/30 uppercase truncate">{agent.role || ''}</p>
           </div>
         </div>
         
@@ -161,11 +164,12 @@ function MobileHeader({ activeTab, navItems }) {
 ============================================ */
 function BottomNav({ activeTab, onTabChange, t, navItems }) {
   const { state } = useApp();
-  const present = state.visitors.filter(v => v.statut === 'present').length;
+  const present = (state.visitors || []).filter(v => v.statut === 'present').length;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-brand-navy border-t border-white/10 flex items-center justify-around px-2 pb-safe-area z-[100] h-16">
       {navItems.map(({ id, label, icon: Icon }) => {
+        if (!Icon) return null;
         const active = activeTab === id;
         return (
           <button key={id} onClick={() => onTabChange(id)} className="flex-grow flex flex-col items-center gap-1.5 transition-all">
