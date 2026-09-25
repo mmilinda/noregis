@@ -7,7 +7,7 @@ import { authService } from '../../services/authService';
 import { entrepriseService } from '../../services/entrepriseService';
 import { TRANSLATIONS } from '../../translations';
 
-const EMPTY_ACCOUNT = {
+const EMPTY_ADMIN = {
   email: '',
   password: '',
   prenom: '',
@@ -16,26 +16,25 @@ const EMPTY_ACCOUNT = {
   entrepriseId: '',
   entrepriseNom: '',
   telephone: '',
-  departement: '',
-  poste: '',
+  departement: 'Direction / Admin',
+  poste: 'Administrateur de Boîte',
 };
 
-export default function ComptesManagement({ isMobile }) {
+export default function AdminsManagement({ isMobile }) {
   const { state, notify } = useApp();
   const navigate = useNavigate();
   const t = TRANSLATIONS[state.settings?.language || 'fr'];
 
-  const [users, setUsers] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [entreprises, setEntreprises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('ALL');
   const [entrepriseFilter, setEntrepriseFilter] = useState('ALL');
   const [statutFilter, setStatutFilter] = useState('ALL');
 
   // Modal création
   const [createOpen, setCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState(EMPTY_ACCOUNT);
+  const [createForm, setCreateForm] = useState(EMPTY_ADMIN);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
 
@@ -45,25 +44,27 @@ export default function ComptesManagement({ isMobile }) {
   const [editing, setEditing] = useState(false);
   const [editError, setEditError] = useState('');
 
-  const fetchUsersAndEntreprises = useCallback(async (silent = false) => {
+  const fetchAdminsAndEntreprises = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
       const [usrData, entData] = await Promise.all([
-        authService.getAllUsers(),
+        authService.getAllUsers(null, 'ADMIN'),
         entrepriseService.getAll(),
       ]);
-      setUsers(usrData?.utilisateurs || (Array.isArray(usrData) ? usrData : []));
+      const rawUsers = usrData?.utilisateurs || (Array.isArray(usrData) ? usrData : []);
+      const adminList = rawUsers.filter(u => u.role === 'ADMIN');
+      setAdmins(adminList);
       setEntreprises(Array.isArray(entData) ? entData : (entData?.entreprises || []));
     } catch (err) {
-      notify('error', 'Erreur lors de la récupération des données.');
+      notify('error', 'Erreur lors du chargement des Administrateurs.');
     } finally {
       setLoading(false);
     }
   }, [notify]);
 
   useEffect(() => {
-    fetchUsersAndEntreprises();
-  }, [fetchUsersAndEntreprises]);
+    fetchAdminsAndEntreprises();
+  }, [fetchAdminsAndEntreprises]);
 
   const handleEntrepriseChange = (entId, isEdit = false) => {
     const ent = entreprises.find(e => (e.id === entId || e._id === entId));
@@ -85,12 +86,12 @@ export default function ComptesManagement({ isMobile }) {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     if (!createForm.email.trim() || !createForm.password.trim() || !createForm.prenom.trim() || !createForm.nom.trim()) {
-      setCreateError('Veuillez remplir les champs obligatoires (Email, Mot de passe, Prénom, Nom).');
+      setCreateError('Veuillez remplir tous les champs obligatoires (Email, Mot de passe, Prénom, Nom).');
       return;
     }
 
-    if (createForm.role !== 'SUPERADMIN' && createForm.role !== 'SUPER_ADMIN' && !createForm.entrepriseId) {
-      setCreateError('Veuillez sélectionner l\'entreprise pour cet utilisateur.');
+    if (!createForm.entrepriseId) {
+      setCreateError('Veuillez sélectionner l\'entreprise rattachée à cet administrateur.');
       return;
     }
 
@@ -99,32 +100,31 @@ export default function ComptesManagement({ isMobile }) {
 
     try {
       await authService.createUser(createForm);
-      notify('success', `Compte ${createForm.role} créé avec succès pour ${createForm.prenom} ${createForm.nom}.`);
-      setCreateForm(EMPTY_ACCOUNT);
+      notify('success', `Administrateur "${createForm.prenom} ${createForm.nom}" créé avec succès.`);
+      setCreateForm(EMPTY_ADMIN);
       setCreateOpen(false);
-      fetchUsersAndEntreprises(true);
+      fetchAdminsAndEntreprises(true);
     } catch (err) {
-      setCreateError(err.message || 'Erreur lors de la création du compte.');
+      setCreateError(err.message || 'Erreur lors de la création de l\'administrateur.');
     } finally {
       setCreating(false);
     }
   };
 
-  const handleEditOpen = (usr) => {
-    const entId = usr.entrepriseId?._id || usr.entrepriseId || '';
+  const handleEditOpen = (adminObj) => {
+    const entId = adminObj.entrepriseId?._id || adminObj.entrepriseId || '';
     setEditForm({
-      id: usr.id || usr._id,
-      prenom: usr.prenom || '',
-      nom: usr.nom || '',
-      email: usr.email || '',
-      role: (usr.role || 'AGENT').toUpperCase(),
+      id: adminObj.id || adminObj._id,
+      prenom: adminObj.prenom || '',
+      nom: adminObj.nom || '',
+      email: adminObj.email || '',
+      telephone: adminObj.telephone || '',
       entrepriseId: entId,
-      entrepriseNom: usr.entrepriseNom || usr.entrepriseId?.nom || '',
-      telephone: usr.telephone || '',
-      poste: usr.poste || '',
-      departement: usr.departement || '',
-      statutCompte: usr.statutCompte || 'ACTIF',
+      entrepriseNom: adminObj.entrepriseNom || adminObj.entrepriseId?.nom || '',
+      poste: adminObj.poste || 'Administrateur de Boîte',
+      departement: adminObj.departement || 'Admin',
       password: '',
+      statutCompte: adminObj.statutCompte || 'ACTIF',
     });
     setEditError('');
     setEditOpen(true);
@@ -133,7 +133,7 @@ export default function ComptesManagement({ isMobile }) {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editForm.prenom.trim() || !editForm.nom.trim() || !editForm.email.trim()) {
-      setEditError('Prénom, Nom et Email sont obligatoires.');
+      setEditError('Les champs Prénom, Nom et Email sont obligatoires.');
       return;
     }
 
@@ -142,11 +142,11 @@ export default function ComptesManagement({ isMobile }) {
 
     try {
       await authService.updateUserProfile(editForm.id, editForm);
-      notify('success', `Compte "${editForm.prenom} ${editForm.nom}" mis à jour.`);
+      notify('success', `Administrateur "${editForm.prenom} ${editForm.nom}" mis à jour.`);
       setEditOpen(false);
-      fetchUsersAndEntreprises(true);
+      fetchAdminsAndEntreprises(true);
     } catch (err) {
-      setEditError(err.message || 'Erreur lors de la mise à jour.');
+      setEditError(err.message || 'Erreur lors de la mise à jour de l\'administrateur.');
     } finally {
       setEditing(false);
     }
@@ -155,37 +155,32 @@ export default function ComptesManagement({ isMobile }) {
   const handleStatusChange = async (id, targetStatus) => {
     try {
       await authService.updateUserStatus(id, targetStatus);
-      notify('success', `Statut du compte mis à jour vers "${targetStatus}".`);
-      fetchUsersAndEntreprises(true);
+      notify('success', `Statut Administrateur mis à jour (${targetStatus}).`);
+      fetchAdminsAndEntreprises(true);
     } catch (err) {
       notify('error', 'Erreur lors du changement de statut : ' + err.message);
     }
   };
 
-  const handleViewHistory = (usr) => {
-    const entId = usr.entrepriseId?._id || usr.entrepriseId;
-    const usrId = usr.id || usr._id;
-    if (usr.role === 'AGENT') {
-      navigate(`/history?agentId=${usrId}`);
-    } else if (entId) {
+  const handleViewHistory = (entId) => {
+    if (entId) {
       navigate(`/history?entrepriseId=${entId}`);
     } else {
       navigate('/history');
     }
   };
 
-  const filtered = users.filter(usr => {
+  const filtered = admins.filter(adm => {
     const q = search.trim().toLowerCase();
-    const matchSearch = !q || [usr.prenom, usr.nom, usr.email, usr.telephone, usr.entrepriseNom, usr.entrepriseId?.nom, usr.poste]
+    const entId = adm.entrepriseId?._id || adm.entrepriseId;
+    const matchSearch = !q || [adm.prenom, adm.nom, adm.email, adm.telephone, adm.entrepriseNom, adm.entrepriseId?.nom]
       .filter(Boolean)
       .some(f => String(f).toLowerCase().includes(q));
 
-    const entId = usr.entrepriseId?._id || usr.entrepriseId;
-    const matchRole = roleFilter === 'ALL' || usr.role === roleFilter || (roleFilter === 'SUPERADMIN' && usr.role === 'SUPER_ADMIN');
     const matchEntreprise = entrepriseFilter === 'ALL' || String(entId) === String(entrepriseFilter);
-    const matchStatut = statutFilter === 'ALL' || (usr.statutCompte || 'ACTIF') === statutFilter;
+    const matchStatut = statutFilter === 'ALL' || (adm.statutCompte || 'ACTIF') === statutFilter;
 
-    return matchSearch && matchRole && matchEntreprise && matchStatut;
+    return matchSearch && matchEntreprise && matchStatut;
   });
 
   return (
@@ -195,54 +190,43 @@ export default function ComptesManagement({ isMobile }) {
         <div>
           <h1 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
             <Shield className="text-brand-blue-bright" size={32} />
-            Gestion des Comptes & Accès Globaux
+            Gestion des Administrateurs de Boîte
           </h1>
           <p className="text-xs text-slate-500 font-bold mt-1">
-            Création, modification, contrôle des statuts et réinitialisation de mot de passe pour tous les comptes.
+            Création, édition et supervision des comptes d'administration d'entreprises.
           </p>
         </div>
         <Btn variant="primary" icon={Plus} onClick={() => setCreateOpen(true)} className="!rounded-xl">
-          Créer un Compte
+          Créer un Administrateur
         </Btn>
       </div>
 
       {/* Main Card */}
       <Card className="border-slate-200 dark:border-slate-800">
         <CardHeader
-          title={`Comptes Utilisateurs (${filtered.length})`}
-          subtitle="Aperçu des accès et contrôle des statuts (Actif / Suspendu / Désactivé)"
+          title={`Administrateurs (${filtered.length})`}
+          subtitle="Comptes responsables de la gestion interne des entreprises"
           actions={
-            <Btn variant="ghost" size="sm" icon={RefreshCw} onClick={() => fetchUsersAndEntreprises(true)} loading={loading} className="text-[10px] font-black uppercase">
+            <Btn variant="ghost" size="sm" icon={RefreshCw} onClick={() => fetchAdminsAndEntreprises(true)} loading={loading} className="text-[10px] font-black uppercase">
               Actualiser
             </Btn>
           }
         />
 
         {/* Filters */}
-        <div className="p-4 bg-slate-50/50 dark:bg-white/[0.01] border-b border-slate-100 dark:border-slate-800 flex flex-col lg:flex-row gap-3">
+        <div className="p-4 bg-slate-50/50 dark:bg-white/[0.01] border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Rechercher par nom, prénom, email, poste..."
+              placeholder="Rechercher un administrateur (Nom, Email, Entreprise)..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 focus:border-brand-blue-bright/20 rounded-xl py-2 pl-10 pr-4 text-xs font-bold outline-none"
             />
           </div>
 
-          <div className="flex flex-wrap sm:flex-nowrap gap-2">
-            <select
-              value={roleFilter}
-              onChange={e => setRoleFilter(e.target.value)}
-              className="px-3 py-2 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl text-xs font-black outline-none cursor-pointer"
-            >
-              <option value="ALL">Tous les rôles</option>
-              <option value="SUPERADMIN">SuperAdmin</option>
-              <option value="ADMIN">Admin Boîte</option>
-              <option value="AGENT">Agent</option>
-            </select>
-
+          <div className="flex gap-2">
             <select
               value={entrepriseFilter}
               onChange={e => setEntrepriseFilter(e.target.value)}
@@ -274,46 +258,40 @@ export default function ComptesManagement({ isMobile }) {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                <th className="py-3 px-4">Utilisateur</th>
-                <th className="py-3 px-4">Rôle</th>
+                <th className="py-3 px-4">Administrateur</th>
                 <th className="py-3 px-4">Entreprise Rattachée</th>
-                <th className="py-3 px-4">Poste / Dept</th>
+                <th className="py-3 px-4">Contact</th>
                 <th className="py-3 px-4">Statut</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
-              {filtered.map(usr => {
-                const entName = usr.entrepriseId?.nom || usr.entrepriseNom || '— (Supervision)';
-                const currentStatus = usr.statutCompte || 'ACTIF';
+              {filtered.map(adm => {
+                const entId = adm.entrepriseId?._id || adm.entrepriseId;
+                const entName = adm.entrepriseId?.nom || adm.entrepriseNom || '—';
+                const currentStatus = adm.statutCompte || 'ACTIF';
 
                 return (
-                  <tr key={usr.id || usr._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
+                  <tr key={adm.id || adm._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-brand-blue-bright font-black flex items-center justify-center text-xs">
-                          {(usr.prenom?.[0] || 'U') + (usr.nom?.[0] || '')}
+                        <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 font-black flex items-center justify-center text-xs">
+                          {(adm.prenom?.[0] || 'A') + (adm.nom?.[0] || '')}
                         </div>
                         <div>
-                          <p className="font-black text-slate-900 dark:text-white text-sm">{usr.prenom} {usr.nom}</p>
-                          <p className="text-[10px] text-slate-400 font-mono">{usr.email} · {usr.telephone || 'Sans tel'}</p>
+                          <p className="font-black text-slate-900 dark:text-white text-sm">{adm.prenom} {adm.nom}</p>
+                          <p className="text-[10px] text-slate-400 font-mono">{adm.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4">
-                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase ${
-                        usr.role === 'SUPERADMIN' || usr.role === 'SUPER_ADMIN' ? 'bg-purple-500/10 text-purple-600 border border-purple-500/20' :
-                        usr.role === 'ADMIN' ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
-                      }`}>
-                        {usr.role}
-                      </span>
+                    <td className="py-3.5 px-4 text-slate-900 dark:text-white font-bold">
+                      <div className="flex items-center gap-2">
+                        <Building2 size={14} className="text-brand-blue-bright" />
+                        {entName}
+                      </div>
                     </td>
-                    <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
-                      {entName}
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-500 text-[11px]">
-                      <p>{usr.poste || '—'}</p>
-                      <p className="opacity-70">{usr.departement || ''}</p>
+                    <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 font-mono">
+                      {adm.telephone || '—'}
                     </td>
                     <td className="py-3.5 px-4">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
@@ -329,9 +307,9 @@ export default function ComptesManagement({ isMobile }) {
                           variant="ghost"
                           size="sm"
                           icon={History}
-                          onClick={() => handleViewHistory(usr)}
+                          onClick={() => handleViewHistory(entId)}
                           className="text-[10px] font-black uppercase text-brand-blue-bright hover:bg-brand-blue-bright/10"
-                          title="Voir l'historique associé"
+                          title="Voir l'historique de cette boîte"
                         >
                           Historique
                         </Btn>
@@ -340,7 +318,7 @@ export default function ComptesManagement({ isMobile }) {
                           variant="secondary"
                           size="sm"
                           icon={Edit}
-                          onClick={() => handleEditOpen(usr)}
+                          onClick={() => handleEditOpen(adm)}
                           className="text-[10px] font-black uppercase"
                         >
                           Modifier
@@ -350,7 +328,7 @@ export default function ComptesManagement({ isMobile }) {
                           <Btn
                             variant="success"
                             size="sm"
-                            onClick={() => handleStatusChange(usr.id || usr._id, 'ACTIF')}
+                            onClick={() => handleStatusChange(adm.id || adm._id, 'ACTIF')}
                             className="text-[10px] font-black uppercase py-1 px-2"
                           >
                             Activer
@@ -360,7 +338,7 @@ export default function ComptesManagement({ isMobile }) {
                           <Btn
                             variant="warning"
                             size="sm"
-                            onClick={() => handleStatusChange(usr.id || usr._id, 'SUSPENDU')}
+                            onClick={() => handleStatusChange(adm.id || adm._id, 'SUSPENDU')}
                             className="text-[10px] font-black uppercase py-1 px-2"
                           >
                             Suspendre
@@ -370,7 +348,7 @@ export default function ComptesManagement({ isMobile }) {
                           <Btn
                             variant="danger"
                             size="sm"
-                            onClick={() => handleStatusChange(usr.id || usr._id, 'DESACTIVE')}
+                            onClick={() => handleStatusChange(adm.id || adm._id, 'DESACTIVE')}
                             className="text-[10px] font-black uppercase py-1 px-2"
                           >
                             Désactiver
@@ -383,8 +361,8 @@ export default function ComptesManagement({ isMobile }) {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400 text-xs font-bold">
-                    Aucun compte utilisateur ne correspond aux critères.
+                  <td colSpan={5} className="py-8 text-center text-slate-400 text-xs font-bold">
+                    Aucun administrateur de boîte trouvé.
                   </td>
                 </tr>
               )}
@@ -393,8 +371,8 @@ export default function ComptesManagement({ isMobile }) {
         </div>
       </Card>
 
-      {/* Modal Création Compte */}
-      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="Créer un Compte Utilisateur" size="md">
+      {/* Modal Création Administrateur */}
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="Créer un Administrateur de Boîte" size="md">
         <form onSubmit={handleCreateSubmit} className="space-y-4">
           {createError && (
             <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-600 rounded-xl text-xs font-bold">
@@ -410,7 +388,7 @@ export default function ComptesManagement({ isMobile }) {
               value={createForm.prenom}
               onChange={e => setCreateForm(f => ({ ...f, prenom: e.target.value }))}
               icon={User}
-              placeholder="Ex: Abdoulaye"
+              placeholder="Ex: Cheikh"
             />
             <FormInput
               label="Nom"
@@ -418,20 +396,20 @@ export default function ComptesManagement({ isMobile }) {
               required
               value={createForm.nom}
               onChange={e => setCreateForm(f => ({ ...f, nom: e.target.value }))}
-              placeholder="Ex: Sow"
+              placeholder="Ex: Ndiaye"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormInput
-              label="Email de Connexion"
+              label="Email Professionnel"
               id="email"
               type="email"
               required
               value={createForm.email}
               onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))}
               icon={Mail}
-              placeholder="a.sow@entreprise.sn"
+              placeholder="admin@entreprise.sn"
             />
             <FormInput
               label="Mot de passe"
@@ -445,38 +423,15 @@ export default function ComptesManagement({ isMobile }) {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormSelect
-              label="Rôle du Compte"
-              id="role"
-              value={createForm.role}
-              onChange={e => setCreateForm(f => ({ ...f, role: e.target.value }))}
-              options={[
-                { value: 'ADMIN', label: 'Admin d\'Entreprise' },
-                { value: 'AGENT', label: 'Agent de Sécurité / Accueil' },
-                { value: 'SUPER_ADMIN', label: 'SuperAdmin Global' },
-              ]}
-            />
-
-            {createForm.role !== 'SUPERADMIN' && createForm.role !== 'SUPER_ADMIN' ? (
-              <FormSelect
-                label="Entreprise Rattachée"
-                id="entrepriseId"
-                required
-                value={createForm.entrepriseId}
-                onChange={e => handleEntrepriseChange(e.target.value)}
-                options={entreprises.map(e => ({ value: e.id || e._id, label: e.nom }))}
-                placeholder="Sélectionner la boîte..."
-              />
-            ) : (
-              <FormInput
-                label="Périmètre"
-                id="perimetre"
-                value="Global (Toutes Entreprises)"
-                disabled
-              />
-            )}
-          </div>
+          <FormSelect
+            label="Entreprise Rattachée"
+            id="entrepriseId"
+            required
+            value={createForm.entrepriseId}
+            onChange={e => handleEntrepriseChange(e.target.value)}
+            options={entreprises.map(e => ({ value: e.id || e._id, label: e.nom }))}
+            placeholder="Sélectionner l'entreprise..."
+          />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormInput
@@ -488,12 +443,12 @@ export default function ComptesManagement({ isMobile }) {
               placeholder="+221 77 000 00 00"
             />
             <FormInput
-              label="Poste / Fonction"
+              label="Poste"
               id="poste"
               value={createForm.poste}
               onChange={e => setCreateForm(f => ({ ...f, poste: e.target.value }))}
               icon={Briefcase}
-              placeholder="Agent d'accueil, Responsable..."
+              placeholder="Administrateur Général"
             />
           </div>
 
@@ -502,15 +457,15 @@ export default function ComptesManagement({ isMobile }) {
               Annuler
             </Btn>
             <Btn variant="success" type="submit" loading={creating} icon={CheckCircle2} fullWidth>
-              Créer le Compte
+              Créer l'Administrateur
             </Btn>
           </div>
         </form>
       </Modal>
 
-      {/* Modal Modification Compte */}
+      {/* Modal Modification Administrateur */}
       {editOpen && editForm && (
-        <Modal isOpen={editOpen} onClose={() => setEditOpen(false)} title="Modifier le Compte Utilisateur" size="md">
+        <Modal isOpen={editOpen} onClose={() => setEditOpen(false)} title="Modifier l'Administrateur de Boîte" size="md">
           <form onSubmit={handleEditSubmit} className="space-y-4">
             {editError && (
               <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-600 rounded-xl text-xs font-bold">
@@ -553,35 +508,18 @@ export default function ComptesManagement({ isMobile }) {
                 value={editForm.password}
                 onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))}
                 icon={Lock}
-                placeholder="Conserver l'actuel"
+                placeholder="Laisser vide pour conserver"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormSelect
-                label="Rôle"
-                id="edit_role"
-                value={editForm.role}
-                onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}
-                options={[
-                  { value: 'ADMIN', label: 'Admin d\'Entreprise' },
-                  { value: 'AGENT', label: 'Agent de Sécurité / Accueil' },
-                  { value: 'SUPER_ADMIN', label: 'SuperAdmin Global' },
-                ]}
-              />
-
-              {editForm.role !== 'SUPER_ADMIN' && editForm.role !== 'SUPERADMIN' ? (
-                <FormSelect
-                  label="Entreprise Rattachée"
-                  id="edit_entrepriseId"
-                  value={editForm.entrepriseId}
-                  onChange={e => handleEntrepriseChange(e.target.value, true)}
-                  options={entreprises.map(e => ({ value: e.id || e._id, label: e.nom }))}
-                />
-              ) : (
-                <FormInput label="Périmètre" id="edit_perimetre" value="Global (Toutes)" disabled />
-              )}
-            </div>
+            <FormSelect
+              label="Entreprise Rattachée"
+              id="edit_entrepriseId"
+              required
+              value={editForm.entrepriseId}
+              onChange={e => handleEntrepriseChange(e.target.value, true)}
+              options={entreprises.map(e => ({ value: e.id || e._id, label: e.nom }))}
+            />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormInput

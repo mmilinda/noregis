@@ -13,13 +13,12 @@ import { connectSocket, disconnectSocket } from './services/socketService';
 // SuperAdmin Components
 import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import EntreprisesManagement from './pages/superadmin/Entreprises';
+import AdminsManagement from './pages/superadmin/Admins';
 import ComptesManagement from './pages/superadmin/Comptes';
 
-// Admin Pages
+// Admin & Agent Pages
 import AdminDashboard from './pages/admin/Dashboard';
 import AgentsManagement from './pages/admin/Agents';
-
-// Agent Pages
 import AgentDashboard from './pages/agent/Dashboard';
 import AgentHistorique from './pages/agent/Historique';
 
@@ -123,9 +122,10 @@ function AppInner() {
             }
           />
           {isSuperAdmin && <Route path="/superadmin" element={<SuperAdminDashboard />} />}
-          {isSuperAdmin && <Route path="/entreprises" element={<SuperAdminDashboard />} />}
-          {isSuperAdmin && <Route path="/comptes" element={<SuperAdminDashboard />} />}
-          {isAdmin && <Route path="/agents" element={<AgentsManagement />} />}
+          {isSuperAdmin && <Route path="/entreprises" element={<EntreprisesManagement />} />}
+          {isSuperAdmin && <Route path="/admins" element={<AdminsManagement />} />}
+          {(isSuperAdmin || isAdmin) && <Route path="/agents" element={<AgentsManagement />} />}
+          {isSuperAdmin && <Route path="/comptes" element={<ComptesManagement />} />}
           <Route path="/history" element={<AgentHistorique />} />
           <Route path="/settings" element={<Parametres />} />
           <Route path="/profile" element={<ProfilAgent />} />

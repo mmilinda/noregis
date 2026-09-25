@@ -309,12 +309,15 @@ export function Layout({ children, activeTab, onTabChange }) {
   const navItems = [
     { id: 'dashboard', label: isSuperAdmin ? 'Supervision Global' : t.dashboard, icon: LayoutDashboard },
     ...(isSuperAdmin ? [
-      { id: 'superadmin', label: 'Dashboard SuperAdmin', icon: Shield },
+      { id: 'entreprises', label: 'Entreprises & Boîtes', icon: Building2 },
+      { id: 'admins', label: 'Admins de Boîte', icon: Shield },
+      { id: 'agents', label: 'Agents de Sécurité', icon: Users },
+      { id: 'comptes', label: 'Tous les Comptes', icon: UserIcon },
     ] : []),
     ...(isAdmin ? [
       { id: 'agents', label: t.agents || 'Agents & Accès', icon: Users },
     ] : []),
-    { id: 'history', label: t.history, icon: History },
+    { id: 'history', label: isSuperAdmin ? 'Historique Global' : t.history, icon: History },
     { id: 'settings', label: t.settings, icon: Settings },
     { id: 'profile', label: t.profile, icon: UserIcon },
   ];

@@ -1,27 +1,69 @@
-import React, { useState } from 'react';
-import { Clock, Calendar, Download } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Clock, Calendar, Download, Building2, User } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
 import { Card, CardHeader, Btn, EmptyState, Modal } from '../../components/UI';
 import { TRANSLATIONS } from '../../translations';
 import { visitService } from '../../services/visitService';
+import { entrepriseService } from '../../services/entrepriseService';
+import { authService } from '../../services/authService';
 import VisitorTable from '../../components/VisitorTable';
 import VisitorDetail from '../../components/VisitorDetail';
 
 export default function AgentHistorique({ isMobile }) {
   const { state, dispatch, notify } = useApp();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { settings } = state;
   const t = TRANSLATIONS[settings?.language || 'fr'];
+
+  const role = (state.agent?.role || state.user?.role || '').toUpperCase();
+  const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'SUPERADMIN';
+
   const [detailVisitor, setDetailVisitor] = useState(null);
   const [dateFilter, setDateFilter] = useState('');
+  const [entrepriseFilter, setEntrepriseFilter] = useState(searchParams.get('entrepriseId') || 'ALL');
+  const [agentFilter, setAgentFilter] = useState(searchParams.get('agentId') || 'ALL');
+
+  const [entreprises, setEntreprises] = useState([]);
+  const [agentsList, setAgentsList] = useState([]);
+
+  useEffect(() => {
+    const entParam = searchParams.get('entrepriseId');
+    const agentParam = searchParams.get('agentId');
+    if (entParam) setEntrepriseFilter(entParam);
+    if (agentParam) setAgentFilter(agentParam);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      Promise.all([
+        entrepriseService.getAll(),
+        authService.getAllUsers(),
+      ]).then(([entData, usrData]) => {
+        setEntreprises(Array.isArray(entData) ? entData : (entData?.entreprises || []));
+        const users = usrData?.utilisateurs || (Array.isArray(usrData) ? usrData : []);
+        setAgentsList(users);
+      }).catch(() => {});
+    }
+  }, [isSuperAdmin]);
 
   const all = state.visitors.filter(v => {
-    // 1. Filtrage par rôle et propriétaire
-    if (state.agent?.role === 'AGENT') {
+    // 1. Contextual filtering based on role & query selection
+    if (isSuperAdmin) {
+      if (entrepriseFilter !== 'ALL') {
+        const vEntId = v.entrepriseId?._id || v.entrepriseId;
+        if (String(vEntId) !== String(entrepriseFilter)) return false;
+      }
+      if (agentFilter !== 'ALL') {
+        const vAgentId = v.agentId?._id || v.agentId || v.createdBy || v.agent?.id;
+        if (String(vAgentId) !== String(agentFilter)) return false;
+      }
+    } else if (state.agent?.role === 'AGENT') {
       const currentId = state.agent.id || state.agent._id;
       const currentEmail = state.agent.email;
       const currentNom = `${state.agent.prenom || ''} ${state.agent.nom || ''}`.trim().toLowerCase();
 
-      const vAgentId = v.agentId || v.createdBy || v.agent?._id || v.agent?.id;
+      const vAgentId = v.agentId?._id || v.agentId || v.createdBy || v.agent?.id;
       const vEmail = v.agentEmail || v.agent?.email;
       const vAuthorName = String(v.enregistrePar || v.agentNom || '').toLowerCase();
 
@@ -33,10 +75,12 @@ export default function AgentHistorique({ isMobile }) {
       );
       if (!isOwn) return false;
     } else if (state.agent?.role === 'ADMIN' && state.agent?.entrepriseId) {
-      if (v.entrepriseId && v.entrepriseId !== state.agent.entrepriseId) return false;
+      const entId = state.agent.entrepriseId?._id || state.agent.entrepriseId;
+      const vEntId = v.entrepriseId?._id || v.entrepriseId;
+      if (vEntId && String(vEntId) !== String(entId)) return false;
     }
 
-    // 2. Filtrage par date
+    // 2. Date filtering
     if (!dateFilter) return true;
     const filterDateStr = new Date(dateFilter).toLocaleDateString('fr-FR');
     const visitorDate = v.date || (v.createdAt ? new Date(v.createdAt).toLocaleDateString('fr-FR') : '');
@@ -84,14 +128,57 @@ export default function AgentHistorique({ isMobile }) {
     }
   };
 
+  const clearFilters = () => {
+    setDateFilter('');
+    setEntrepriseFilter('ALL');
+    setAgentFilter('ALL');
+    setSearchParams({});
+  };
+
   return (
     <div className="p-4 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-2 duration-500" dir={settings?.language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{t.history}</h1>
-          <p className="text-sm text-slate-500 font-bold mt-1">{state.visitors.length} {t.history.toLowerCase()}</p>
+          <h1 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{isSuperAdmin ? 'Historique Global des Visites' : t.history}</h1>
+          <p className="text-sm text-slate-500 font-bold mt-1">{all.length} visite(s) répertoriée(s)</p>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-wrap gap-2 items-center">
+          {isSuperAdmin && (
+            <>
+              <select
+                value={entrepriseFilter}
+                onChange={e => {
+                  setEntrepriseFilter(e.target.value);
+                  if (e.target.value !== 'ALL') searchParams.set('entrepriseId', e.target.value);
+                  else searchParams.delete('entrepriseId');
+                  setSearchParams(searchParams);
+                }}
+                className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-lg py-2 px-3 text-xs font-black text-slate-700 dark:text-slate-200 outline-none hover:border-slate-200 focus:border-brand-blue-bright/20 transition-all cursor-pointer"
+              >
+                <option value="ALL">Toutes les entreprises</option>
+                {entreprises.map(e => (
+                  <option key={e.id || e._id} value={e.id || e._id}>{e.nom}</option>
+                ))}
+              </select>
+
+              <select
+                value={agentFilter}
+                onChange={e => {
+                  setAgentFilter(e.target.value);
+                  if (e.target.value !== 'ALL') searchParams.set('agentId', e.target.value);
+                  else searchParams.delete('agentId');
+                  setSearchParams(searchParams);
+                }}
+                className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-lg py-2 px-3 text-xs font-black text-slate-700 dark:text-slate-200 outline-none hover:border-slate-200 focus:border-brand-blue-bright/20 transition-all cursor-pointer"
+              >
+                <option value="ALL">Tous les agents</option>
+                {agentsList.map(a => (
+                  <option key={a.id || a._id} value={a.id || a._id}>{a.prenom} {a.nom} ({a.role})</option>
+                ))}
+              </select>
+            </>
+          )}
+
           <div className="relative">
             <Calendar size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
@@ -101,13 +188,19 @@ export default function AgentHistorique({ isMobile }) {
               className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-lg py-2 pl-10 pr-3 text-xs font-black text-slate-700 dark:text-slate-200 outline-none hover:border-slate-200 focus:border-brand-blue-bright/20 transition-all"
             />
           </div>
-          {dateFilter && <Btn variant="ghost" size="sm" onClick={() => setDateFilter('')} className="text-[10px] font-black uppercase">{t.reset}</Btn>}
+
+          {(dateFilter || entrepriseFilter !== 'ALL' || agentFilter !== 'ALL') && (
+            <Btn variant="ghost" size="sm" onClick={clearFilters} className="text-[10px] font-black uppercase">
+              Réinitialiser
+            </Btn>
+          )}
+
           <Btn variant="secondary" size="sm" icon={Download} onClick={handleExport} className="text-[10px] font-black uppercase">{t.export}</Btn>
         </div>
       </div>
 
       <Card className="border-slate-200 dark:border-slate-800">
-        <CardHeader title={`${t.history} (${all.length})`} />
+        <CardHeader title={`Historique (${all.length})`} />
         {all.length === 0
           ? <EmptyState icon={Clock} title={t.no_results} description={t.no_results_desc} />
           : <VisitorTable visitors={all} onView={setDetailVisitor} onCheckout={handleCheckout} compact={isMobile} />

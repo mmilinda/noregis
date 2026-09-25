@@ -1,20 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
 import {
   Shield, UserPlus, Power, Search, Mail, Lock, User, Phone,
   Building2, Briefcase, Award, Calendar, Edit3,
   ShieldAlert, RefreshCw, AlertTriangle, Bell,
-  CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, QrCode, Loader2,
+  CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, QrCode, Loader2, History,
 } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
 import { Card, CardHeader, Btn, FormInput, FormSelect, Modal } from '../../components/UI';
 import { authService } from '../../services/authService';
+import { entrepriseService } from '../../services/entrepriseService';
 import { demandeService } from '../../services/demandeService';
 import { TRANSLATIONS } from '../../translations';
 
 const EMPTY_FORM = {
   email: '', password: '', prenom: '', nom: '', role: 'AGENT',
   telephone: '', departement: '', poste: '', niveauAccreditation: '', dateArrivee: '',
+  entrepriseId: '',
 };
 
 const FIELD_LABELS = {
@@ -25,14 +28,21 @@ const FIELD_LABELS = {
 
 export default function AgentsManagement({ isMobile }) {
   const { state, notify } = useApp();
+  const navigate = useNavigate();
   const t = TRANSLATIONS[state.settings?.language || 'fr'];
+
+  const role = (state.agent?.role || state.user?.role || '').toUpperCase();
+  const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'SUPERADMIN';
 
   const [activeTab, setActiveTab] = useState('agents'); // 'agents' | 'demandes'
 
-  // ── Agents state ──────────────────────────────────────────
-  const [agents, setAgents]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch]   = useState('');
+  // ── Agents & Entreprises state ─────────────────────────────
+  const [agents, setAgents]         = useState([]);
+  const [entreprises, setEntreprises] = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState('');
+  const [entrepriseFilter, setEntrepriseFilter] = useState('ALL');
+  const [statutFilter, setStatutFilter]         = useState('ALL');
 
   // Create modal
   const [createOpen, setCreateOpen]   = useState(false);
@@ -50,7 +60,7 @@ export default function AgentsManagement({ isMobile }) {
   const [demandes, setDemandes]           = useState([]);
   const [loadingDemandes, setLoadingDemandes] = useState(false);
   const [expandedDemande, setExpandedDemande] = useState(null);
-  const [rejectModal, setRejectModal]     = useState(null); // demande being rejected
+  const [rejectModal, setRejectModal]     = useState(null);
   const [motifRejet, setMotifRejet]       = useState('');
   const [traitementId, setTraitementId]   = useState(null);
 
@@ -62,23 +72,28 @@ export default function AgentsManagement({ isMobile }) {
   const [qrError, setQrError]             = useState('');
 
   // ── Fetch ─────────────────────────────────────────────────
-  const fetchAgents = useCallback(async (silent = false) => {
+  const fetchAgentsAndEntreprises = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await authService.getAllUsers(state.agent?.entrepriseId);
-      let list = res?.utilisateurs || (Array.isArray(res) ? res : []);
-      if (state.agent?.entrepriseId) {
-        list = list.filter(u => u.entrepriseId === state.agent.entrepriseId);
+      const entIdParam = isSuperAdmin ? null : state.agent?.entrepriseId;
+      const [resUsers, resEnts] = await Promise.all([
+        authService.getAllUsers(entIdParam, 'AGENT'),
+        isSuperAdmin ? entrepriseService.getAll() : Promise.resolve([]),
+      ]);
+
+      let list = resUsers?.utilisateurs || (Array.isArray(resUsers) ? resUsers : []);
+      if (!isSuperAdmin && state.agent?.entrepriseId) {
+        list = list.filter(u => String(u.entrepriseId?._id || u.entrepriseId) === String(state.agent.entrepriseId));
       }
-      // Seuls les agents de l'entreprise sont gérés par l'Admin
-      list = list.filter(u => u.role === 'AGENT' || u._id === state.agent?.id || u.id === state.agent?.id);
+      list = list.filter(u => u.role === 'AGENT' || (!isSuperAdmin && (u._id === state.agent?.id || u.id === state.agent?.id)));
       setAgents(list);
+      setEntreprises(Array.isArray(resEnts) ? resEnts : (resEnts?.entreprises || []));
     } catch (err) {
       notify('error', err.message || 'Impossible de récupérer la liste des agents.');
     } finally {
       setLoading(false);
     }
-  }, [notify, state.agent]);
+  }, [notify, state.agent, isSuperAdmin]);
 
   const fetchDemandes = useCallback(async () => {
     setLoadingDemandes(true);
@@ -92,7 +107,7 @@ export default function AgentsManagement({ isMobile }) {
     }
   }, [notify]);
 
-  useEffect(() => { fetchAgents(); }, [fetchAgents]);
+  useEffect(() => { fetchAgentsAndEntreprises(); }, [fetchAgentsAndEntreprises]);
   useEffect(() => {
     if (activeTab === 'demandes') fetchDemandes();
   }, [activeTab, fetchDemandes]);
@@ -102,7 +117,7 @@ export default function AgentsManagement({ isMobile }) {
     try {
       const res = await authService.updateUserStatus(id, targetStatus);
       notify('success', res.message || 'Statut de l\'agent mis à jour.');
-      fetchAgents(true);
+      fetchAgentsAndEntreprises(true);
     } catch (err) {
       notify('error', err.message || 'Impossible de modifier le statut.');
     }
@@ -115,20 +130,27 @@ export default function AgentsManagement({ isMobile }) {
       setCreateError('Nom, email et mot de passe sont obligatoires.');
       return;
     }
+    const entId = isSuperAdmin ? createForm.entrepriseId : state.agent?.entrepriseId;
+    if (isSuperAdmin && !entId) {
+      setCreateError('Veuillez sélectionner l\'entreprise pour cet agent.');
+      return;
+    }
+
     setCreateError('');
     setCreating(true);
     try {
+      const targetEnt = entreprises.find(e => (e.id === entId || e._id === entId));
       await authService.createUser({
         ...createForm,
         password: createForm.password,
         role: 'AGENT',
-        entrepriseId: state.agent?.entrepriseId,
-        entrepriseNom: state.agent?.entrepriseNom,
+        entrepriseId: entId,
+        entrepriseNom: targetEnt ? targetEnt.nom : (state.agent?.entrepriseNom || ''),
       });
       notify('success', 'Nouvel agent créé avec succès !');
       setCreateOpen(false);
       setCreateForm(EMPTY_FORM);
-      fetchAgents(true);
+      fetchAgentsAndEntreprises(true);
     } catch (err) {
       setCreateError(err.message || 'Erreur lors de la création.');
     } finally {
@@ -138,13 +160,18 @@ export default function AgentsManagement({ isMobile }) {
 
   // ── Edit agent ────────────────────────────────────────────
   const openEdit = (agent) => {
+    const entId = agent.entrepriseId?._id || agent.entrepriseId || '';
     setEditAgent(agent);
     setEditForm({
       prenom: agent.prenom || '', nom: agent.nom || '',
+      email: agent.email || '',
       telephone: agent.telephone || '', departement: agent.departement || '',
       poste: agent.poste || '', niveauAccreditation: agent.niveauAccreditation || '',
       dateArrivee: agent.dateArrivee ? new Date(agent.dateArrivee).toISOString().split('T')[0] : '',
       role: agent.role || 'AGENT',
+      entrepriseId: entId,
+      password: '',
+      statutCompte: agent.statutCompte || 'ACTIF',
     });
     setEditError('');
   };
@@ -153,15 +180,19 @@ export default function AgentsManagement({ isMobile }) {
     e.preventDefault();
     setSaving(true);
     try {
-      await authService.updateUserProfile(editAgent._id, editForm);
-      notify('success', 'Profil mis à jour avec succès.');
+      await authService.updateUserProfile(editAgent._id || editAgent.id, editForm);
+      notify('success', 'Profil de l\'agent mis à jour avec succès.');
       setEditAgent(null);
-      fetchAgents(true);
+      fetchAgentsAndEntreprises(true);
     } catch (err) {
       setEditError(err.message || 'Erreur lors de la mise à jour.');
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleViewHistory = (agentId) => {
+    navigate(`/history?agentId=${agentId}`);
   };
 
   const handleGenerateQr = async (agent) => {
@@ -172,9 +203,7 @@ export default function AgentsManagement({ isMobile }) {
     setQrLoading(true);
 
     try {
-      const response = await authService.generateAgentQr(agent._id);
-      
-      // Generate QR code on frontend with correct origin
+      const response = await authService.generateAgentQr(agent._id || agent.id);
       const qrUrl = `${window.location.origin}${response.qrPath}`;
       const qrCodeData = await QRCode.toDataURL(qrUrl);
       
@@ -230,7 +259,7 @@ export default function AgentsManagement({ isMobile }) {
       await demandeService.approuver(id);
       notify('success', '✅ Demande approuvée — profil mis à jour.');
       fetchDemandes();
-      fetchAgents(true);
+      fetchAgentsAndEntreprises(true);
     } catch (err) {
       notify('error', err.message || 'Erreur lors de l\'approbation.');
     } finally {
@@ -257,7 +286,12 @@ export default function AgentsManagement({ isMobile }) {
   const filteredAgents = agents.filter(agent => {
     const q = search.toLowerCase();
     const name = `${agent.prenom || ''} ${agent.nom || ''}`.toLowerCase();
-    return name.includes(q) || (agent.email || '').toLowerCase().includes(q) || (agent.role || '').toLowerCase().includes(q);
+    const entId = agent.entrepriseId?._id || agent.entrepriseId;
+    const matchSearch = name.includes(q) || (agent.email || '').toLowerCase().includes(q) || (agent.entrepriseNom || agent.entrepriseId?.nom || '').toLowerCase().includes(q);
+    const matchEntreprise = entrepriseFilter === 'ALL' || String(entId) === String(entrepriseFilter);
+    const matchStatut = statutFilter === 'ALL' || (agent.statutCompte || agent.statut || 'ACTIF') === statutFilter;
+
+    return matchSearch && matchEntreprise && matchStatut;
   });
 
   const isSelf = (agent) => state.agent?.id === agent._id || state.agent?._id === agent._id;
@@ -269,10 +303,10 @@ export default function AgentsManagement({ isMobile }) {
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <Shield className="text-brand-blue-bright fill-brand-blue-bright/10" size={26} />
-            {t.agent_management || 'Gestion des Agents'}
+            {t.agent_management || 'Gestion des Agents de Sécurité'}
           </h1>
           <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">
-            Gérez les accès, les rôles et les demandes de modification.
+            {isSuperAdmin ? 'Gestion globale de tous les agents rattachés aux entreprises' : 'Gérez les accès et profils des agents de votre entreprise.'}
           </p>
         </div>
         {activeTab === 'agents' && (
@@ -315,22 +349,50 @@ export default function AgentsManagement({ isMobile }) {
       {/* ═══════════════ TAB AGENTS ═══════════════ */}
       {activeTab === 'agents' && (
         <>
-          <div className="relative group w-full md:w-96">
-            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue-bright transition-colors" />
-            <input
-              type="text"
-              placeholder={t.search || "Rechercher un agent par nom, email..."}
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 focus:border-brand-blue-bright/20 rounded-lg py-2.5 pl-12 pr-4 text-sm font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"
-            />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative group flex-1">
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue-bright transition-colors" />
+              <input
+                type="text"
+                placeholder={t.search || "Rechercher un agent par nom, email..."}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 focus:border-brand-blue-bright/20 rounded-xl py-2.5 pl-12 pr-4 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"
+              />
+            </div>
+
+            {isSuperAdmin && (
+              <select
+                value={entrepriseFilter}
+                onChange={e => setEntrepriseFilter(e.target.value)}
+                className="px-3 py-2.5 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-xs font-black outline-none cursor-pointer"
+              >
+                <option value="ALL">Toutes les entreprises</option>
+                {entreprises.map(ent => (
+                  <option key={ent.id || ent._id} value={ent.id || ent._id}>
+                    {ent.nom}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <select
+              value={statutFilter}
+              onChange={e => setStatutFilter(e.target.value)}
+              className="px-3 py-2.5 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-xs font-black outline-none cursor-pointer"
+            >
+              <option value="ALL">Tous les statuts</option>
+              <option value="ACTIF">Actifs</option>
+              <option value="SUSPENDU">Suspendus</option>
+              <option value="DESACTIVE">Désactivés</option>
+            </select>
           </div>
 
           <Card className="border-slate-200 dark:border-slate-800">
             <CardHeader
               title={`Total : ${filteredAgents.length} agent(s)`}
               actions={
-                <Btn variant="secondary" size="sm" icon={RefreshCw} onClick={() => fetchAgents()} className="text-[10px] font-black uppercase">
+                <Btn variant="secondary" size="sm" icon={RefreshCw} onClick={() => fetchAgentsAndEntreprises()} className="text-[10px] font-black uppercase">
                   Actualiser
                 </Btn>
               }
@@ -352,9 +414,8 @@ export default function AgentsManagement({ isMobile }) {
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
                       <th className="p-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Agent</th>
-                      <th className="p-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Rôle</th>
+                      <th className="p-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Entreprise</th>
                       <th className="p-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Poste / Département</th>
-                      <th className="p-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Inscription</th>
                       <th className="p-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Statut</th>
                       <th className="p-4 text-[10px] font-black uppercase text-slate-400 tracking-wider text-right">Actions</th>
                     </tr>
@@ -363,8 +424,11 @@ export default function AgentsManagement({ isMobile }) {
                     {filteredAgents.map((agent) => {
                       const initials = ((agent.prenom?.[0] || '') + (agent.nom?.[0] || 'U')).toUpperCase();
                       const self = isSelf(agent);
+                      const entName = agent.entrepriseId?.nom || agent.entrepriseNom || '—';
+                      const currentStatus = agent.statutCompte || agent.statut || 'ACTIF';
+
                       return (
-                        <tr key={agent._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors">
+                        <tr key={agent._id || agent.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors">
                           <td className="p-4">
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-blue-bright to-brand-blue flex items-center justify-center text-white text-xs font-black shrink-0">
@@ -382,36 +446,37 @@ export default function AgentsManagement({ isMobile }) {
                               </div>
                             </div>
                           </td>
-                          <td className="p-4">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${
-                              agent.role === 'ADMIN'
-                                ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'
-                                : 'bg-brand-blue-light text-brand-blue'
-                            }`}>
-                              {agent.role === 'ADMIN' ? 'Administrateur' : 'Agent'}
-                            </span>
+                          <td className="p-4 text-xs font-bold text-slate-800 dark:text-slate-200">
+                            <div className="flex items-center gap-1.5">
+                              <Building2 size={13} className="text-brand-blue-bright" />
+                              {entName}
+                            </div>
                           </td>
                           <td className="p-4">
                             <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{agent.poste || '—'}</p>
                             <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mt-0.5">{agent.departement || ''}</p>
                           </td>
-                          <td className="p-4 text-xs font-bold text-slate-600 dark:text-slate-300">
-                            {agent.createdAt ? new Date(agent.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-                          </td>
                           <td className="p-4">
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                              (agent.statut === 'ACTIF' || agent.isActif !== false)
-                                ? 'bg-emerald-500/10 text-emerald-600'
-                                : (agent.statut === 'SUSPENDU' ? 'bg-amber-500/10 text-amber-600' : 'bg-rose-500/10 text-rose-600')
+                              currentStatus === 'ACTIF' ? 'bg-emerald-500/10 text-emerald-600' :
+                              currentStatus === 'SUSPENDU' ? 'bg-amber-500/10 text-amber-600' : 'bg-rose-500/10 text-rose-600'
                             }`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${
-                                (agent.statut === 'ACTIF' || agent.isActif !== false) ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
-                              }`} />
-                              {agent.statut || (agent.isActif !== false ? 'ACTIF' : 'DESACTIVE')}
+                              <span className={`w-1.5 h-1.5 rounded-full ${currentStatus === 'ACTIF' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                              {currentStatus}
                             </span>
                           </td>
                           <td className="p-4 text-right">
                             <div className="flex items-center justify-end gap-1.5 flex-wrap sm:flex-nowrap">
+                              <Btn
+                                variant="ghost"
+                                size="sm"
+                                icon={History}
+                                onClick={() => handleViewHistory(agent._id || agent.id)}
+                                className="text-[10px] font-black uppercase text-brand-blue-bright hover:bg-brand-blue-bright/10"
+                                title="Voir l'historique enregistré par cet agent"
+                              >
+                                Historique
+                              </Btn>
                               <Btn variant="ghost" size="sm" icon={Edit3} onClick={() => openEdit(agent)} className="text-brand-blue hover:bg-brand-blue/10">
                                 Modifier
                               </Btn>
@@ -420,17 +485,17 @@ export default function AgentsManagement({ isMobile }) {
                               </Btn>
                               {!self && (
                                 <>
-                                  {agent.statut !== 'ACTIF' && (
+                                  {currentStatus !== 'ACTIF' && (
                                     <Btn variant="success" size="sm" onClick={() => handleToggleStatus(agent._id || agent.id, 'ACTIF')} className="text-[10px] font-black uppercase">
                                       Activer
                                     </Btn>
                                   )}
-                                  {agent.statut !== 'SUSPENDU' && (
+                                  {currentStatus !== 'SUSPENDU' && (
                                     <Btn variant="warning" size="sm" onClick={() => handleToggleStatus(agent._id || agent.id, 'SUSPENDU')} className="text-[10px] font-black uppercase">
                                       Suspendre
                                     </Btn>
                                   )}
-                                  {agent.statut !== 'DESACTIVE' && (
+                                  {currentStatus !== 'DESACTIVE' && (
                                     <Btn variant="danger" size="sm" onClick={() => handleToggleStatus(agent._id || agent.id, 'DESACTIVE')} className="text-[10px] font-black uppercase">
                                       Désactiver
                                     </Btn>
@@ -478,18 +543,15 @@ export default function AgentsManagement({ isMobile }) {
               {demandes.map((demande) => {
                 const agent = demande.utilisateur;
                 const champs = Object.entries(demande.modifications || {});
-                const isExpanded = expandedDemande === demande._id;
                 const isProcessing = traitementId === demande._id;
 
                 return (
                   <div key={demande._id} className="p-5">
                     <div className="flex items-start gap-4">
-                      {/* Avatar */}
                       <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-amber-bright to-amber-400 flex items-center justify-center text-white text-xs font-black shrink-0">
                         {((agent?.prenom?.[0] || '') + (agent?.nom?.[0] || 'A')).toUpperCase()}
                       </div>
 
-                      {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 flex-wrap">
                           <div>
@@ -508,7 +570,6 @@ export default function AgentsManagement({ isMobile }) {
                           </div>
                         </div>
 
-                        {/* Champs demandés — résumé */}
                         <div className="mt-3 flex flex-wrap gap-2">
                           {champs.map(([key, val]) => (
                             <div key={key} className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
@@ -518,12 +579,10 @@ export default function AgentsManagement({ isMobile }) {
                           ))}
                         </div>
 
-                        {/* Motif */}
                         {demande.motif && (
                           <p className="mt-2 text-xs text-slate-500 italic">«{demande.motif}»</p>
                         )}
 
-                        {/* Actions */}
                         <div className="mt-4 flex items-center gap-2">
                           <Btn
                             variant="primary"
@@ -557,7 +616,7 @@ export default function AgentsManagement({ isMobile }) {
       )}
 
       {/* ── MODAL CRÉATION ────────────────────────────────── */}
-      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="Créer un nouvel Agent" size="md">
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="Créer un nouvel Agent de Sécurité" size="md">
         <form onSubmit={handleCreate} className="space-y-4">
           {createError && (
             <div className="p-3 bg-red-50 dark:bg-red-950/30 text-brand-red border border-brand-red-bright/20 rounded-lg text-xs font-bold flex items-center gap-2">
@@ -574,9 +633,22 @@ export default function AgentsManagement({ isMobile }) {
             onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} icon={Mail} placeholder="j.dupont@company.com" />
           <FormInput label="Mot de passe *" id="c-password" type="password" required value={createForm.password}
             onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} icon={Lock} placeholder="••••••••" />
+
+          {isSuperAdmin && (
+            <FormSelect
+              label="Entreprise Rattachée *"
+              id="c-entrepriseId"
+              required
+              value={createForm.entrepriseId}
+              onChange={e => setCreateForm(f => ({ ...f, entrepriseId: e.target.value }))}
+              options={entreprises.map(e => ({ value: e.id || e._id, label: e.nom }))}
+              placeholder="Sélectionner l'entreprise..."
+            />
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <FormInput label="Téléphone" id="c-tel" value={createForm.telephone}
-              onChange={e => setCreateForm(f => ({ ...f, telephone: e.target.value }))} icon={Phone} placeholder="+226 XX XX XX XX" />
+              onChange={e => setCreateForm(f => ({ ...f, telephone: e.target.value }))} icon={Phone} placeholder="+221 77 000 00 00" />
             <FormInput label="Date d'arrivée" id="c-date" type="date" value={createForm.dateArrivee}
               onChange={e => setCreateForm(f => ({ ...f, dateArrivee: e.target.value }))} icon={Calendar} />
           </div>
@@ -586,59 +658,74 @@ export default function AgentsManagement({ isMobile }) {
             <FormInput label="Poste" id="c-poste" value={createForm.poste}
               onChange={e => setCreateForm(f => ({ ...f, poste: e.target.value }))} icon={Briefcase} placeholder="Ex: Entrée Principale" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <FormInput label="Accréditation" id="c-accred" value={createForm.niveauAccreditation}
-              onChange={e => setCreateForm(f => ({ ...f, niveauAccreditation: e.target.value }))} icon={Award} placeholder="Ex: Niveau 2" />
-            <FormSelect label="Rôle" id="c-role" value={createForm.role}
-              onChange={e => setCreateForm(f => ({ ...f, role: e.target.value }))} icon={ShieldAlert}
-              options={[{ value: 'AGENT', label: 'Agent' }, { value: 'ADMIN', label: 'Administrateur' }]} />
-          </div>
           <div className="flex gap-3 justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
             <Btn variant="secondary" onClick={() => setCreateOpen(false)}>Annuler</Btn>
-            <Btn type="submit" variant="primary" loading={creating}>Créer le compte</Btn>
+            <Btn type="submit" variant="primary" loading={creating}>Créer l'Agent</Btn>
           </div>
         </form>
       </Modal>
 
       {/* ── MODAL ÉDITION ─────────────────────────────────── */}
-      <Modal isOpen={!!editAgent} onClose={() => setEditAgent(null)} title={`Modifier — ${editAgent?.prenom || ''} ${editAgent?.nom || ''}`} size="md">
-        <form onSubmit={handleSaveEdit} className="space-y-4">
-          {editError && (
-            <div className="p-3 bg-red-50 dark:bg-red-950/30 text-brand-red border border-brand-red-bright/20 rounded-lg text-xs font-bold flex items-center gap-2">
-              <AlertTriangle size={16} /><span>{editError}</span>
+      {editAgent && (
+        <Modal isOpen={!!editAgent} onClose={() => setEditAgent(null)} title={`Modifier — ${editAgent?.prenom || ''} ${editAgent?.nom || ''}`} size="md">
+          <form onSubmit={handleSaveEdit} className="space-y-4">
+            {editError && (
+              <div className="p-3 bg-red-50 dark:bg-red-950/30 text-brand-red border border-brand-red-bright/20 rounded-lg text-xs font-bold flex items-center gap-2">
+                <AlertTriangle size={16} /><span>{editError}</span>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              <FormInput label="Prénom" id="e-prenom" value={editForm.prenom}
+                onChange={e => setEditForm(f => ({ ...f, prenom: e.target.value }))} icon={User} />
+              <FormInput label="Nom" id="e-nom" value={editForm.nom}
+                onChange={e => setEditForm(f => ({ ...f, nom: e.target.value }))} icon={User} />
             </div>
-          )}
-          <div className="grid grid-cols-2 gap-4">
-            <FormInput label="Prénom" id="e-prenom" value={editForm.prenom}
-              onChange={e => setEditForm(f => ({ ...f, prenom: e.target.value }))} icon={User} />
-            <FormInput label="Nom" id="e-nom" value={editForm.nom}
-              onChange={e => setEditForm(f => ({ ...f, nom: e.target.value }))} icon={User} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <FormInput label="Téléphone" id="e-tel" value={editForm.telephone}
-              onChange={e => setEditForm(f => ({ ...f, telephone: e.target.value }))} icon={Phone} />
-            <FormInput label="Date d'arrivée" id="e-date" type="date" value={editForm.dateArrivee}
-              onChange={e => setEditForm(f => ({ ...f, dateArrivee: e.target.value }))} icon={Calendar} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <FormInput label="Département" id="e-dept" value={editForm.departement}
-              onChange={e => setEditForm(f => ({ ...f, departement: e.target.value }))} icon={Building2} />
-            <FormInput label="Poste" id="e-poste" value={editForm.poste}
-              onChange={e => setEditForm(f => ({ ...f, poste: e.target.value }))} icon={Briefcase} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <FormInput label="Accréditation" id="e-accred" value={editForm.niveauAccreditation}
-              onChange={e => setEditForm(f => ({ ...f, niveauAccreditation: e.target.value }))} icon={Award} />
-            <FormSelect label="Rôle" id="e-role" value={editForm.role}
-              onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))} icon={ShieldAlert}
-              options={[{ value: 'AGENT', label: 'Agent' }, { value: 'ADMIN', label: 'Administrateur' }]} />
-          </div>
-          <div className="flex gap-3 justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
-            <Btn variant="secondary" onClick={() => setEditAgent(null)}>Annuler</Btn>
-            <Btn type="submit" variant="primary" loading={saving}>Enregistrer</Btn>
-          </div>
-        </form>
-      </Modal>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormInput label="Email" id="e-email" type="email" value={editForm.email}
+                onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} icon={Mail} />
+              <FormInput label="Nouveau mot de passe" id="e-password" type="password" value={editForm.password}
+                onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))} icon={Lock} placeholder="Conserver l'actuel" />
+            </div>
+
+            {isSuperAdmin && (
+              <FormSelect
+                label="Entreprise Rattachée"
+                id="e-entrepriseId"
+                value={editForm.entrepriseId}
+                onChange={e => setEditForm(f => ({ ...f, entrepriseId: e.target.value }))}
+                options={entreprises.map(e => ({ value: e.id || e._id, label: e.nom }))}
+              />
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormInput label="Téléphone" id="e-tel" value={editForm.telephone}
+                onChange={e => setEditForm(f => ({ ...f, telephone: e.target.value }))} icon={Phone} />
+              <FormSelect
+                label="Statut du compte"
+                id="e-statut"
+                value={editForm.statutCompte}
+                onChange={e => setEditForm(f => ({ ...f, statutCompte: e.target.value }))}
+                options={[
+                  { value: 'ACTIF', label: 'Actif' },
+                  { value: 'SUSPENDU', label: 'Suspendu' },
+                  { value: 'DESACTIVE', label: 'Désactivé' },
+                ]}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <FormInput label="Département" id="e-dept" value={editForm.departement}
+                onChange={e => setEditForm(f => ({ ...f, departement: e.target.value }))} icon={Building2} />
+              <FormInput label="Poste" id="e-poste" value={editForm.poste}
+                onChange={e => setEditForm(f => ({ ...f, poste: e.target.value }))} icon={Briefcase} />
+            </div>
+            <div className="flex gap-3 justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+              <Btn variant="secondary" onClick={() => setEditAgent(null)}>Annuler</Btn>
+              <Btn type="submit" variant="primary" loading={saving}>Enregistrer</Btn>
+            </div>
+          </form>
+        </Modal>
+      )}
 
       {/* ── MODAL QR CODE ─────────────────────────────────── */}
       <Modal isOpen={qrModalOpen} onClose={closeQrModal} title={`QR code ${qrAgent?.prenom || ''} ${qrAgent?.nom || ''}`} size="md">

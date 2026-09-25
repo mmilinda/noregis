@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Building2, Plus, Search, Power, Phone, Mail, MapPin, Briefcase, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Building2, Plus, Search, Phone, Mail, MapPin, Briefcase, RefreshCw, CheckCircle2, Edit, History } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
 import { Card, CardHeader, Btn, FormInput, FormSelect, Modal } from '../../components/UI';
 import { entrepriseService } from '../../services/entrepriseService';
@@ -17,6 +18,7 @@ const EMPTY_ENTREPRISE = {
 
 export default function EntreprisesManagement({ isMobile }) {
   const { state, notify } = useApp();
+  const navigate = useNavigate();
   const t = TRANSLATIONS[state.settings?.language || 'fr'];
 
   const [entreprises, setEntreprises] = useState([]);
@@ -29,6 +31,12 @@ export default function EntreprisesManagement({ isMobile }) {
   const [createForm, setCreateForm] = useState(EMPTY_ENTREPRISE);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
+
+  // Modal édition
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [editError, setEditError] = useState('');
 
   const fetchEntreprises = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -57,7 +65,16 @@ export default function EntreprisesManagement({ isMobile }) {
     setCreateError('');
 
     try {
-      await entrepriseService.create(createForm);
+      await entrepriseService.create({
+        nom: createForm.nom,
+        code: createForm.immatriculation || `ENT-${Date.now().toString().slice(-4)}`,
+        immatriculation: createForm.immatriculation,
+        adresse: createForm.adresse,
+        telephone: createForm.telephone,
+        emailContact: createForm.email,
+        secteur: createForm.secteur,
+        statut: createForm.statut,
+      });
       notify('success', `Entreprise "${createForm.nom}" créée avec succès.`);
       setCreateForm(EMPTY_ENTREPRISE);
       setCreateOpen(false);
@@ -69,10 +86,55 @@ export default function EntreprisesManagement({ isMobile }) {
     }
   };
 
+  const handleEditOpen = (ent) => {
+    setEditForm({
+      id: ent.id || ent._id,
+      nom: ent.nom || '',
+      immatriculation: ent.immatriculation || ent.code || '',
+      adresse: ent.adresse || '',
+      email: ent.email || ent.emailContact || '',
+      telephone: ent.telephone || '',
+      secteur: ent.secteur || 'Maritime / Logistique',
+      statut: ent.statut || 'ACTIF',
+    });
+    setEditError('');
+    setEditOpen(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editForm.nom.trim()) {
+      setEditError('Le nom de l\'entreprise est obligatoire.');
+      return;
+    }
+
+    setEditing(true);
+    setEditError('');
+
+    try {
+      await entrepriseService.update(editForm.id, {
+        nom: editForm.nom,
+        immatriculation: editForm.immatriculation,
+        code: editForm.immatriculation,
+        adresse: editForm.adresse,
+        telephone: editForm.telephone,
+        emailContact: editForm.email,
+        secteur: editForm.secteur,
+      });
+      notify('success', `Entreprise "${editForm.nom}" mise à jour.`);
+      setEditOpen(false);
+      fetchEntreprises(true);
+    } catch (err) {
+      setEditError(err.message || 'Erreur lors de la mise à jour.');
+    } finally {
+      setEditing(false);
+    }
+  };
+
   const handleToggleStatus = async (id, currentStatus) => {
     const nextStatus = currentStatus === 'ACTIF' ? 'SUSPENDU' : 'ACTIF';
     try {
-      await entrepriseService.updateStatus(id, nextStatus);
+      await entrepriseService.changeStatus(id, nextStatus);
       notify('success', `Statut entreprise mis à jour (${nextStatus}).`);
       fetchEntreprises(true);
     } catch (err) {
@@ -80,9 +142,13 @@ export default function EntreprisesManagement({ isMobile }) {
     }
   };
 
+  const handleViewHistory = (entId) => {
+    navigate(`/history?entrepriseId=${entId}`);
+  };
+
   const filtered = entreprises.filter(ent => {
     const q = search.trim().toLowerCase();
-    const matchSearch = !q || [ent.nom, ent.email, ent.telephone, ent.immatriculation, ent.secteur]
+    const matchSearch = !q || [ent.nom, ent.email, ent.emailContact, ent.telephone, ent.immatriculation, ent.code, ent.secteur]
       .filter(Boolean)
       .some(f => String(f).toLowerCase().includes(q));
     const matchStatut = filterStatut === 'ALL' || ent.statut === filterStatut;
@@ -99,7 +165,7 @@ export default function EntreprisesManagement({ isMobile }) {
             Gestion des Entreprises & Boîtes
           </h1>
           <p className="text-xs text-slate-500 font-bold mt-1">
-            Création, configuration et supervision des entités inscrites dans NoRegis.
+            Création, modification, suspension et consultation de l'historique des structures rattachées.
           </p>
         </div>
         <Btn variant="primary" icon={Plus} onClick={() => setCreateOpen(true)} className="!rounded-xl">
@@ -111,7 +177,7 @@ export default function EntreprisesManagement({ isMobile }) {
       <Card className="border-slate-200 dark:border-slate-800">
         <CardHeader
           title={`Entreprises (${filtered.length})`}
-          subtitle="Liste globale des structures rattachées"
+          subtitle="Liste globale des structures inscrites"
           actions={
             <Btn variant="ghost" size="sm" icon={RefreshCw} onClick={() => fetchEntreprises(true)} loading={loading} className="text-[10px] font-black uppercase">
               Actualiser
@@ -149,7 +215,7 @@ export default function EntreprisesManagement({ isMobile }) {
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
                 <th className="py-3 px-4">Nom de l'Entreprise</th>
-                <th className="py-3 px-4">NINEA / Registre</th>
+                <th className="py-3 px-4">NINEA / Code</th>
                 <th className="py-3 px-4">Secteur</th>
                 <th className="py-3 px-4">Contact</th>
                 <th className="py-3 px-4">Statut</th>
@@ -157,50 +223,78 @@ export default function EntreprisesManagement({ isMobile }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
-              {filtered.map(ent => (
-                <tr key={ent.id || ent._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-brand-blue-bright/10 text-brand-blue-bright flex items-center justify-center font-black">
-                        <Building2 size={20} />
+              {filtered.map(ent => {
+                const entId = ent.id || ent._id;
+                const isActif = ent.statut === 'ACTIF';
+
+                return (
+                  <tr key={entId} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-brand-blue-bright/10 text-brand-blue-bright flex items-center justify-center font-black">
+                          <Building2 size={20} />
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-900 dark:text-white text-sm">{ent.nom}</p>
+                          <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                            <MapPin size={10} /> {ent.adresse || 'Adresse non renseignée'}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-black text-slate-900 dark:text-white text-sm">{ent.nom}</p>
-                        <p className="text-[10px] text-slate-400 flex items-center gap-1">
-                          <MapPin size={10} /> {ent.adresse || 'Adresse non renseignée'}
-                        </p>
+                    </td>
+                    <td className="py-3.5 px-4 font-mono text-slate-600 dark:text-slate-300">
+                      {ent.immatriculation || ent.code || '—'}
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">
+                      {ent.secteur || 'Autre'}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <p className="text-slate-900 dark:text-white">{ent.emailContact || ent.email || '—'}</p>
+                      <p className="text-[10px] text-slate-400 font-mono">{ent.telephone}</p>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                        isActif ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'
+                      }`}>
+                        {ent.statut || 'ACTIF'}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex justify-end items-center gap-1.5">
+                        <Btn
+                          variant="ghost"
+                          size="sm"
+                          icon={History}
+                          onClick={() => handleViewHistory(entId)}
+                          className="text-[10px] font-black uppercase text-brand-blue-bright hover:bg-brand-blue-bright/10"
+                          title="Voir l'historique de cette entreprise"
+                        >
+                          Historique
+                        </Btn>
+
+                        <Btn
+                          variant="secondary"
+                          size="sm"
+                          icon={Edit}
+                          onClick={() => handleEditOpen(ent)}
+                          className="text-[10px] font-black uppercase"
+                        >
+                          Modifier
+                        </Btn>
+
+                        <Btn
+                          variant={isActif ? 'danger' : 'success'}
+                          size="sm"
+                          onClick={() => handleToggleStatus(entId, ent.statut || 'ACTIF')}
+                          className="text-[10px] font-black uppercase"
+                        >
+                          {isActif ? 'Suspendre' : 'Activer'}
+                        </Btn>
                       </div>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 font-mono text-slate-600 dark:text-slate-300">
-                    {ent.immatriculation || '—'}
-                  </td>
-                  <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">
-                    {ent.secteur || 'Autre'}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <p className="text-slate-900 dark:text-white">{ent.email || '—'}</p>
-                    <p className="text-[10px] text-slate-400 font-mono">{ent.telephone}</p>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-                      ent.statut === 'ACTIF' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'
-                    }`}>
-                      {ent.statut || 'ACTIF'}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <Btn
-                      variant={ent.statut === 'ACTIF' ? 'danger' : 'success'}
-                      size="sm"
-                      onClick={() => handleToggleStatus(ent.id || ent._id, ent.statut || 'ACTIF')}
-                      className="text-[10px] font-black uppercase"
-                    >
-                      {ent.statut === 'ACTIF' ? 'Suspendre' : 'Activer'}
-                    </Btn>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400 text-xs font-bold">
@@ -233,7 +327,7 @@ export default function EntreprisesManagement({ isMobile }) {
           />
 
           <FormInput
-            label="NINEA / Registre du Commerce"
+            label="NINEA / Registre du Commerce / Code"
             id="immatriculation"
             value={createForm.immatriculation}
             onChange={e => setCreateForm(f => ({ ...f, immatriculation: e.target.value }))}
@@ -297,6 +391,79 @@ export default function EntreprisesManagement({ isMobile }) {
           </div>
         </form>
       </Modal>
+
+      {/* Modal Modification Entreprise */}
+      {editOpen && editForm && (
+        <Modal isOpen={editOpen} onClose={() => setEditOpen(false)} title="Modifier l'Entreprise" size="md">
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            {editError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-600 rounded-xl text-xs font-bold">
+                {editError}
+              </div>
+            )}
+
+            <FormInput
+              label="Nom de l'Entreprise"
+              id="edit_nom"
+              required
+              value={editForm.nom}
+              onChange={e => setEditForm(f => ({ ...f, nom: e.target.value }))}
+              icon={Building2}
+            />
+
+            <FormInput
+              label="NINEA / Registre du Commerce / Code"
+              id="edit_immatriculation"
+              value={editForm.immatriculation}
+              onChange={e => setEditForm(f => ({ ...f, immatriculation: e.target.value }))}
+              icon={Briefcase}
+            />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormInput
+                label="Email Contact"
+                id="edit_email"
+                type="email"
+                value={editForm.email}
+                onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+                icon={Mail}
+              />
+              <FormInput
+                label="Téléphone Contact"
+                id="edit_telephone"
+                value={editForm.telephone}
+                onChange={e => setEditForm(f => ({ ...f, telephone: e.target.value }))}
+                icon={Phone}
+              />
+            </div>
+
+            <FormSelect
+              label="Secteur d'Activité"
+              id="edit_secteur"
+              value={editForm.secteur}
+              onChange={e => setEditForm(f => ({ ...f, secteur: e.target.value }))}
+              options={['Maritime / Logistique', 'Énergie', 'Télécommunications', 'Banque / Finance', 'Santé', 'Administration Publique', 'Industrie', 'Autre']}
+            />
+
+            <FormInput
+              label="Adresse Siège Social"
+              id="edit_adresse"
+              value={editForm.adresse}
+              onChange={e => setEditForm(f => ({ ...f, adresse: e.target.value }))}
+              icon={MapPin}
+            />
+
+            <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <Btn variant="secondary" onClick={() => setEditOpen(false)} fullWidth type="button">
+                Annuler
+              </Btn>
+              <Btn variant="primary" type="submit" loading={editing} icon={CheckCircle2} fullWidth>
+                Enregistrer les Modifications
+              </Btn>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }
