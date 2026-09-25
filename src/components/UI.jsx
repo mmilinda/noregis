@@ -242,11 +242,14 @@ export function TypeBadge({ type }) {
   const Icon = isVehicule ? Car : User;
   return (
     <span className={`
-      inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest
-      ${isVehicule ? 'bg-brand-blue-light text-brand-blue' : 'bg-brand-amber-light text-brand-amber'}
+      inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider shrink-0 max-w-full truncate
+      ${isVehicule 
+        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' 
+        : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
+      }
     `}>
-      <Icon size={12} strokeWidth={3} />
-      {isVehicule ? t.vehicle : t.person}
+      <Icon size={11} strokeWidth={2.5} className="shrink-0" />
+      <span className="truncate">{isVehicule ? t.vehicle : t.person}</span>
     </span>
   );
 }

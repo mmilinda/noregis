@@ -92,19 +92,19 @@ export default function VisitorTable({ visitors, onView, onCheckout, onDelete, c
           <table className="w-full table-fixed border-collapse">
             <thead>
               <tr className="border-b border-slate-50 dark:border-slate-800">
-                <Th label={t.type} col="type" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[10%]" />
-                <Th label={`${t.person} / ${t.vehicle}`} col="nom" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[22%]" />
+                <Th label={t.type} col="type" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[14%]" />
+                <Th label={`${t.person} / ${t.vehicle}`} col="nom" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[23%]" />
                 <Th label={`${t.id_card} / ${t.plate_number}`} col="numeroPiece" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[18%]" />
-                <Th label={t.destination} col="personneVisitee" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[18%]" />
-                <Th label={t.time} col="heureEntree" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[14%]" />
-                <Th label={t.status} col="statut" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[10%]" />
-                <th className="px-3 py-2.5 w-[8%] text-right" />
+                <Th label={t.destination} col="personneVisitee" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[17%]" />
+                <Th label={t.time} col="heureEntree" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[12%]" />
+                <Th label={t.status} col="statut" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[9%]" />
+                <th className="px-3 py-2.5 w-[7%] text-right" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {sorted.map(v => (
                 <tr key={v._id || v.id} className="group hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
-                  <td className="px-3 py-2.5 min-w-0"><TypeBadge type={v.type} /></td>
+                  <td className="px-3 py-2.5 min-w-0 overflow-hidden"><TypeBadge type={v.type} /></td>
                   <td className="px-3 py-2.5 min-w-0">
                     <p className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">
                       {v.type === 'vehicule' 
