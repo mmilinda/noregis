@@ -414,8 +414,8 @@ export default function AgentsManagement({ isMobile }) {
                 <p className="text-sm font-bold">Aucun agent trouvé</p>
               </div>
             ) : (
-              <div className="p-3 sm:p-4 overflow-hidden w-full">
-                <table className="w-full table-fixed text-left border-collapse">
+              <div className="p-3 sm:p-4 overflow-x-auto w-full">
+                <table className="w-full min-w-[700px] table-fixed text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
                       <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[24%]">Agent</th>

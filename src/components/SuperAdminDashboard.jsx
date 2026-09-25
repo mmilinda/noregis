@@ -202,10 +202,10 @@ export function SuperAdminDashboard({ t }) {
       </div>
 
       {/* Bar d'onglets */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto max-w-full whitespace-nowrap scrollbar-none">
         <button
           onClick={() => setActiveTab('entreprises')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 ${
             activeTab === 'entreprises'
               ? 'bg-brand-blue-bright text-white shadow-lg shadow-brand-blue-bright/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -215,7 +215,7 @@ export function SuperAdminDashboard({ t }) {
         </button>
         <button
           onClick={() => setActiveTab('utilisateurs')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 ${
             activeTab === 'utilisateurs'
               ? 'bg-brand-blue-bright text-white shadow-lg shadow-brand-blue-bright/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -225,7 +225,7 @@ export function SuperAdminDashboard({ t }) {
         </button>
         <button
           onClick={() => setActiveTab('historique')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 ${
             activeTab === 'historique'
               ? 'bg-brand-blue-bright text-white shadow-lg shadow-brand-blue-bright/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -254,8 +254,8 @@ export function SuperAdminDashboard({ t }) {
             </Btn>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 w-full">
-            <table className="w-full table-fixed text-left border-collapse">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 w-full">
+            <table className="w-full min-w-[700px] table-fixed text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black text-slate-500 uppercase tracking-wider">
                   <th className="py-2.5 px-3 w-[28%]">Code & Entreprise</th>
@@ -385,8 +385,8 @@ export function SuperAdminDashboard({ t }) {
             </Btn>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 w-full">
-            <table className="w-full table-fixed text-left border-collapse">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 w-full">
+            <table className="w-full min-w-[700px] table-fixed text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black text-slate-500 uppercase tracking-wider">
                   <th className="py-2.5 px-3 w-[26%]">Utilisateur</th>
