@@ -183,7 +183,8 @@ export default function ComptesManagement({ isMobile }) {
     const entId = usr.entrepriseId?._id || usr.entrepriseId;
     const matchRole = roleFilter === 'ALL' || usr.role === roleFilter || (roleFilter === 'SUPERADMIN' && usr.role === 'SUPER_ADMIN');
     const matchEntreprise = entrepriseFilter === 'ALL' || String(entId) === String(entrepriseFilter);
-    const matchStatut = statutFilter === 'ALL' || (usr.statutCompte || 'ACTIF') === statutFilter;
+    const userStatus = usr.statutCompte || usr.statut || 'ACTIF';
+    const matchStatut = statutFilter === 'ALL' || userStatus === statutFilter;
 
     return matchSearch && matchRole && matchEntreprise && matchStatut;
   });
@@ -285,7 +286,7 @@ export default function ComptesManagement({ isMobile }) {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
               {filtered.map(usr => {
                 const entName = usr.entrepriseId?.nom || usr.entrepriseNom || '— (Supervision)';
-                const currentStatus = usr.statutCompte || 'ACTIF';
+                const currentStatus = usr.statutCompte || usr.statut || 'ACTIF';
 
                 return (
                   <tr key={usr.id || usr._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
