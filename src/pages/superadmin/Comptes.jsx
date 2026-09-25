@@ -273,13 +273,13 @@ export default function ComptesManagement({ isMobile }) {
         <div className="p-4 overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                <th className="py-3 px-4">Utilisateur</th>
-                <th className="py-3 px-4">Rôle</th>
-                <th className="py-3 px-4">Entreprise Rattachée</th>
-                <th className="py-3 px-4">Poste / Dept</th>
-                <th className="py-3 px-4">Statut</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+              <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-50 dark:bg-slate-900/50">
+                <th className="py-2.5 px-3">Utilisateur</th>
+                <th className="py-2.5 px-3">Rôle</th>
+                <th className="py-2.5 px-3">Entreprise Rattachée</th>
+                <th className="py-2.5 px-3">Poste / Dept</th>
+                <th className="py-2.5 px-3">Statut</th>
+                <th className="py-2.5 px-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
@@ -289,92 +289,87 @@ export default function ComptesManagement({ isMobile }) {
 
                 return (
                   <tr key={usr.id || usr._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-brand-blue-bright font-black flex items-center justify-center text-xs">
+                    <td className="py-2.5 px-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-brand-blue-bright font-black flex items-center justify-center text-[11px] shrink-0">
                           {(usr.prenom?.[0] || 'U') + (usr.nom?.[0] || '')}
                         </div>
-                        <div>
-                          <p className="font-black text-slate-900 dark:text-white text-sm">{usr.prenom} {usr.nom}</p>
-                          <p className="text-[10px] text-slate-400 font-mono">{usr.email} · {usr.telephone || 'Sans tel'}</p>
+                        <div className="min-w-0">
+                          <p className="font-black text-slate-900 dark:text-white text-xs leading-tight truncate">{usr.prenom} {usr.nom}</p>
+                          <p className="text-[10px] text-slate-400 font-mono truncate">{usr.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4">
-                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase ${
+                    <td className="py-2.5 px-3">
+                      <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider ${
                         usr.role === 'SUPERADMIN' || usr.role === 'SUPER_ADMIN' ? 'bg-purple-500/10 text-purple-600 border border-purple-500/20' :
                         usr.role === 'ADMIN' ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
                       }`}>
                         {usr.role}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
+                    <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300 text-xs truncate max-w-[130px]">
                       {entName}
                     </td>
-                    <td className="py-3.5 px-4 text-slate-500 text-[11px]">
-                      <p>{usr.poste || '—'}</p>
-                      <p className="opacity-70">{usr.departement || ''}</p>
+                    <td className="py-2.5 px-3 text-slate-500 text-[11px]">
+                      <p className="truncate max-w-[120px] font-bold">{usr.poste || '—'}</p>
+                      <p className="opacity-70 truncate max-w-[120px]">{usr.departement || ''}</p>
                     </td>
-                    <td className="py-3.5 px-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                    <td className="py-2.5 px-3">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
                         currentStatus === 'ACTIF' ? 'bg-emerald-500/10 text-emerald-600' :
                         currentStatus === 'SUSPENDU' ? 'bg-amber-500/10 text-amber-600' : 'bg-rose-500/10 text-rose-600'
                       }`}>
                         {currentStatus}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex justify-end items-center gap-1.5">
-                        <Btn
-                          variant="ghost"
-                          size="sm"
-                          icon={History}
+                    <td className="py-2.5 px-3 text-right">
+                      <div className="flex justify-end items-center gap-1 shrink-0">
+                        <button
+                          type="button"
                           onClick={() => handleViewHistory(usr)}
-                          className="text-[10px] font-black uppercase text-brand-blue-bright hover:bg-brand-blue-bright/10"
+                          className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-brand-blue-bright bg-brand-blue-bright/10 hover:bg-brand-blue-bright/20 flex items-center gap-1 transition-all shrink-0"
                           title="Voir l'historique associé"
                         >
-                          Historique
-                        </Btn>
+                          <History size={12} />
+                          <span className="hidden xl:inline">Hist</span>
+                        </button>
 
-                        <Btn
-                          variant="secondary"
-                          size="sm"
-                          icon={Edit}
+                        <button
+                          type="button"
                           onClick={() => handleEditOpen(usr)}
-                          className="text-[10px] font-black uppercase"
+                          className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 flex items-center gap-1 transition-all shrink-0"
+                          title="Modifier"
                         >
-                          Modifier
-                        </Btn>
+                          <Edit size={12} />
+                        </button>
 
                         {currentStatus !== 'ACTIF' && (
-                          <Btn
-                            variant="success"
-                            size="sm"
+                          <button
+                            type="button"
                             onClick={() => handleStatusChange(usr.id || usr._id, 'ACTIF')}
-                            className="text-[10px] font-black uppercase py-1 px-2"
+                            className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-white bg-emerald-600 hover:bg-emerald-700 transition-all shrink-0"
                           >
                             Activer
-                          </Btn>
+                          </button>
                         )}
                         {currentStatus !== 'SUSPENDU' && (
-                          <Btn
-                            variant="warning"
-                            size="sm"
+                          <button
+                            type="button"
                             onClick={() => handleStatusChange(usr.id || usr._id, 'SUSPENDU')}
-                            className="text-[10px] font-black uppercase py-1 px-2"
+                            className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-white bg-amber-500 hover:bg-amber-600 transition-all shrink-0"
                           >
                             Suspendre
-                          </Btn>
+                          </button>
                         )}
                         {currentStatus !== 'DESACTIVE' && (
-                          <Btn
-                            variant="danger"
-                            size="sm"
+                          <button
+                            type="button"
                             onClick={() => handleStatusChange(usr.id || usr._id, 'DESACTIVE')}
-                            className="text-[10px] font-black uppercase py-1 px-2"
+                            className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-white bg-rose-600 hover:bg-rose-700 transition-all shrink-0"
                           >
                             Désactiver
-                          </Btn>
+                          </button>
                         )}
                       </div>
                     </td>
