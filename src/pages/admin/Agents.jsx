@@ -6,6 +6,7 @@ import {
   Building2, Briefcase, Award, Calendar, Edit3,
   ShieldAlert, RefreshCw, AlertTriangle, Bell,
   CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, QrCode, Loader2, History,
+  UserCheck, UserX, AlertCircle,
 } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
 import { Card, CardHeader, Btn, FormInput, FormSelect, Modal } from '../../components/UI';
@@ -409,15 +410,15 @@ export default function AgentsManagement({ isMobile }) {
                 <p className="text-sm font-bold">Aucun agent trouvé</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+              <div className="p-3 sm:p-4 overflow-hidden w-full">
+                <table className="w-full table-fixed text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                      <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider">Agent</th>
-                      <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider">Entreprise</th>
-                      <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider">Poste / Dept</th>
-                      <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider">Statut</th>
-                      <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider text-right">Actions</th>
+                      <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[24%]">Agent</th>
+                      <th className="py-2.5 px-2 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[18%]">Entreprise</th>
+                      <th className="py-2.5 px-2 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[16%]">Poste / Dept</th>
+                      <th className="py-2.5 px-2 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[12%]">Statut</th>
+                      <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider text-right w-[30%]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -429,12 +430,12 @@ export default function AgentsManagement({ isMobile }) {
 
                       return (
                         <tr key={agent._id || agent.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors">
-                          <td className="py-2.5 px-3">
-                            <div className="flex items-center gap-2">
+                          <td className="py-2.5 px-3 min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
                               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-blue-bright to-brand-blue flex items-center justify-center text-white text-[11px] font-black shrink-0">
                                 {initials}
                               </div>
-                              <div className="min-w-0">
+                              <div className="min-w-0 flex-1">
                                 <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1 leading-tight truncate">
                                   {agent.prenom} {agent.nom}
                                   {self && (
@@ -445,51 +446,50 @@ export default function AgentsManagement({ isMobile }) {
                               </div>
                             </div>
                           </td>
-                          <td className="py-2.5 px-3 text-xs font-bold text-slate-800 dark:text-slate-200">
-                            <div className="flex items-center gap-1.5 truncate max-w-[130px]">
+                          <td className="py-2.5 px-2 text-xs font-bold text-slate-800 dark:text-slate-200 min-w-0">
+                            <div className="flex items-center gap-1.5 min-w-0">
                               <Building2 size={13} className="text-brand-blue-bright shrink-0" />
                               <span className="truncate">{entName}</span>
                             </div>
                           </td>
-                          <td className="py-2.5 px-3">
-                            <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[120px]">{agent.poste || '—'}</p>
-                            <p className="text-[9px] text-slate-400 uppercase tracking-wider font-bold truncate max-w-[120px]">{agent.departement || ''}</p>
+                          <td className="py-2.5 px-2 min-w-0">
+                            <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{agent.poste || '—'}</p>
+                            <p className="text-[9px] text-slate-400 uppercase tracking-wider font-bold truncate">{agent.departement || ''}</p>
                           </td>
-                          <td className="py-2.5 px-3">
+                          <td className="py-2.5 px-2 min-w-0">
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
                               currentStatus === 'ACTIF' ? 'bg-emerald-500/10 text-emerald-600' :
                               currentStatus === 'SUSPENDU' ? 'bg-amber-500/10 text-amber-600' : 'bg-rose-500/10 text-rose-600'
                             }`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${currentStatus === 'ACTIF' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-                              {currentStatus}
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${currentStatus === 'ACTIF' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                              <span className="truncate">{currentStatus}</span>
                             </span>
                           </td>
-                          <td className="py-2.5 px-3 text-right">
-                            <div className="flex items-center justify-end gap-1">
+                          <td className="py-2.5 px-3 text-right min-w-0">
+                            <div className="flex items-center justify-end gap-1 shrink-0">
                               <button
                                 type="button"
                                 onClick={() => handleViewHistory(agent._id || agent.id)}
-                                className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-brand-blue-bright bg-brand-blue-bright/10 hover:bg-brand-blue-bright/20 flex items-center gap-1 transition-all shrink-0"
-                                title="Voir l'historique enregistré par cet agent"
+                                className="p-1.5 rounded-lg text-brand-blue-bright bg-brand-blue-bright/10 hover:bg-brand-blue-bright/20 transition-all shrink-0"
+                                title="Historique de l'agent"
                               >
-                                <History size={12} />
-                                <span className="hidden xl:inline">Hist</span>
+                                <History size={13} />
                               </button>
                               <button
                                 type="button"
                                 onClick={() => openEdit(agent)}
-                                className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 flex items-center gap-1 transition-all shrink-0"
+                                className="p-1.5 rounded-lg text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition-all shrink-0"
                                 title="Modifier"
                               >
-                                <Edit3 size={12} />
+                                <Edit3 size={13} />
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleGenerateQr(agent)}
-                                className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-brand-blue-bright bg-brand-blue-bright/10 hover:bg-brand-blue-bright/20 flex items-center gap-1 transition-all shrink-0"
-                                title="Générer QR Code"
+                                className="p-1.5 rounded-lg text-brand-blue-bright bg-brand-blue-bright/10 hover:bg-brand-blue-bright/20 transition-all shrink-0"
+                                title="QR Code"
                               >
-                                <QrCode size={12} />
+                                <QrCode size={13} />
                               </button>
                               {!self && (
                                 <>
@@ -497,27 +497,33 @@ export default function AgentsManagement({ isMobile }) {
                                     <button
                                       type="button"
                                       onClick={() => handleToggleStatus(agent._id || agent.id, 'ACTIF')}
-                                      className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-white bg-emerald-600 hover:bg-emerald-700 transition-all shrink-0"
+                                      className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all shrink-0 flex items-center gap-1"
+                                      title="Activer"
                                     >
-                                      Activer
+                                      <UserCheck size={13} />
+                                      <span className="hidden xl:inline">Activer</span>
                                     </button>
                                   )}
                                   {currentStatus !== 'SUSPENDU' && (
                                     <button
                                       type="button"
                                       onClick={() => handleToggleStatus(agent._id || agent.id, 'SUSPENDU')}
-                                      className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-white bg-amber-500 hover:bg-amber-600 transition-all shrink-0"
+                                      className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-all shrink-0 flex items-center gap-1"
+                                      title="Suspendre"
                                     >
-                                      Suspendre
+                                      <AlertCircle size={13} />
+                                      <span className="hidden xl:inline">Suspendre</span>
                                     </button>
                                   )}
                                   {currentStatus !== 'DESACTIVE' && (
                                     <button
                                       type="button"
                                       onClick={() => handleToggleStatus(agent._id || agent.id, 'DESACTIVE')}
-                                      className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-white bg-rose-600 hover:bg-rose-700 transition-all shrink-0"
+                                      className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-rose-700 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all shrink-0 flex items-center gap-1"
+                                      title="Désactiver"
                                     >
-                                      Désactiver
+                                      <UserX size={13} />
+                                      <span className="hidden xl:inline">Désactiver</span>
                                     </button>
                                   )}
                                 </>

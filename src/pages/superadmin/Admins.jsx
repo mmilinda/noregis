@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Plus, Search, Mail, Lock, User, Phone, Building2, Briefcase, RefreshCw, CheckCircle2, Edit, History } from 'lucide-react';
+import { Shield, Plus, Search, Mail, Lock, User, Phone, Building2, Briefcase, RefreshCw, CheckCircle2, Edit, History, UserCheck, UserX, AlertCircle } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
 import { Card, CardHeader, Btn, FormInput, FormSelect, Modal } from '../../components/UI';
 import { authService } from '../../services/authService';
@@ -254,15 +254,15 @@ export default function AdminsManagement({ isMobile }) {
         </div>
 
         {/* Table */}
-        <div className="p-4 overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="p-3 sm:p-4 overflow-hidden w-full">
+          <table className="w-full table-fixed text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                <th className="py-3 px-4">Administrateur</th>
-                <th className="py-3 px-4">Entreprise Rattachée</th>
-                <th className="py-3 px-4">Contact</th>
-                <th className="py-3 px-4">Statut</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+              <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-50 dark:bg-slate-900/50">
+                <th className="py-2.5 px-3 w-[28%]">Administrateur</th>
+                <th className="py-2.5 px-2 w-[24%]">Entreprise</th>
+                <th className="py-2.5 px-2 w-[24%]">Contact</th>
+                <th className="py-2.5 px-2 w-[10%]">Statut</th>
+                <th className="py-2.5 px-3 w-[14%] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
@@ -273,86 +273,86 @@ export default function AdminsManagement({ isMobile }) {
 
                 return (
                   <tr key={adm.id || adm._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 font-black flex items-center justify-center text-xs">
+                    <td className="py-2.5 px-3 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 font-black flex items-center justify-center text-[11px] shrink-0">
                           {(adm.prenom?.[0] || 'A') + (adm.nom?.[0] || '')}
                         </div>
-                        <div>
-                          <p className="font-black text-slate-900 dark:text-white text-sm">{adm.prenom} {adm.nom}</p>
-                          <p className="text-[10px] text-slate-400 font-mono">{adm.email}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-black text-slate-900 dark:text-white text-xs truncate leading-tight">{adm.prenom} {adm.nom}</p>
+                          <p className="text-[10px] text-slate-400 font-mono truncate">{adm.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 text-slate-900 dark:text-white font-bold">
-                      <div className="flex items-center gap-2">
-                        <Building2 size={14} className="text-brand-blue-bright" />
-                        {entName}
+                    <td className="py-2.5 px-2 text-slate-900 dark:text-white font-bold min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Building2 size={13} className="text-brand-blue-bright shrink-0" />
+                        <span className="truncate text-xs">{entName}</span>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 font-mono">
-                      {adm.telephone || '—'}
+                    <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 font-mono text-xs min-w-0">
+                      <p className="truncate">{adm.telephone || '—'}</p>
                     </td>
-                    <td className="py-3.5 px-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                    <td className="py-2.5 px-2 min-w-0">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider inline-block truncate max-w-full ${
                         currentStatus === 'ACTIF' ? 'bg-emerald-500/10 text-emerald-600' :
                         currentStatus === 'SUSPENDU' ? 'bg-amber-500/10 text-amber-600' : 'bg-rose-500/10 text-rose-600'
                       }`}>
                         {currentStatus}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex justify-end items-center gap-1.5">
-                        <Btn
-                          variant="ghost"
-                          size="sm"
-                          icon={History}
+                    <td className="py-2.5 px-3 text-right min-w-0">
+                      <div className="flex justify-end items-center gap-1 shrink-0">
+                        <button
+                          type="button"
                           onClick={() => handleViewHistory(entId)}
-                          className="text-[10px] font-black uppercase text-brand-blue-bright hover:bg-brand-blue-bright/10"
-                          title="Voir l'historique de cette boîte"
+                          className="p-1.5 rounded-lg text-brand-blue-bright bg-brand-blue-bright/10 hover:bg-brand-blue-bright/20 transition-all shrink-0"
+                          title="Historique de l'entreprise"
                         >
-                          Historique
-                        </Btn>
+                          <History size={13} />
+                        </button>
 
-                        <Btn
-                          variant="secondary"
-                          size="sm"
-                          icon={Edit}
+                        <button
+                          type="button"
                           onClick={() => handleEditOpen(adm)}
-                          className="text-[10px] font-black uppercase"
+                          className="p-1.5 rounded-lg text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition-all shrink-0"
+                          title="Modifier"
                         >
-                          Modifier
-                        </Btn>
+                          <Edit size={13} />
+                        </button>
 
                         {currentStatus !== 'ACTIF' && (
-                          <Btn
-                            variant="success"
-                            size="sm"
+                          <button
+                            type="button"
                             onClick={() => handleStatusChange(adm.id || adm._id, 'ACTIF')}
-                            className="text-[10px] font-black uppercase py-1 px-2"
+                            className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all shrink-0 flex items-center gap-1"
+                            title="Activer"
                           >
-                            Activer
-                          </Btn>
+                            <UserCheck size={13} />
+                            <span className="hidden xl:inline">Activer</span>
+                          </button>
                         )}
                         {currentStatus !== 'SUSPENDU' && (
-                          <Btn
-                            variant="warning"
-                            size="sm"
+                          <button
+                            type="button"
                             onClick={() => handleStatusChange(adm.id || adm._id, 'SUSPENDU')}
-                            className="text-[10px] font-black uppercase py-1 px-2"
+                            className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-all shrink-0 flex items-center gap-1"
+                            title="Suspendre"
                           >
-                            Suspendre
-                          </Btn>
+                            <AlertCircle size={13} />
+                            <span className="hidden xl:inline">Suspendre</span>
+                          </button>
                         )}
                         {currentStatus !== 'DESACTIVE' && (
-                          <Btn
-                            variant="danger"
-                            size="sm"
+                          <button
+                            type="button"
                             onClick={() => handleStatusChange(adm.id || adm._id, 'DESACTIVE')}
-                            className="text-[10px] font-black uppercase py-1 px-2"
+                            className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-rose-700 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all shrink-0 flex items-center gap-1"
+                            title="Désactiver"
                           >
-                            Désactiver
-                          </Btn>
+                            <UserX size={13} />
+                            <span className="hidden xl:inline">Désactiver</span>
+                          </button>
                         )}
                       </div>
                     </td>

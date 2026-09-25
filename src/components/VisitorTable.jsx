@@ -29,14 +29,14 @@ export const formatBackendTime = (dateStr) => {
   }
 };
 
-const Th = ({ label, col, sortBy, sortDir, onSort }) => (
+const Th = ({ label, col, sortBy, sortDir, onSort, widthClass = '' }) => (
   <th 
     onClick={() => onSort(col)} 
-    className="px-4 py-3 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-colors select-none"
+    className={`px-3 py-2.5 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-colors select-none ${widthClass}`}
   >
-    <div className="flex items-center gap-1.5">
-      {label}
-      <div className="flex flex-col -gap-1">
+    <div className="flex items-center gap-1.5 min-w-0">
+      <span className="truncate">{label}</span>
+      <div className="flex flex-col -gap-1 shrink-0">
         <ChevronUp size={8} className={sortBy === col && sortDir === 'asc' ? 'text-brand-blue-bright' : 'opacity-10'} />
         <ChevronDown size={8} className={sortBy === col && sortDir === 'desc' ? 'text-brand-blue-bright' : 'opacity-10'} />
       </div>
@@ -88,69 +88,70 @@ export default function VisitorTable({ visitors, onView, onCheckout, onDelete, c
   return (
     <>
       {!compact ? (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+        <div className="overflow-hidden w-full">
+          <table className="w-full table-fixed border-collapse">
             <thead>
               <tr className="border-b border-slate-50 dark:border-slate-800">
-                <Th label={t.type} col="type" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                <Th label={`${t.person} / ${t.vehicle}`} col="nom" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                <Th label={`${t.id_card} / ${t.plate_number}`} col="numeroPiece" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                <Th label={t.destination} col="personneVisitee" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                <Th label={t.time} col="heureEntree" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                <Th label={t.status} col="statut" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                <th className="px-5 py-4" />
+                <Th label={t.type} col="type" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[10%]" />
+                <Th label={`${t.person} / ${t.vehicle}`} col="nom" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[22%]" />
+                <Th label={`${t.id_card} / ${t.plate_number}`} col="numeroPiece" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[18%]" />
+                <Th label={t.destination} col="personneVisitee" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[18%]" />
+                <Th label={t.time} col="heureEntree" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[14%]" />
+                <Th label={t.status} col="statut" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[10%]" />
+                <th className="px-3 py-2.5 w-[8%] text-right" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {sorted.map(v => (
                 <tr key={v._id || v.id} className="group hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
-                  <td className="px-4 py-2.5"><TypeBadge type={v.type} /></td>
-                  <td className="px-4 py-2.5">
-                    <p className="font-bold text-xs text-slate-900 dark:text-slate-100">
+                  <td className="px-3 py-2.5 min-w-0"><TypeBadge type={v.type} /></td>
+                  <td className="px-3 py-2.5 min-w-0">
+                    <p className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">
                       {v.type === 'vehicule' 
                         ? (v.vehicule?.immatriculation || v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || v.visiteurId?.numeroPiece || v.visitorId?.numeroPiece) 
                         : `${v.nom || v.visiteur?.nom || v.visitor?.nom || v.visiteurId?.nom || v.visitorId?.nom || v.Nom || v.lastName || v.name || ''} ${v.prenom || v.visiteur?.prenom || v.visitor?.prenom || v.visiteurId?.prenom || v.visitorId?.prenom || v.Prenom || v.firstName || ''}`.trim() || v.nomComplet || v.fullName || '—'}
                     </p>
-                    {v.type === 'vehicule' && <p className="text-[10px] text-slate-500 font-medium">{v.vehicule?.marque || v.visitor?.marque || v.visiteur?.marque || v.visiteurId?.marque} {v.vehicule?.modele || v.visitor?.modele || v.visiteur?.modele || v.visiteurId?.modele}</p>}
+                    {v.type === 'vehicule' && <p className="text-[10px] text-slate-500 font-medium truncate">{v.vehicule?.marque || v.visitor?.marque || v.visiteur?.marque || v.visiteurId?.marque} {v.vehicule?.modele || v.visitor?.modele || v.visiteur?.modele || v.visiteurId?.modele}</p>}
                   </td>
-                  <td className="px-4 py-2.5">
-                    <p className="text-[10px] font-bold font-mono text-slate-600 dark:text-slate-400">
+                  <td className="px-3 py-2.5 min-w-0">
+                    <p className="text-[10px] font-bold font-mono text-slate-600 dark:text-slate-400 truncate">
                       {v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || v.visiteurId?.numeroPiece || v.visitorId?.numeroPiece || v.vehicule?.immatriculation || '—'}
                     </p>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter truncate">
                       {v.typePiece || v.visiteur?.typePiece || v.visitor?.typePiece || v.visiteurId?.typePiece || (v.vehicule ? 'CARTE GRISE' : 'CNI')}
                     </p>
                   </td>
-                  <td className="px-4 py-2.5">
-                    <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200">{v.personneVisitee || v.hote || v.visitedPerson || '—'}</p>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{v.service || v.departement}</p>
+                  <td className="px-3 py-2.5 min-w-0">
+                    <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate">{v.personneVisitee || v.hote || v.visitedPerson || '—'}</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter truncate">{v.service || v.departement}</p>
                   </td>
-                  <td className="px-4 py-2.5">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                  <td className="px-3 py-2.5 min-w-0">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate">
                       {formatBackendDate(v.heureEntree || v.createdAt)}
                     </p>
-                    <p className="text-xs font-black font-mono text-slate-800 dark:text-slate-200">
+                    <p className="text-xs font-black font-mono text-slate-800 dark:text-slate-200 truncate">
                       {formatBackendTime(v.heureEntree || v.createdAt)}
                     </p>
                     {(v.heureSortie || (String(v.statut || '').toLowerCase() === 'sorti' && v.updatedAt)) && (
-                      <p className="text-[9px] text-slate-400 mt-0.5 font-mono">
+                      <p className="text-[9px] text-slate-400 mt-0.5 font-mono truncate">
                         → {formatBackendTime(v.heureSortie || v.updatedAt)}
                       </p>
                     )}
                   </td>
-                  <td className="px-4 py-2.5"><StatusBadge statut={v.statut} heureSortie={v.heureSortie} /></td>
-                  <td className="px-5 py-4">
-                    <div className="flex gap-1.5 justify-end items-center">
-                      <Btn variant="ghost" size="sm" icon={Eye} onClick={() => onView(v)} className="rounded-full w-8 h-8 !p-0" />
+                  <td className="px-3 py-2.5 min-w-0"><StatusBadge statut={v.statut} heureSortie={v.heureSortie} /></td>
+                  <td className="px-3 py-2.5 min-w-0">
+                    <div className="flex gap-1 justify-end items-center shrink-0">
+                      <Btn variant="ghost" size="sm" icon={Eye} onClick={() => onView(v)} className="rounded-full w-7 h-7 !p-0" />
                       {(() => {
                         const s = String(v.statut || '').toLowerCase();
                         const isPresent = (s === 'present' || s === 'en-cours' || s === 'en cours' || s === 'on-site') || (!v.heureSortie && s !== 'sorti' && s !== 'sortis');
                         return isPresent && (
                           <button 
                             onClick={() => onCheckout(v.id || v._id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-amber-bright text-white border border-brand-amber-bright rounded-lg text-[10px] font-black uppercase hover:bg-amber-600 transition-all active:scale-95"
+                            className="flex items-center gap-1 p-1 sm:px-2 sm:py-1 bg-brand-amber-bright text-white border border-brand-amber-bright rounded-lg text-[9px] font-black uppercase hover:bg-amber-600 transition-all active:scale-95 shrink-0"
+                            title={t.exited}
                           >
-                            <LogOut size={12} /> {t.exited}
+                            <LogOut size={12} /> <span className="hidden xl:inline">{t.exited}</span>
                           </button>
                         );
                       })()}
@@ -162,9 +163,9 @@ export default function VisitorTable({ visitors, onView, onCheckout, onDelete, c
                             e.stopPropagation();
                             setDeleteTarget(v);
                           }}
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors shrink-0"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} />
                         </button>
                       )}
                     </div>

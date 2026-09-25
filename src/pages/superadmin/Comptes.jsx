@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Plus, Search, Mail, Lock, User, Phone, Building2, Briefcase, RefreshCw, CheckCircle2, Edit, History } from 'lucide-react';
+import { Shield, Plus, Search, Mail, Lock, User, Phone, Building2, Briefcase, RefreshCw, CheckCircle2, Edit, History, UserCheck, UserX, AlertCircle } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
 import { Card, CardHeader, Btn, FormInput, FormSelect, Modal } from '../../components/UI';
 import { authService } from '../../services/authService';
@@ -271,16 +271,16 @@ export default function ComptesManagement({ isMobile }) {
         </div>
 
         {/* Table */}
-        <div className="p-4 overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="p-3 sm:p-4 overflow-hidden w-full">
+          <table className="w-full table-fixed text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-50 dark:bg-slate-900/50">
-                <th className="py-2.5 px-3">Utilisateur</th>
-                <th className="py-2.5 px-3">Rôle</th>
-                <th className="py-2.5 px-3">Entreprise Rattachée</th>
-                <th className="py-2.5 px-3">Poste / Dept</th>
-                <th className="py-2.5 px-3">Statut</th>
-                <th className="py-2.5 px-3 text-right">Actions</th>
+                <th className="py-2.5 px-3 w-[26%]">Utilisateur</th>
+                <th className="py-2.5 px-2 w-[14%]">Rôle</th>
+                <th className="py-2.5 px-2 w-[22%]">Entreprise</th>
+                <th className="py-2.5 px-2 w-[14%]">Poste</th>
+                <th className="py-2.5 px-2 w-[10%]">Statut</th>
+                <th className="py-2.5 px-3 w-[14%] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
@@ -290,86 +290,91 @@ export default function ComptesManagement({ isMobile }) {
 
                 return (
                   <tr key={usr.id || usr._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                    <td className="py-2.5 px-3">
-                      <div className="flex items-center gap-2">
+                    <td className="py-2.5 px-3 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
                         <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-brand-blue-bright font-black flex items-center justify-center text-[11px] shrink-0">
                           {(usr.prenom?.[0] || 'U') + (usr.nom?.[0] || '')}
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="font-black text-slate-900 dark:text-white text-xs leading-tight truncate">{usr.prenom} {usr.nom}</p>
                           <p className="text-[10px] text-slate-400 font-mono truncate">{usr.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-2.5 px-3">
-                      <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider ${
+                    <td className="py-2.5 px-2 min-w-0">
+                      <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider inline-block truncate max-w-full ${
                         usr.role === 'SUPERADMIN' || usr.role === 'SUPER_ADMIN' ? 'bg-purple-500/10 text-purple-600 border border-purple-500/20' :
                         usr.role === 'ADMIN' ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
                       }`}>
                         {usr.role}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300 text-xs truncate max-w-[130px]">
-                      {entName}
+                    <td className="py-2.5 px-2 text-slate-700 dark:text-slate-300 text-xs min-w-0">
+                      <p className="truncate font-bold">{entName}</p>
                     </td>
-                    <td className="py-2.5 px-3 text-slate-500 text-[11px]">
-                      <p className="truncate max-w-[120px] font-bold">{usr.poste || '—'}</p>
-                      <p className="opacity-70 truncate max-w-[120px]">{usr.departement || ''}</p>
+                    <td className="py-2.5 px-2 text-slate-500 text-[11px] min-w-0">
+                      <p className="truncate font-bold">{usr.poste || '—'}</p>
+                      <p className="opacity-70 truncate text-[10px]">{usr.departement || ''}</p>
                     </td>
-                    <td className="py-2.5 px-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                    <td className="py-2.5 px-2 min-w-0">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider inline-block truncate max-w-full ${
                         currentStatus === 'ACTIF' ? 'bg-emerald-500/10 text-emerald-600' :
                         currentStatus === 'SUSPENDU' ? 'bg-amber-500/10 text-amber-600' : 'bg-rose-500/10 text-rose-600'
                       }`}>
                         {currentStatus}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-right">
+                    <td className="py-2.5 px-3 text-right min-w-0">
                       <div className="flex justify-end items-center gap-1 shrink-0">
                         <button
                           type="button"
                           onClick={() => handleViewHistory(usr)}
-                          className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-brand-blue-bright bg-brand-blue-bright/10 hover:bg-brand-blue-bright/20 flex items-center gap-1 transition-all shrink-0"
-                          title="Voir l'historique associé"
+                          className="p-1.5 rounded-lg text-brand-blue-bright bg-brand-blue-bright/10 hover:bg-brand-blue-bright/20 transition-all shrink-0"
+                          title="Historique des visites"
                         >
-                          <History size={12} />
-                          <span className="hidden xl:inline">Hist</span>
+                          <History size={13} />
                         </button>
 
                         <button
                           type="button"
                           onClick={() => handleEditOpen(usr)}
-                          className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 flex items-center gap-1 transition-all shrink-0"
-                          title="Modifier"
+                          className="p-1.5 rounded-lg text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition-all shrink-0"
+                          title="Modifier le compte"
                         >
-                          <Edit size={12} />
+                          <Edit size={13} />
                         </button>
 
                         {currentStatus !== 'ACTIF' && (
                           <button
                             type="button"
                             onClick={() => handleStatusChange(usr.id || usr._id, 'ACTIF')}
-                            className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-white bg-emerald-600 hover:bg-emerald-700 transition-all shrink-0"
+                            className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all shrink-0 flex items-center gap-1"
+                            title="Activer le compte"
                           >
-                            Activer
+                            <UserCheck size={13} />
+                            <span className="hidden xl:inline">Activer</span>
                           </button>
                         )}
                         {currentStatus !== 'SUSPENDU' && (
                           <button
                             type="button"
                             onClick={() => handleStatusChange(usr.id || usr._id, 'SUSPENDU')}
-                            className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-white bg-amber-500 hover:bg-amber-600 transition-all shrink-0"
+                            className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-all shrink-0 flex items-center gap-1"
+                            title="Suspendre le compte"
                           >
-                            Suspendre
+                            <AlertCircle size={13} />
+                            <span className="hidden xl:inline">Suspendre</span>
                           </button>
                         )}
                         {currentStatus !== 'DESACTIVE' && (
                           <button
                             type="button"
                             onClick={() => handleStatusChange(usr.id || usr._id, 'DESACTIVE')}
-                            className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-white bg-rose-600 hover:bg-rose-700 transition-all shrink-0"
+                            className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-rose-700 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all shrink-0 flex items-center gap-1"
+                            title="Désactiver le compte"
                           >
-                            Désactiver
+                            <UserX size={13} />
+                            <span className="hidden xl:inline">Désactiver</span>
                           </button>
                         )}
                       </div>

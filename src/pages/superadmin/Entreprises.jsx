@@ -210,16 +210,16 @@ export default function EntreprisesManagement({ isMobile }) {
         </div>
 
         {/* Table */}
-        <div className="p-4 overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="p-3 sm:p-4 overflow-hidden w-full">
+          <table className="w-full table-fixed text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-50 dark:bg-slate-900/50">
-                <th className="py-2.5 px-3">Nom de l'Entreprise</th>
-                <th className="py-2.5 px-3">NINEA / Code</th>
-                <th className="py-2.5 px-3">Secteur</th>
-                <th className="py-2.5 px-3">Contact</th>
-                <th className="py-2.5 px-3">Statut</th>
-                <th className="py-2.5 px-3 text-right">Actions</th>
+                <th className="py-2.5 px-3 w-[28%]">Entreprise</th>
+                <th className="py-2.5 px-2 w-[16%]">Code / NINEA</th>
+                <th className="py-2.5 px-2 w-[16%]">Secteur</th>
+                <th className="py-2.5 px-2 w-[20%]">Contact</th>
+                <th className="py-2.5 px-2 w-[10%]">Statut</th>
+                <th className="py-2.5 px-3 w-[10%] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
@@ -229,65 +229,65 @@ export default function EntreprisesManagement({ isMobile }) {
 
                 return (
                   <tr key={entId} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                    <td className="py-2.5 px-3">
-                      <div className="flex items-center gap-2">
+                    <td className="py-2.5 px-3 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
                         <div className="w-8 h-8 rounded-lg bg-brand-blue-bright/10 text-brand-blue-bright flex items-center justify-center font-black shrink-0">
                           <Building2 size={18} />
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="font-black text-slate-900 dark:text-white text-xs truncate leading-tight">{ent.nom}</p>
                           <p className="text-[10px] text-slate-400 flex items-center gap-1 truncate">
-                            <MapPin size={9} className="shrink-0" /> <span className="truncate">{ent.adresse || 'Adresse non renseignée'}</span>
+                            <MapPin size={9} className="shrink-0" /> <span className="truncate">{ent.adresse || '—'}</span>
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-2.5 px-3 font-mono text-slate-600 dark:text-slate-300 text-xs truncate max-w-[120px]">
-                      {ent.immatriculation || ent.code || '—'}
+                    <td className="py-2.5 px-2 font-mono text-slate-600 dark:text-slate-300 text-xs min-w-0">
+                      <p className="truncate font-bold">{ent.immatriculation || ent.code || '—'}</p>
                     </td>
-                    <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300 text-xs truncate max-w-[120px]">
-                      {ent.secteur || 'Autre'}
+                    <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 text-xs min-w-0">
+                      <p className="truncate font-bold">{ent.secteur || 'Autre'}</p>
                     </td>
-                    <td className="py-2.5 px-3 text-xs">
-                      <p className="text-slate-900 dark:text-white truncate max-w-[140px] font-bold">{ent.emailContact || ent.email || '—'}</p>
+                    <td className="py-2.5 px-2 text-xs min-w-0">
+                      <p className="text-slate-900 dark:text-white truncate font-bold">{ent.emailContact || ent.email || '—'}</p>
                       <p className="text-[10px] text-slate-400 font-mono truncate">{ent.telephone}</p>
                     </td>
-                    <td className="py-2.5 px-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                    <td className="py-2.5 px-2 min-w-0">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider inline-block truncate max-w-full ${
                         isActif ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'
                       }`}>
                         {ent.statut || 'ACTIF'}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-right">
+                    <td className="py-2.5 px-3 text-right min-w-0">
                       <div className="flex justify-end items-center gap-1 shrink-0">
                         <button
                           type="button"
                           onClick={() => handleViewHistory(entId)}
-                          className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-brand-blue-bright bg-brand-blue-bright/10 hover:bg-brand-blue-bright/20 flex items-center gap-1 transition-all shrink-0"
-                          title="Voir l'historique de cette entreprise"
+                          className="p-1.5 rounded-lg text-brand-blue-bright bg-brand-blue-bright/10 hover:bg-brand-blue-bright/20 transition-all shrink-0"
+                          title="Historique de l'entreprise"
                         >
-                          <History size={12} />
-                          <span className="hidden xl:inline">Hist</span>
+                          <History size={13} />
                         </button>
 
                         <button
                           type="button"
                           onClick={() => handleEditOpen(ent)}
-                          className="px-2 py-1 rounded-lg text-[9px] font-black uppercase text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 flex items-center gap-1 transition-all shrink-0"
-                          title="Modifier"
+                          className="p-1.5 rounded-lg text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition-all shrink-0"
+                          title="Modifier l'entreprise"
                         >
-                          <Edit size={12} />
+                          <Edit size={13} />
                         </button>
 
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(entId, ent.statut || 'ACTIF')}
-                          className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase text-white transition-all shrink-0 ${
+                          className={`p-1.5 rounded-lg text-white transition-all shrink-0 ${
                             isActif ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-600 hover:bg-emerald-700'
                           }`}
+                          title={isActif ? 'Suspendre l\'entreprise' : 'Activer l\'entreprise'}
                         >
-                          {isActif ? 'Suspendre' : 'Activer'}
+                          {isActif ? <AlertCircle size={13} /> : <CheckCircle2 size={13} />}
                         </button>
                       </div>
                     </td>

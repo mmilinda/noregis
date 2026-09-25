@@ -116,46 +116,50 @@ export default function SuperAdminDashboard({ isMobile }) {
           title={`Entreprises Enregistrées (${entreprises.length})`}
           subtitle="Aperçu des boîtes rattachées au système"
         />
-        <div className="p-4 overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="p-3 sm:p-4 overflow-hidden w-full">
+          <table className="w-full table-fixed text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                <th className="py-3 px-4">Entreprise</th>
-                <th className="py-3 px-4">Secteur</th>
-                <th className="py-3 px-4">Immatriculation</th>
-                <th className="py-3 px-4">Statut</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+              <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-50 dark:bg-slate-900/50">
+                <th className="py-2.5 px-3 w-[32%]">Entreprise</th>
+                <th className="py-2.5 px-2 w-[22%]">Secteur</th>
+                <th className="py-2.5 px-2 w-[22%]">Immatriculation</th>
+                <th className="py-2.5 px-2 w-[12%]">Statut</th>
+                <th className="py-2.5 px-3 w-[12%] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
               {entreprises.map(ent => (
                 <tr key={ent.id || ent._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-brand-blue-bright/10 text-brand-blue-bright flex items-center justify-center font-black">
+                  <td className="py-2.5 px-3 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-brand-blue-bright/10 text-brand-blue-bright flex items-center justify-center font-black shrink-0">
                         <Building size={18} />
                       </div>
-                      <div>
-                        <p className="font-black text-slate-900 dark:text-white">{ent.nom}</p>
-                        <p className="text-[10px] text-slate-400">{ent.email || ent.telephone}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-black text-slate-900 dark:text-white text-xs truncate leading-tight">{ent.nom}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{ent.email || ent.telephone}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{ent.secteur || '—'}</td>
-                  <td className="py-3 px-4 font-mono text-slate-500">{ent.immatriculation || '—'}</td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                  <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 min-w-0">
+                    <p className="truncate text-xs">{ent.secteur || '—'}</p>
+                  </td>
+                  <td className="py-2.5 px-2 font-mono text-slate-500 text-xs min-w-0">
+                    <p className="truncate">{ent.immatriculation || '—'}</p>
+                  </td>
+                  <td className="py-2.5 px-2 min-w-0">
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider inline-block truncate max-w-full ${
                       ent.statut === 'ACTIF' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'
                     }`}>
                       {ent.statut || 'ACTIF'}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-right">
+                  <td className="py-2.5 px-3 text-right min-w-0">
                     <Btn
                       variant={ent.statut === 'ACTIF' ? 'danger' : 'success'}
                       size="sm"
                       onClick={() => handleToggleEntrepriseStatus(ent.id || ent._id, ent.statut || 'ACTIF')}
-                      className="text-[10px] font-black uppercase"
+                      className="text-[9px] font-black uppercase py-1 px-2"
                     >
                       {ent.statut === 'ACTIF' ? 'Suspendre' : 'Activer'}
                     </Btn>
@@ -180,51 +184,51 @@ export default function SuperAdminDashboard({ isMobile }) {
           title={`Comptes Utilisateurs Globaux (${users.length})`}
           subtitle="Gestion des accès SuperAdmin, Admin d'Entreprise et Agent"
         />
-        <div className="p-4 overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="p-3 sm:p-4 overflow-hidden w-full">
+          <table className="w-full table-fixed text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                <th className="py-3 px-4">Utilisateur</th>
-                <th className="py-3 px-4">Rôle</th>
-                <th className="py-3 px-4">Entreprise</th>
-                <th className="py-3 px-4">Statut</th>
-                <th className="py-3 px-4 text-right">Action Statut</th>
+              <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-50 dark:bg-slate-900/50">
+                <th className="py-2.5 px-3 w-[30%]">Utilisateur</th>
+                <th className="py-2.5 px-2 w-[16%]">Rôle</th>
+                <th className="py-2.5 px-2 w-[26%]">Entreprise</th>
+                <th className="py-2.5 px-2 w-[14%]">Statut</th>
+                <th className="py-2.5 px-3 w-[14%] text-right">Action Statut</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
               {users.map(usr => (
                 <tr key={usr.id || usr._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center font-black">
+                  <td className="py-2.5 px-3 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center font-black shrink-0 text-[11px]">
                         {(usr.prenom?.[0] || 'U') + (usr.nom?.[0] || '')}
                       </div>
-                      <div>
-                        <p className="font-black text-slate-900 dark:text-white">{usr.prenom} {usr.nom}</p>
-                        <p className="text-[10px] text-slate-400 font-mono">{usr.email}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-black text-slate-900 dark:text-white text-xs truncate leading-tight">{usr.prenom} {usr.nom}</p>
+                        <p className="text-[10px] text-slate-400 font-mono truncate">{usr.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase ${
-                      usr.role === 'SUPERADMIN' ? 'bg-purple-500/10 text-purple-600' :
-                      usr.role === 'ADMIN' ? 'bg-blue-500/10 text-blue-600' : 'bg-emerald-500/10 text-emerald-600'
+                  <td className="py-2.5 px-2 min-w-0">
+                    <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider inline-block truncate max-w-full ${
+                      usr.role === 'SUPERADMIN' || usr.role === 'SUPER_ADMIN' ? 'bg-purple-500/10 text-purple-600 border border-purple-500/20' :
+                      usr.role === 'ADMIN' ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
                     }`}>
                       {usr.role}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-slate-600 dark:text-slate-300">
-                    {usr.entrepriseNom || '— (Global)'}
+                  <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 min-w-0">
+                    <p className="truncate text-xs">{usr.entrepriseNom || '— (Global)'}</p>
                   </td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                  <td className="py-2.5 px-2 min-w-0">
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider inline-block truncate max-w-full ${
                       usr.statut === 'ACTIF' ? 'bg-emerald-500/10 text-emerald-600' :
                       usr.statut === 'SUSPENDU' ? 'bg-amber-500/10 text-amber-600' : 'bg-rose-500/10 text-rose-600'
                     }`}>
                       {usr.statut || 'ACTIF'}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-right">
+                  <td className="py-2.5 px-3 text-right min-w-0">
                     <Btn
                       variant={usr.statut === 'ACTIF' ? 'warning' : 'success'}
                       size="sm"

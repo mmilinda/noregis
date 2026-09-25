@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Building2, Users, ShieldAlert, CheckCircle2, XCircle, AlertTriangle,
-  Plus, Search, Filter, RefreshCw, KeyRound, Lock, Eye, Building, Phone, Mail, MapPin, UserPlus
+  Plus, Search, Filter, RefreshCw, KeyRound, Lock, Eye, Building, Phone, Mail, MapPin, UserPlus, UserCheck, UserX, AlertCircle
 } from 'lucide-react';
 import { Btn, FormInput, FormSelect, Modal } from './UI';
 import { entrepriseService } from '../services/entrepriseService';
@@ -254,17 +254,17 @@ export function SuperAdminDashboard({ t }) {
             </Btn>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 w-full">
+            <table className="w-full table-fixed text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                  <th className="py-3 px-4">Code & Entreprise</th>
-                  <th className="py-3 px-4">Contact</th>
-                  <th className="py-3 px-4">Admins</th>
-                  <th className="py-3 px-4">Agents</th>
-                  <th className="py-3 px-4">Visites</th>
-                  <th className="py-3 px-4">Statut</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="py-2.5 px-3 w-[28%]">Code & Entreprise</th>
+                  <th className="py-2.5 px-2 w-[22%]">Contact</th>
+                  <th className="py-2.5 px-2 w-[10%]">Admins</th>
+                  <th className="py-2.5 px-2 w-[10%]">Agents</th>
+                  <th className="py-2.5 px-2 w-[10%]">Visites</th>
+                  <th className="py-2.5 px-2 w-[10%]">Statut</th>
+                  <th className="py-2.5 px-3 w-[10%] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
@@ -277,57 +277,57 @@ export function SuperAdminDashboard({ t }) {
                 ) : (
                   filteredEntreprises.map((ent) => (
                     <tr key={ent._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded bg-brand-blue-bright/10 text-brand-blue-bright font-mono text-[10px] uppercase font-black border border-brand-blue-bright/20">
+                      <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="px-1.5 py-0.5 rounded bg-brand-blue-bright/10 text-brand-blue-bright font-mono text-[9px] uppercase font-black border border-brand-blue-bright/20 shrink-0">
                             {ent.code}
                           </span>
-                          <span>{ent.nom}</span>
+                          <span className="truncate text-xs">{ent.nom}</span>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-slate-600 dark:text-slate-300">
-                        <p>{ent.telephone || 'Non renseigné'}</p>
-                        <p className="text-[10px] text-slate-400">{ent.emailContact}</p>
+                      <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 min-w-0">
+                        <p className="truncate text-xs">{ent.telephone || '—'}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{ent.emailContact}</p>
                       </td>
-                      <td className="py-3 px-4 font-bold text-purple-600 dark:text-purple-400">{ent.nbAdmins || 0}</td>
-                      <td className="py-3 px-4 font-bold text-brand-green-bright">{ent.nbAgents || 0}</td>
-                      <td className="py-3 px-4 font-bold text-slate-700 dark:text-slate-300">{ent.nbVisites || 0}</td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      <td className="py-2.5 px-2 font-bold text-purple-600 dark:text-purple-400 min-w-0">{ent.nbAdmins || 0}</td>
+                      <td className="py-2.5 px-2 font-bold text-brand-green-bright min-w-0">{ent.nbAgents || 0}</td>
+                      <td className="py-2.5 px-2 font-bold text-slate-700 dark:text-slate-300 min-w-0">{ent.nbVisites || 0}</td>
+                      <td className="py-2.5 px-2 min-w-0">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
                           ent.statut === 'ACTIF' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
                           ent.statut === 'SUSPENDU' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
                           'bg-rose-500/10 text-rose-600 border border-rose-500/20'
                         }`}>
-                          {ent.statut === 'ACTIF' && <CheckCircle2 size={12} />}
-                          {ent.statut === 'SUSPENDU' && <AlertTriangle size={12} />}
-                          {ent.statut === 'DESACTIVE' && <XCircle size={12} />}
-                          {ent.statut}
+                          <span className="truncate">{ent.statut}</span>
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                      <td className="py-2.5 px-3 text-right min-w-0">
+                        <div className="flex items-center justify-end gap-1 shrink-0">
                           {ent.statut !== 'ACTIF' && (
                             <button
                               onClick={() => handleChangeEntStatus(ent._id, 'ACTIF')}
-                              className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 rounded-lg text-[10px] font-bold"
+                              className="p-1.5 rounded-lg text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all shrink-0"
+                              title="Activer"
                             >
-                              Activer
+                              <UserCheck size={13} />
                             </button>
                           )}
                           {ent.statut !== 'SUSPENDU' && (
                             <button
                               onClick={() => handleChangeEntStatus(ent._id, 'SUSPENDU')}
-                              className="px-2.5 py-1 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 rounded-lg text-[10px] font-bold"
+                              className="p-1.5 rounded-lg text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 transition-all shrink-0"
+                              title="Suspendre"
                             >
-                              Suspendre
+                              <AlertCircle size={13} />
                             </button>
                           )}
                           {ent.statut !== 'DESACTIVE' && (
                             <button
                               onClick={() => handleChangeEntStatus(ent._id, 'DESACTIVE')}
-                              className="px-2.5 py-1 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 rounded-lg text-[10px] font-bold"
+                              className="p-1.5 rounded-lg text-rose-700 bg-rose-500/10 hover:bg-rose-500/20 transition-all shrink-0"
+                              title="Désactiver"
                             >
-                              Désactiver
+                              <UserX size={13} />
                             </button>
                           )}
                         </div>
@@ -385,16 +385,16 @@ export function SuperAdminDashboard({ t }) {
             </Btn>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 w-full">
+            <table className="w-full table-fixed text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                  <th className="py-3 px-4">Utilisateur</th>
-                  <th className="py-3 px-4">Rôle</th>
-                  <th className="py-3 px-4">Entreprise</th>
-                  <th className="py-3 px-4">Téléphone / Poste</th>
-                  <th className="py-3 px-4">Statut Compte</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="py-2.5 px-3 w-[26%]">Utilisateur</th>
+                  <th className="py-2.5 px-2 w-[14%]">Rôle</th>
+                  <th className="py-2.5 px-2 w-[24%]">Entreprise</th>
+                  <th className="py-2.5 px-2 w-[16%]">Téléphone / Poste</th>
+                  <th className="py-2.5 px-2 w-[10%]">Statut Compte</th>
+                  <th className="py-2.5 px-3 w-[10%] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
@@ -412,57 +412,62 @@ export function SuperAdminDashboard({ t }) {
 
                     return (
                       <tr key={u._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="py-3 px-4">
-                          <p className="font-bold text-slate-900 dark:text-white">{u.prenom} {u.nom}</p>
-                          <p className="text-[10px] text-slate-400">{u.email}</p>
+                        <td className="py-2.5 px-3 min-w-0">
+                          <p className="font-bold text-slate-900 dark:text-white truncate text-xs">{u.prenom} {u.nom}</p>
+                          <p className="text-[10px] text-slate-400 font-mono truncate">{u.email}</p>
                         </td>
-                        <td className="py-3 px-4 font-bold">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                            u.role === 'SUPER_ADMIN' ? 'bg-red-500/10 text-red-600 border border-red-500/20' :
+                        <td className="py-2.5 px-2 font-bold min-w-0">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase inline-block truncate max-w-full ${
+                            u.role === 'SUPER_ADMIN' || u.role === 'SUPERADMIN' ? 'bg-red-500/10 text-red-600 border border-red-500/20' :
                             u.role === 'ADMIN' ? 'bg-purple-500/10 text-purple-600 border border-purple-500/20' :
                             'bg-blue-500/10 text-blue-600 border border-blue-500/20'
                           }`}>
                             {u.role}
                           </span>
                         </td>
-                        <td className="py-3 px-4 font-medium text-slate-700 dark:text-slate-300">{entName}</td>
-                        <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
-                          <p>{u.telephone || '-'}</p>
-                          <p className="text-[10px] text-slate-400">{u.poste || u.departement || '-'}</p>
+                        <td className="py-2.5 px-2 font-medium text-slate-700 dark:text-slate-300 min-w-0">
+                          <p className="truncate text-xs">{entName}</p>
                         </td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                        <td className="py-2.5 px-2 text-slate-600 dark:text-slate-400 min-w-0">
+                          <p className="truncate text-xs">{u.telephone || '-'}</p>
+                          <p className="text-[10px] text-slate-400 truncate">{u.poste || u.departement || '-'}</p>
+                        </td>
+                        <td className="py-2.5 px-2 min-w-0">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
                             statut === 'ACTIF' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
                             statut === 'SUSPENDU' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
                             'bg-rose-500/10 text-rose-600 border border-rose-500/20'
                           }`}>
-                            {statut}
+                            <span className="truncate">{statut}</span>
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1">
+                        <td className="py-2.5 px-3 text-right min-w-0">
+                          <div className="flex items-center justify-end gap-1 shrink-0">
                             {statut !== 'ACTIF' && (
                               <button
                                 onClick={() => handleChangeUserStatus(u._id, 'ACTIF')}
-                                className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 rounded-lg text-[10px] font-bold"
+                                className="p-1.5 rounded-lg text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all shrink-0"
+                                title="Activer"
                               >
-                                Activer
+                                <UserCheck size={13} />
                               </button>
                             )}
                             {statut !== 'SUSPENDU' && (
                               <button
                                 onClick={() => handleChangeUserStatus(u._id, 'SUSPENDU')}
-                                className="px-2.5 py-1 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 rounded-lg text-[10px] font-bold"
+                                className="p-1.5 rounded-lg text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 transition-all shrink-0"
+                                title="Suspendre"
                               >
-                                Suspendre
+                                <AlertCircle size={13} />
                               </button>
                             )}
                             {statut !== 'DESACTIVE' && (
                               <button
                                 onClick={() => handleChangeUserStatus(u._id, 'DESACTIVE')}
-                                className="px-2.5 py-1 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 rounded-lg text-[10px] font-bold"
+                                className="p-1.5 rounded-lg text-rose-700 bg-rose-500/10 hover:bg-rose-500/20 transition-all shrink-0"
+                                title="Désactiver"
                               >
-                                Désactiver
+                                <UserX size={13} />
                               </button>
                             )}
                           </div>
