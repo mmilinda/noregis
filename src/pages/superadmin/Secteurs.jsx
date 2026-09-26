@@ -4,6 +4,7 @@ import { useApp } from '../../context/useAppState';
 import { Card, CardHeader, Btn, FormInput, Modal } from '../../components/UI';
 import { secteurService } from '../../services/secteurService';
 import { entrepriseService } from '../../services/entrepriseService';
+import { TRANSLATIONS } from '../../translations';
 
 const EMPTY_SECTEUR = {
   nom: '',
@@ -11,7 +12,8 @@ const EMPTY_SECTEUR = {
 };
 
 export default function SecteursManagement({ isMobile }) {
-  const { notify } = useApp();
+  const { state, notify } = useApp();
+  const t = TRANSLATIONS[state.settings?.language || 'fr'];
   const [secteurs, setSecteurs] = useState([]);
   const [entreprises, setEntreprises] = useState([]);
   const [loading, setLoading] = useState(true);
