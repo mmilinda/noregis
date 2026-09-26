@@ -77,19 +77,31 @@ export default function AgentsManagement({ isMobile }) {
   const [qrLoading, setQrLoading]         = useState(false);
   const [qrError, setQrError]             = useState('');
 
+  const getEntId = useCallback((target) => {
+    if (!target) return '';
+    const ent = target?.entrepriseId !== undefined ? target.entrepriseId : target;
+    if (!ent) return '';
+    if (typeof ent === 'string') return ent;
+    return ent._id || ent.id || '';
+  }, []);
+
   // ── Fetch ─────────────────────────────────────────────────
   const fetchAgentsAndEntreprises = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const entIdParam = isSuperAdmin ? null : state.agent?.entrepriseId;
+      const myEntId = getEntId(state.agent);
+      const entIdParam = isSuperAdmin ? null : myEntId;
       const [resUsers, resEnts] = await Promise.all([
         authService.getAllUsers(entIdParam),
         isSuperAdmin ? entrepriseService.getAll() : Promise.resolve([]),
       ]);
 
       let list = resUsers?.utilisateurs || (Array.isArray(resUsers) ? resUsers : []);
-      if (!isSuperAdmin && state.agent?.entrepriseId) {
-        list = list.filter(u => String(u.entrepriseId?._id || u.entrepriseId) === String(state.agent.entrepriseId));
+      if (!isSuperAdmin && myEntId) {
+        list = list.filter(u => {
+          const uEntId = getEntId(u);
+          return !uEntId || String(uEntId) === String(myEntId);
+        });
       }
       list = list.filter(u => u.role === 'AGENT' || u.role === 'ADMIN' || u.role === 'SUPERADMIN' || u.role === 'SUPER_ADMIN');
       setAgents(list);
@@ -99,7 +111,7 @@ export default function AgentsManagement({ isMobile }) {
     } finally {
       setLoading(false);
     }
-  }, [notify, state.agent, isSuperAdmin]);
+  }, [notify, state.agent, isSuperAdmin, getEntId]);
 
   const fetchDemandes = useCallback(async () => {
     setLoadingDemandes(true);
@@ -136,7 +148,7 @@ export default function AgentsManagement({ isMobile }) {
       setCreateError('Nom, email et mot de passe sont obligatoires.');
       return;
     }
-    const entId = isSuperAdmin ? createForm.entrepriseId : state.agent?.entrepriseId;
+    const entId = isSuperAdmin ? createForm.entrepriseId : getEntId(state.agent);
     if (isSuperAdmin && !entId) {
       setCreateError('Veuillez sélectionner l\'entreprise pour cet agent.');
       return;
@@ -166,7 +178,7 @@ export default function AgentsManagement({ isMobile }) {
 
   // ── Edit agent ────────────────────────────────────────────
   const openEdit = (agent) => {
-    const entId = agent.entrepriseId?._id || agent.entrepriseId || '';
+    const entId = getEntId(agent);
     setEditAgent(agent);
     setEditForm({
       prenom: agent.prenom || '', nom: agent.nom || '',
@@ -295,9 +307,9 @@ export default function AgentsManagement({ isMobile }) {
   const filteredAgents = agents.filter(agent => {
     const q = (search || state.searchQuery || '').toLowerCase();
     const name = `${agent.prenom || ''} ${agent.nom || ''}`.toLowerCase();
-    const entId = agent.entrepriseId?._id || agent.entrepriseId;
+    const entId = getEntId(agent);
     const matchSearch = name.includes(q) || (agent.email || '').toLowerCase().includes(q) || (agent.entrepriseNom || agent.entrepriseId?.nom || '').toLowerCase().includes(q);
-    const matchEntreprise = entrepriseFilter === 'ALL' || String(entId) === String(entrepriseFilter);
+    const matchEntreprise = entrepriseFilter === 'ALL' || entId === entrepriseFilter;
     const matchStatut = statutFilter === 'ALL' || (agent.statutCompte || agent.statut || 'ACTIF') === statutFilter;
     const matchRole = roleFilter === 'ALL' || (agent.role || '').toUpperCase() === roleFilter;
 

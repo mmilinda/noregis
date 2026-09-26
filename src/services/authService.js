@@ -113,7 +113,10 @@ export const authService = {
   getAllUsers: async (entrepriseIdFilter = null, roleFilter = null) => {
     try {
       const params = new URLSearchParams();
-      if (entrepriseIdFilter) params.append('entrepriseId', entrepriseIdFilter);
+      if (entrepriseIdFilter) {
+        const entStr = typeof entrepriseIdFilter === 'object' ? (entrepriseIdFilter._id || entrepriseIdFilter.id) : entrepriseIdFilter;
+        if (entStr) params.append('entrepriseId', entStr);
+      }
       if (roleFilter) params.append('role', roleFilter);
       const query = params.toString() ? '?' + params.toString() : '';
 
@@ -129,7 +132,11 @@ export const authService = {
 
     let users = getStoredUsers();
     if (entrepriseIdFilter) {
-      users = users.filter(u => String(u.entrepriseId?._id || u.entrepriseId) === String(entrepriseIdFilter));
+      const targetEntId = typeof entrepriseIdFilter === 'object' ? (entrepriseIdFilter._id || entrepriseIdFilter.id) : entrepriseIdFilter;
+      users = users.filter(u => {
+        const uEnt = u.entrepriseId?._id || u.entrepriseId?.id || u.entrepriseId;
+        return String(uEnt) === String(targetEntId);
+      });
     }
     if (roleFilter) {
       users = users.filter(u => u.role === roleFilter);
