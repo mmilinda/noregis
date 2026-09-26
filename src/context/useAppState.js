@@ -9,6 +9,10 @@ export const AppContext = createContext(null);
 
 const storedToken = localStorage.getItem('token');
 const storedUser = localStorage.getItem('user');
+const storedSettings = localStorage.getItem('noregis_settings');
+const storedNotifs = localStorage.getItem('noregis_notifications');
+const storedDarkMode = localStorage.getItem('noregis_darkmode');
+
 let parsedUser = null;
 try {
   if (storedUser) parsedUser = JSON.parse(storedUser);
@@ -16,9 +20,19 @@ try {
   console.error("Erreur parsing user", e);
 }
 
+let parsedSettings = { language: 'fr', soundAlerts: true, autoSync: true, offlineMode: false, fontSize: 'medium' };
+try {
+  if (storedSettings) parsedSettings = { ...parsedSettings, ...JSON.parse(storedSettings) };
+} catch (e) {}
+
+let parsedNotifs = { newVisits: true, reminders: false, email: false, push: true, sounds: true };
+try {
+  if (storedNotifs) parsedNotifs = { ...parsedNotifs, ...JSON.parse(storedNotifs) };
+} catch (e) {}
+
 export const initialState = {
   activeTab: 'dashboard',
-  darkMode: false,
+  darkMode: storedDarkMode ? JSON.parse(storedDarkMode) : false,
   visitors: [], // Commence vide, chargé via Dashboard
   currentVisitor: null,
   notification: null, 
@@ -32,28 +46,19 @@ export const initialState = {
   searchQuery: '',
   filterStatus: 'all',
   filterDate: new Date().toLocaleDateString('fr-FR'),
-  settings: {
-    language: 'fr',
-    soundAlerts: true,
-    autoSync: true,
-    offlineMode: false,
-    fontSize: 'medium',
-  },
-  notifications: {
-    newVisits: true,
-    reminders: false,
-    email: false,
-    push: true,
-    sounds: true,
-  },
+  settings: parsedSettings,
+  notifications: parsedNotifs,
 };
 
 export function reducer(state, action) {
   switch (action.type) {
     case 'SET_TAB':
       return { ...state, activeTab: action.payload };
-    case 'TOGGLE_DARK':
-      return { ...state, darkMode: !state.darkMode };
+    case 'TOGGLE_DARK': {
+      const nextDark = !state.darkMode;
+      localStorage.setItem('noregis_darkmode', JSON.stringify(nextDark));
+      return { ...state, darkMode: nextDark };
+    }
     case 'ADD_VISITOR': {
       if (!action.payload) return state;
       const newVis = action.payload;
@@ -94,12 +99,24 @@ export function reducer(state, action) {
       return { ...state, filterStatus: action.payload };
     case 'SET_FILTER_DATE':
       return { ...state, filterDate: action.payload };
-    case 'UPDATE_SETTING':
-      return { ...state, settings: { ...state.settings, [action.key]: action.value } };
-    case 'UPDATE_NOTIFICATION_PREF':
-      return { ...state, notifications: { ...state.notifications, [action.key]: action.value } };
-    case 'UPDATE_AGENT':
-      return { ...state, agent: { ...state.agent, ...action.payload } };
+    case 'UPDATE_SETTING': {
+      const nextSettings = { ...state.settings, [action.key]: action.value };
+      localStorage.setItem('noregis_settings', JSON.stringify(nextSettings));
+      return { ...state, settings: nextSettings };
+    }
+    case 'UPDATE_NOTIFICATION_PREF': {
+      const nextNotifs = { ...state.notifications, [action.key]: action.value };
+      localStorage.setItem('noregis_notifications', JSON.stringify(nextNotifs));
+      return { ...state, notifications: nextNotifs };
+    }
+    case 'UPDATE_AGENT': {
+      const nextAgent = { ...state.agent, ...action.payload };
+      if (nextAgent.prenom || nextAgent.nom) {
+        nextAgent.initials = ((nextAgent.prenom?.[0] || 'A') + (nextAgent.nom?.[0] || 'U')).toUpperCase();
+      }
+      localStorage.setItem('user', JSON.stringify(nextAgent));
+      return { ...state, agent: nextAgent };
+    }
     case 'SET_VISITORS':
       return { ...state, visitors: action.payload };
     case 'LOGIN': {

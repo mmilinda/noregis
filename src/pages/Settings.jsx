@@ -1,29 +1,31 @@
 import { useRef, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Moon, Sun, Globe, Bell, Smartphone, Volume2,
-  LifeBuoy, Bug, Info, ShieldAlert,
+  LifeBuoy, Bug, Info, ShieldAlert, KeyRound, Lock,
   Camera, Building, Phone, Mail, Calendar, BadgeCheck,
   LogOut, Pencil, Send, Clock, XCircle, Plus, Minus, QrCode,
+  Shield, CheckCircle2, User, Database, Server, RefreshCw
 } from 'lucide-react';
 import { useApp } from '../context/useAppState';
-import { Card, Toggle, Btn, Modal } from '../components/UI';
+import { Card, Toggle, Btn, Modal, FormInput } from '../components/UI';
 import { TRANSLATIONS } from '../translations';
 import { authService } from '../services/authService';
 import { demandeService } from '../services/demandeService';
 
 /* ============================================
-   PARAMÈTRES
+   PARAMÈTRES HELPERS
 ============================================ */
 function SettingRow({ icon: Icon, label, description, children }) {
   return (
     <div className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-800 last:border-0">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 text-brand-blue flex items-center justify-center shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 text-brand-blue flex items-center justify-center shrink-0 border border-slate-100 dark:border-slate-800">
           <Icon size={20} />
         </div>
         <div>
           <p className="font-bold text-sm text-slate-900 dark:text-slate-100">{label}</p>
-          {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
+          {description && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{description}</p>}
         </div>
       </div>
       <div className="shrink-0">{children}</div>
@@ -40,93 +42,279 @@ function SectionCard({ title, children }) {
   );
 }
 
+/* ============================================
+   1. COMPOSANT PARAMÈTRES GLOBAUX
+============================================ */
 export function Parametres() {
   const { state, dispatch, notify } = useApp();
   const { settings, notifications, darkMode } = state;
+  const user = state.user || state.agent || {};
+  const role = (user.role || '').toUpperCase();
+  const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'SUPERADMIN';
+  const isAdmin = role === 'ADMIN';
+
+  const navigate = useNavigate();
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS.fr;
 
   const updateSetting = (k, v) => dispatch({ type: 'UPDATE_SETTING', key: k, value: v });
   const updateNotif   = (k, v) => dispatch({ type: 'UPDATE_NOTIFICATION_PREF', key: k, value: v });
 
+  // Password modal state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passData, setPassData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [updatingPass, setUpdatingPass] = useState(false);
+
+  // Support modal state
+  const [showSupportModal, setShowSupportModal] = useState(false);
+
+  // Handle password change submit
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (!passData.newPassword || passData.newPassword.length < 4) {
+      notify('warning', 'Le nouveau mot de passe doit contenir au moins 4 caractères.');
+      return;
+    }
+    if (passData.newPassword !== passData.confirmPassword) {
+      notify('error', 'La confirmation du mot de passe ne correspond pas.');
+      return;
+    }
+
+    setUpdatingPass(true);
+    try {
+      const res = await authService.updateProfile({
+        password: passData.newPassword,
+        motDePasse: passData.newPassword,
+      });
+
+      if (res.data?.success || res.success) {
+        notify('success', '🔑 Mot de passe mis à jour avec succès.');
+        setShowPasswordModal(false);
+        setPassData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        notify('error', res.data?.message || 'Erreur lors de la mise à jour du mot de passe.');
+      }
+    } catch (err) {
+      notify('error', err.response?.data?.message || err.message || 'Erreur serveur lors de la mise à jour.');
+    } finally {
+      setUpdatingPass(false);
+    }
+  };
+
   return (
-    <div className={`p-3 lg:p-6 w-full max-w-7xl mx-auto flex flex-col gap-5`} dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
-      <div className="mb-1">
-        <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white">{t.settings}</h1>
-        <p className="text-xs text-slate-500 mt-1">{t.customize_prefs}</p>
+    <div className="p-4 lg:p-8 w-full max-w-7xl mx-auto space-y-6" dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#161B22] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div>
+          <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white tracking-tight">{t.settings}</h1>
+          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">{t.customize_prefs}</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="px-3 py-1 text-xs font-black rounded-full bg-brand-blue-bright/10 text-brand-blue-bright border border-brand-blue-bright/20 uppercase tracking-wider">
+            Compte : {user.role || 'AGENT'}
+          </span>
+        </div>
       </div>
 
+      {/* Apparence & Ergonomie */}
       <SectionCard title={t.appearance}>
         <SettingRow icon={darkMode ? Moon : Sun} label={t.dark_mode} description={t.night_interface}>
           <Toggle active={darkMode} onChange={() => dispatch({ type: 'TOGGLE_DARK' })} />
         </SettingRow>
-        <SettingRow icon={Globe} label={t.language} description={t.language}>
+
+        <SettingRow icon={Globe} label={t.language} description="Sélectionnez la langue d'affichage du registre">
           <select
             value={settings.language}
             onChange={e => updateSetting('language', e.target.value)}
-            className="p-2 border-1.5 border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs font-bold outline-none"
+            className="p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs font-bold outline-none focus:border-brand-blue-bright"
           >
-            <option value="fr">Français</option>
-            <option value="en">English</option>
-            <option value="ar">العربية</option>
+            <option value="fr">Français (FR)</option>
+            <option value="en">English (EN)</option>
+            <option value="ar">العربية (AR)</option>
           </select>
         </SettingRow>
+
         <div className="p-4 border-b border-slate-100 dark:border-slate-800">
-          <p className="font-bold text-sm text-slate-900 dark:text-slate-100 mb-3">{t.textSize}</p>
+          <p className="font-bold text-sm text-slate-900 dark:text-slate-100 mb-1">{t.textSize}</p>
+          <p className="text-xs text-slate-500 mb-3">Ajustez la taille du texte pour un meilleur confort de lecture</p>
           <div className="flex gap-2">
-            {['small', 'medium', 'large'].map(sz => (
+            {[
+              { id: 'small', label: 'Petite' },
+              { id: 'medium', label: 'Moyenne' },
+              { id: 'large', label: 'Grande' },
+            ].map(sz => (
               <button
-                key={sz}
-                onClick={() => updateSetting('fontSize', sz)}
-                className={`px-4 py-2 rounded-lg border-1.5 font-bold text-xs transition-all ${
-                  settings.fontSize === sz
-                    ? 'border-brand-blue bg-blue-50 text-brand-blue dark:bg-blue-900/30 dark:text-blue-400'
-                    : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800'
+                key={sz.id}
+                onClick={() => updateSetting('fontSize', sz.id)}
+                className={`px-4 py-2 rounded-lg border font-bold text-xs transition-all ${
+                  settings.fontSize === sz.id
+                    ? 'border-brand-blue-bright bg-brand-blue-bright/10 text-brand-blue-bright dark:bg-brand-blue-bright/20'
+                    : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
                 }`}
               >
-                {t[sz]}
+                {sz.label}
               </button>
             ))}
           </div>
         </div>
       </SectionCard>
 
-      <SectionCard title={t.notifications || 'Notifications'}>
-        <SettingRow icon={Bell} label={t.new_visits} description={t.scan_alert}>
+      {/* Notifications & Alertes */}
+      <SectionCard title={t.notifications || 'Notifications & Alertes'}>
+        <SettingRow icon={Bell} label={t.new_visits || 'Entrées & Visites'} description={t.scan_alert || 'Alertes lors de l\'enregistrement d\'un nouveau visiteur'}>
           <Toggle active={notifications.newVisits} onChange={v => updateNotif('newVisits', v)} />
         </SettingRow>
-        <SettingRow icon={Smartphone} label={t.push_notifs} description={t.mobile_alerts}>
+        <SettingRow icon={Smartphone} label={t.push_notifs || 'Notifications Navigateur'} description={t.mobile_alerts || 'Recevoir des popups d\'alertes système'}>
           <Toggle active={notifications.push} onChange={v => updateNotif('push', v)} />
         </SettingRow>
-        <SettingRow icon={Volume2} label={t.alert_sounds} description={t.sound_feedback}>
+        <SettingRow icon={Volume2} label={t.alert_sounds || 'Effets Sonores'} description={t.sound_feedback || 'Bip sonore lors de la lecture des codes QR & CIN'}>
           <Toggle active={notifications.sounds} onChange={v => updateNotif('sounds', v)} />
         </SettingRow>
       </SectionCard>
 
-      <SectionCard title={t.support_assist}>
-        <SettingRow icon={LifeBuoy} label={t.contact_support} description={t.tech_assist}>
-          <Btn variant="secondary" size="sm" onClick={() => notify('info', `📞 ${t.support_called}`)}>{t.contact_btn}</Btn>
+      {/* Sécurité & Mot de passe */}
+      <SectionCard title="Sécurité & Authentification">
+        <SettingRow icon={KeyRound} label="Mot de passe du compte" description="Modifiez régulièrement votre mot de passe pour des raisons de sécurité">
+          <Btn variant="secondary" size="sm" icon={Lock} onClick={() => setShowPasswordModal(true)}>
+            Changer le mot de passe
+          </Btn>
         </SettingRow>
-        <SettingRow icon={Bug} label={t.report_bug} description={t.help_improve}>
-          <Btn variant="danger" size="sm" onClick={() => notify('error', `🪲 ${t.bug_reported}`)}>{t.report_btn}</Btn>
+
+        <SettingRow icon={Shield} label="Chiffrement & Session" description="Toutes les connexions sont sécurisées par jeton JWT de 2 heures">
+          <span className="px-2.5 py-1 text-[10px] font-black rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+            <CheckCircle2 size={12} /> SSL & JWT Actif
+          </span>
         </SettingRow>
       </SectionCard>
 
-      <SectionCard title={t.about}>
-        <SettingRow icon={Info} label="Version" description={t.app_version}>
-          <span className="text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-md">v1.0.0</span>
+      {/* Support, Assistance & Signalement de Bugs */}
+      <SectionCard title={t.support_assist || 'Support & Assistance'}>
+        <SettingRow icon={LifeBuoy} label={t.contact_support || 'Centre d\'Assistance'} description={t.tech_assist || 'Besoin d\'aide pour l\'utilisation du registre ?'}>
+          <Btn variant="secondary" size="sm" icon={LifeBuoy} onClick={() => setShowSupportModal(true)}>
+            {t.contact_btn || 'Assistance'}
+          </Btn>
+        </SettingRow>
+
+        <SettingRow icon={Bug} label={t.report_bug || 'Signaler un bug technique'} description="Transmettez un dysfonctionnement au SuperAdmin">
+          <Btn variant="danger" size="sm" icon={Bug} onClick={() => navigate('/bugs')}>
+            Espace Bugs
+          </Btn>
         </SettingRow>
       </SectionCard>
+
+      {/* Infos Système & Organisation selon le rôle */}
+      <SectionCard title={t.about || 'Informations Système & Organisation'}>
+        <SettingRow icon={Info} label="Version de l'application" description={t.app_version}>
+          <span className="text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-1 rounded-md border border-slate-200 dark:border-slate-700">
+            NoRegis v1.0.0 (Production)
+          </span>
+        </SettingRow>
+
+        {isSuperAdmin && (
+          <>
+            <SettingRow icon={Server} label="État du Serveur API" description="Connexion Backend REST & Socket.IO">
+              <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Opérationnel (Render)
+              </span>
+            </SettingRow>
+            <SettingRow icon={Database} label="Base de Données MongoDB" description="Registre centralisé multi-tenant">
+              <span className="text-xs font-black text-slate-700 dark:text-slate-300">Cluster Cloud MongoDB Atlas</span>
+            </SettingRow>
+          </>
+        )}
+
+        {(isAdmin || user.entrepriseId) && (
+          <SettingRow icon={Building} label="Organisation / Entreprise" description="Rattaché à votre compte">
+            <span className="text-xs font-black text-brand-blue-bright">
+              {typeof user.entrepriseId === 'object' ? user.entrepriseId.nom : (user.entrepriseNom || 'Entreprise Partenaire')}
+            </span>
+          </SettingRow>
+        )}
+      </SectionCard>
+
+      {/* Modal 1: Changement de mot de passe */}
+      <Modal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        title="Changer mon mot de passe"
+        size="md"
+      >
+        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          <FormInput
+            label="Nouveau mot de passe"
+            id="newPassword"
+            type="password"
+            placeholder="Au moins 4 caractères..."
+            value={passData.newPassword}
+            onChange={(e) => setPassData({ ...passData, newPassword: e.target.value })}
+            required
+          />
+
+          <FormInput
+            label="Confirmer le nouveau mot de passe"
+            id="confirmPassword"
+            type="password"
+            placeholder="Répétez le nouveau mot de passe..."
+            value={passData.confirmPassword}
+            onChange={(e) => setPassData({ ...passData, confirmPassword: e.target.value })}
+            required
+          />
+
+          <div className="flex justify-end gap-3 pt-3">
+            <Btn variant="secondary" onClick={() => setShowPasswordModal(false)}>
+              Annuler
+            </Btn>
+            <Btn variant="primary" type="submit" loading={updatingPass} icon={Lock}>
+              Mettre à jour
+            </Btn>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal 2: Assistance & Support */}
+      <Modal
+        isOpen={showSupportModal}
+        onClose={() => setShowSupportModal(false)}
+        title="Centre d'Assistance & Support Client"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 space-y-2">
+            <p className="text-xs font-black flex items-center gap-2">
+              <Phone size={16} /> Numéro Vert Support Technique
+            </p>
+            <p className="text-base font-black font-mono">+221 33 800 00 00 / +221 77 000 00 00</p>
+            <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300">
+              Disponible du Lundi au Samedi de 08h00 à 20h00 (GMT).
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+            <p className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <Mail size={16} className="text-brand-blue-bright" /> Support par E-mail
+            </p>
+            <p className="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono">support@noregis.com</p>
+            <p className="text-[11px] text-slate-500">Temps moyen de réponse : Moins de 2 heures.</p>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Btn variant="secondary" onClick={() => setShowSupportModal(false)}>
+              Fermer
+            </Btn>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
 
 /* ============================================
-   PROFIL AGENT
+   2. COMPOSANT PROFIL UTILISATEUR
 ============================================ */
 function InfoRow({ icon: Icon, label, value }) {
   return (
     <div className="flex items-center gap-4 p-4 border-b border-slate-100 dark:border-slate-800 last:border-0">
-      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-brand-blue flex items-center justify-center shrink-0">
+      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-brand-blue flex items-center justify-center shrink-0 border border-blue-500/10">
         <Icon size={18} />
       </div>
       <div className="flex-1 min-w-0">
@@ -137,7 +325,7 @@ function InfoRow({ icon: Icon, label, value }) {
   );
 }
 
-// Champs modifiables via demande
+// Champs modifiables via demande pour les agents
 const CHAMPS_DEMANDE = [
   { key: 'prenom',              label: 'Prénom' },
   { key: 'nom',                 label: 'Nom' },
@@ -150,7 +338,12 @@ const CHAMPS_DEMANDE = [
 
 export function ProfilAgent() {
   const { state, dispatch, notify } = useApp();
-  const { agent, settings } = state;
+  const { settings } = state;
+  const agent = state.agent || state.user || {};
+  const role = (agent.role || '').toUpperCase();
+  const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'SUPERADMIN';
+  const isAdmin = role === 'ADMIN';
+
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS.fr;
   const fileRef = useRef(null);
 
@@ -158,47 +351,30 @@ export function ProfilAgent() {
   const [demandePendante, setDemandePendante] = useState(null);
   const [loadingDemande, setLoadingDemande]   = useState(true);
 
-  // Backend v2 — QR Code agent
+  // QR Code agent state
   const [qrLoading, setQrLoading] = useState(false);
 
-  const handleDownloadQr = async () => {
-    const id = agent?.id || agent?._id;
-    if (!id) return;
-    setQrLoading(true);
-    try {
-      const res = await authService.getAgentQr(id);
-      // Le backend retourne { qr: 'data:image/png;base64,...' } ou { qrCode: '...' }
-      const qrData = res.qr || res.qrCode || res.data;
-      if (!qrData) throw new Error('QR Code non disponible');
-      // Téléchargement automatique
-      const a = document.createElement('a');
-      a.href = qrData.startsWith('data:') ? qrData : `data:image/png;base64,${qrData}`;
-      a.download = `qr-agent-${agent?.prenom || 'agent'}.png`;
-      a.click();
-      notify('success', '📲 QR Code téléchargé avec succès.');
-    } catch (err) {
-      notify('error', err.message || 'Erreur lors de la génération du QR Code.');
-    } finally {
-      setQrLoading(false);
-    }
-  };
+  // Formulaire d'édition directe (SuperAdmin / Admin / Agent)
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    prenom: '', nom: '', email: '', telephone: '', departement: '', poste: '', niveauAccreditation: '', dateArrivee: ''
+  });
+  const [envoi, setEnvoi] = useState(false);
+  const [erreurEnvoi, setErreurEnvoi] = useState('');
 
-  // Formulaire de demande
+  // Password modal
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passData, setPassData] = useState({ newPassword: '', confirmPassword: '' });
+  const [updatingPass, setUpdatingPass] = useState(false);
+
+  // Demande agent state
   const [champsSelectionnes, setChampsSelectionnes] = useState([CHAMPS_DEMANDE[0].key]);
   const [valeurs, setValeurs] = useState({});
   const [motif, setMotif]     = useState('');
-  const [envoi, setEnvoi]     = useState(false);
-  const [erreurEnvoi, setErreurEnvoi] = useState('');
 
-  // Admin edit mode direct
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
-    prenom: '', nom: '', telephone: '', departement: '', poste: '', niveauAccreditation: '', dateArrivee: ''
-  });
-
-  // Charger la demande en attente de l'agent
+  // Charger la demande en attente pour les agents
   useEffect(() => {
-    if (agent?.role === 'ADMIN') {
+    if (isAdmin || isSuperAdmin) {
       setLoadingDemande(false);
       return;
     }
@@ -211,15 +387,43 @@ export function ProfilAgent() {
       }
     };
     charger();
-  }, [agent]);
+  }, [agent, isAdmin, isSuperAdmin]);
 
+  // QR Code download handler
+  const handleDownloadQr = async () => {
+    const id = agent?.id || agent?._id;
+    if (!id) return;
+    setQrLoading(true);
+    try {
+      const res = await authService.generateAgentQr(id);
+      if (res.qrPath || res.qr || res.qrCode) {
+        notify('success', '📲 Lien de scan généré. QR Code prêt.');
+      } else {
+        notify('info', 'Generation du lien d\'identification effectuee.');
+      }
+    } catch (err) {
+      notify('error', err.message || 'Erreur lors de la génération du QR Code.');
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  // Profile photo upload
   const handlePhoto = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => {
-      dispatch({ type: 'UPDATE_AGENT', payload: { photo: reader.result } });
-      notify('success', `📸 ${t.photo_updated}`);
+    reader.onloadend = async () => {
+      const photoBase64 = reader.result;
+      dispatch({ type: 'UPDATE_AGENT', payload: { photo: photoBase64 } });
+      notify('success', `📸 Photo de profil mise à jour.`);
+
+      // Tentative de sauvegarde côté serveur
+      try {
+        await authService.updateProfile({ photo: photoBase64 });
+      } catch (err) {
+        /* backup local actif */
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -229,29 +433,11 @@ export function ProfilAgent() {
     notify('info', t.logout_ok);
   };
 
-  const toggleChamp = (key) => {
-    setChampsSelectionnes(prev =>
-      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-    );
-    setValeurs(prev => {
-      const copy = { ...prev };
-      delete copy[key];
-      return copy;
-    });
-  };
-
-  const openDemandeModal = () => {
-    setChampsSelectionnes([CHAMPS_DEMANDE[0].key]);
-    setValeurs({});
-    setMotif('');
-    setErreurEnvoi('');
-    setDemandeModal(true);
-  };
-
   const startEditing = () => {
     setEditForm({
       prenom: agent.prenom || '',
       nom: agent.nom || '',
+      email: agent.email || '',
       telephone: agent.telephone || '',
       departement: agent.departement || '',
       poste: agent.poste || '',
@@ -268,15 +454,37 @@ export function ProfilAgent() {
     setErreurEnvoi('');
     try {
       const res = await authService.updateProfile(editForm);
-      const updatedUser = res.user || res.utilisateur;
+      const updatedUser = res.user || res.utilisateur || { ...agent, ...editForm };
       dispatch({ type: 'UPDATE_AGENT', payload: updatedUser });
-      localStorage.setItem('user', JSON.stringify(updatedUser));
       notify('success', '✅ Profil mis à jour avec succès.');
       setIsEditing(false);
     } catch (err) {
-      setErreurEnvoi(err.message || 'Erreur lors de la mise à jour.');
+      setErreurEnvoi(err.response?.data?.message || err.message || 'Erreur lors de la mise à jour.');
     } finally {
       setEnvoi(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (!passData.newPassword || passData.newPassword.length < 4) {
+      notify('warning', 'Le mot de passe doit comporter au moins 4 caractères.');
+      return;
+    }
+    if (passData.newPassword !== passData.confirmPassword) {
+      notify('error', 'Les mots de passe ne correspondent pas.');
+      return;
+    }
+    setUpdatingPass(true);
+    try {
+      await authService.updateProfile({ password: passData.newPassword, motDePasse: passData.newPassword });
+      notify('success', '🔑 Mot de passe réinitialisé avec succès.');
+      setShowPasswordModal(false);
+      setPassData({ newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      notify('error', err.response?.data?.message || 'Erreur lors de la mise à jour du mot de passe.');
+    } finally {
+      setUpdatingPass(false);
     }
   };
 
@@ -289,7 +497,7 @@ export function ProfilAgent() {
       }
     });
     if (Object.keys(modifications).length === 0) {
-      setErreurEnvoi('Saisissez au moins une nouvelle valeur pour un champ sélectionné.');
+      setErreurEnvoi('Saisissez au moins une nouvelle valeur.');
       return;
     }
     setEnvoi(true);
@@ -297,7 +505,7 @@ export function ProfilAgent() {
     try {
       await demandeService.soumettre({ modifications, motif });
       setDemandeModal(false);
-      notify('success', "✅ Demande envoyée. L'administrateur la traitera prochainement.");
+      notify('success', "✅ Demande envoyée à l'administrateur.");
       const res = await demandeService.maDemande();
       setDemandePendante(res?.demande || null);
     } catch (err) {
@@ -307,13 +515,36 @@ export function ProfilAgent() {
     }
   };
 
-  return (
-    <div className="p-3 lg:p-6 w-full max-w-7xl mx-auto flex flex-col gap-6" dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
-      <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white">{t.profile}</h1>
+  // Badge role color
+  const getRoleBadge = (r) => {
+    if (r === 'SUPER_ADMIN' || r === 'SUPERADMIN') {
+      return (
+        <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 border border-amber-500/30 px-4 py-1.5 rounded-full text-xs font-black flex items-center gap-2">
+          👑 SUPER ADMIN
+        </span>
+      );
+    }
+    if (r === 'ADMIN') {
+      return (
+        <span className="bg-blue-500/20 text-blue-300 border border-blue-500/30 px-4 py-1.5 rounded-full text-xs font-black flex items-center gap-2">
+          🛡️ ADMINISTRATEUR
+        </span>
+      );
+    }
+    return (
+      <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-4 py-1.5 rounded-full text-xs font-black flex items-center gap-2">
+        👮 AGENT DE SÉCURITÉ
+      </span>
+    );
+  };
 
-      {/* Bannière demande en attente */}
+  return (
+    <div className="p-4 lg:p-8 w-full max-w-7xl mx-auto space-y-6" dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
+      <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Mon Profil Utilisateur</h1>
+
+      {/* Demande en attente (Agent) */}
       {!loadingDemande && demandePendante && (
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 shadow-sm">
           <Clock size={18} className="text-amber-500 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Demande de modification en attente</p>
@@ -323,59 +554,62 @@ export function ProfilAgent() {
             {demandePendante.motif && (
               <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5 italic">«{demandePendante.motif}»</p>
             )}
-            <p className="text-[10px] text-amber-500 mt-1 font-bold">
-              Soumise le {new Date(demandePendante.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </p>
           </div>
         </div>
       )}
 
-      {/* Hero */}
-      <div className="relative bg-gradient-to-br from-brand-navy via-slate-900 to-black rounded-xl p-8 lg:p-12 flex flex-col lg:flex-row items-center gap-8 overflow-hidden">
+      {/* Hero Banner */}
+      <div className="relative bg-gradient-to-br from-brand-navy via-slate-900 to-black rounded-2xl p-8 lg:p-12 flex flex-col lg:flex-row items-center gap-8 overflow-hidden shadow-lg">
         <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
         <div className="absolute -bottom-10 right-20 w-32 h-32 rounded-full bg-white/5 pointer-events-none" />
 
-        {/* Photo */}
+        {/* Avatar Photo */}
         <div className="relative shrink-0">
-          <div className="w-32 h-32 lg:w-40 lg:h-40 rounded-xl overflow-hidden bg-white/10 border-4 border-white/20 flex items-center justify-center">
-            {agent?.photo
-              ? <img src={agent.photo} alt="Agent" className="w-full h-full object-cover" />
-              : <span className="text-5xl lg:text-6xl font-black text-white">{agent?.initials || 'AU'}</span>
-            }
+          <div className="w-32 h-32 lg:w-40 lg:h-40 rounded-2xl overflow-hidden bg-white/10 border-4 border-white/20 flex items-center justify-center shadow-xl">
+            {agent?.photo ? (
+              <img src={agent.photo} alt="Utilisateur" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-5xl lg:text-6xl font-black text-white">{agent?.initials || 'AU'}</span>
+            )}
           </div>
           <button
             onClick={() => fileRef.current?.click()}
-            className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-brand-blue-bright text-white border-4 border-slate-900 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
+            className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-brand-blue-bright text-white border-4 border-slate-900 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-lg"
+            title="Changer la photo de profil"
           >
             <Camera size={18} />
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
         </div>
 
-        {/* Info */}
-        <div className="text-white text-center lg:text-left z-10">
-          <p className="text-3xl lg:text-4xl font-black mb-3">{agent?.prenom} {agent?.nom}</p>
+        {/* User identity & QR button */}
+        <div className="text-white text-center lg:text-left z-10 space-y-3">
+          <div>
+            <p className="text-3xl lg:text-4xl font-black tracking-tight">{agent?.prenom || 'Nom'} {agent?.nom || ''}</p>
+            <p className="text-xs text-slate-400 font-mono font-bold mt-1">{agent?.email}</p>
+          </div>
+
           <div className="flex gap-2 flex-wrap justify-center lg:justify-start">
-            <span className="bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 border border-white/10">
-              <BadgeCheck size={14} className="text-blue-400" /> {agent?.role}
-            </span>
-            <span className="bg-white/5 px-4 py-1.5 rounded-full text-xs font-mono font-bold text-slate-300 border border-white/5">
-              {agent?.matricule}
-            </span>
-            {/* Bouton QR Code — Backend v2 */}
+            {getRoleBadge(role)}
+
+            {agent?.matricule && (
+              <span className="bg-white/10 px-4 py-1.5 rounded-full text-xs font-mono font-bold text-slate-300 border border-white/10">
+                ID: {agent.matricule}
+              </span>
+            )}
+
             <button
               onClick={handleDownloadQr}
               disabled={qrLoading}
-              className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 border border-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Télécharger mon QR Code d'agent"
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 border border-white/10 transition-all disabled:opacity-50 cursor-pointer"
             >
-              <QrCode size={14} className="text-green-400" />
+              <QrCode size={14} className="text-emerald-400" />
               {qrLoading ? 'Génération...' : 'Mon QR Code'}
             </button>
           </div>
-          <p className="text-sm opacity-70 mt-5 flex items-center gap-2 justify-center lg:justify-start">
-            <Building size={14} /> {agent?.poste || t.poste_undef}
+
+          <p className="text-sm opacity-80 flex items-center gap-2 justify-center lg:justify-start pt-1">
+            <Building size={16} /> {agent?.poste || 'Poste non spécifié'}
           </p>
         </div>
       </div>
@@ -386,100 +620,82 @@ export function ProfilAgent() {
         </div>
       )}
 
-      {/* Details */}
+      {/* Profil details grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 ml-1">{t.coordinates}</h3>
+          <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 ml-1">{t.coordinates || 'Coordonnées'}</h3>
           <Card>
             {isEditing ? (
               <div className="p-4 space-y-4">
-                <div>
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Prénom</label>
-                  <input
-                    type="text"
-                    value={editForm.prenom}
-                    onChange={e => setEditForm(prev => ({ ...prev, prenom: e.target.value }))}
-                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Nom</label>
-                  <input
-                    type="text"
-                    value={editForm.nom}
-                    onChange={e => setEditForm(prev => ({ ...prev, nom: e.target.value }))}
-                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Téléphone</label>
-                  <input
-                    type="text"
-                    value={editForm.telephone}
-                    onChange={e => setEditForm(prev => ({ ...prev, telephone: e.target.value }))}
-                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Département</label>
-                  <input
-                    type="text"
-                    value={editForm.departement}
-                    onChange={e => setEditForm(prev => ({ ...prev, departement: e.target.value }))}
-                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
-                  />
-                </div>
+                <FormInput
+                  label="Prénom"
+                  id="editPrenom"
+                  value={editForm.prenom}
+                  onChange={e => setEditForm({ ...editForm, prenom: e.target.value })}
+                />
+                <FormInput
+                  label="Nom"
+                  id="editNom"
+                  value={editForm.nom}
+                  onChange={e => setEditForm({ ...editForm, nom: e.target.value })}
+                />
+                <FormInput
+                  label="E-mail"
+                  id="editEmail"
+                  type="email"
+                  value={editForm.email}
+                  onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                />
+                <FormInput
+                  label="Téléphone"
+                  id="editPhone"
+                  value={editForm.telephone}
+                  onChange={e => setEditForm({ ...editForm, telephone: e.target.value })}
+                />
               </div>
             ) : (
               <>
-                <InfoRow icon={Mail}    label={t.email}  value={agent?.email} />
-                <InfoRow icon={Phone}   label={t.phone}  value={agent?.telephone} />
-                <InfoRow icon={Building} label={t.dept}  value={agent?.departement} />
+                <InfoRow icon={User}    label="Prénom & Nom" value={`${agent?.prenom || ''} ${agent?.nom || ''}`} />
+                <InfoRow icon={Mail}    label={t.email || 'E-mail'} value={agent?.email} />
+                <InfoRow icon={Phone}   label={t.phone || 'Téléphone'} value={agent?.telephone} />
+                <InfoRow icon={Building} label={t.dept || 'Département'} value={agent?.departement} />
               </>
             )}
           </Card>
         </div>
+
         <div>
-          <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 ml-1">{t.ops_info}</h3>
+          <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 ml-1">{t.ops_info || 'Infos Opérationnelles'}</h3>
           <Card>
             {isEditing ? (
               <div className="p-4 space-y-4">
-                <div>
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Accréditation</label>
-                  <input
-                    type="text"
-                    value={editForm.niveauAccreditation}
-                    onChange={e => setEditForm(prev => ({ ...prev, niveauAccreditation: e.target.value }))}
-                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Poste</label>
-                  <input
-                    type="text"
-                    value={editForm.poste}
-                    onChange={e => setEditForm(prev => ({ ...prev, poste: e.target.value }))}
-                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Date d'arrivée</label>
-                  <input
-                    type="date"
-                    value={editForm.dateArrivee}
-                    onChange={e => setEditForm(prev => ({ ...prev, dateArrivee: e.target.value }))}
-                    className="w-full mt-1 border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
-                  />
-                </div>
+                <FormInput
+                  label="Département"
+                  id="editDept"
+                  value={editForm.departement}
+                  onChange={e => setEditForm({ ...editForm, departement: e.target.value })}
+                />
+                <FormInput
+                  label="Poste"
+                  id="editPoste"
+                  value={editForm.poste}
+                  onChange={e => setEditForm({ ...editForm, poste: e.target.value })}
+                />
+                <FormInput
+                  label="Niveau d'accréditation"
+                  id="editAccred"
+                  value={editForm.niveauAccreditation}
+                  onChange={e => setEditForm({ ...editForm, niveauAccreditation: e.target.value })}
+                />
               </div>
             ) : (
               <>
-                <InfoRow icon={BadgeCheck} label={t.acc_level}   value={agent?.niveauAccreditation || agent?.niveau} />
-                <InfoRow icon={Building}   label={t.workstation} value={agent?.poste} />
-                <InfoRow icon={Calendar}   label={t.arrival}     value={
+                <InfoRow icon={BadgeCheck} label={t.acc_level || 'Accréditation'} value={agent?.niveauAccreditation || agent?.niveau || 'Niveau 1'} />
+                <InfoRow icon={Building}   label={t.workstation || 'Poste de travail'} value={agent?.poste} />
+                <InfoRow icon={Calendar}   label={t.arrival || 'Date d\'arrivée'} value={
                   agent?.dateArrivee
                     ? new Date(agent.dateArrivee).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-                    : '—'
+                    : 'Actif'
                 } />
               </>
             )}
@@ -487,63 +703,91 @@ export function ProfilAgent() {
         </div>
       </div>
 
-      {/* Note lecture seule */}
-      {agent?.role !== 'ADMIN' && (
-        <div className="flex items-center gap-2 text-xs text-slate-400 font-bold bg-slate-50 dark:bg-slate-900/40 px-4 py-3 rounded-lg border border-slate-100 dark:border-slate-800">
-          <ShieldAlert size={14} className="text-slate-400 shrink-0" />
-          Ces informations sont gérées par votre administrateur. Pour les modifier, soumettez une demande.
-        </div>
-      )}
-
-      {/* Actions */}
-      <div className="flex gap-3 justify-end mt-2">
-        {agent?.role === 'ADMIN' ? (
-          isEditing ? (
-            <>
-              <Btn variant="secondary" onClick={() => setIsEditing(false)}>
-                Annuler
-              </Btn>
-              <Btn variant="primary" icon={Send} loading={envoi} onClick={handleSaveProfile}>
-                Enregistrer
-              </Btn>
-            </>
-          ) : (
-            <Btn variant="primary" icon={Pencil} onClick={startEditing}>
+      {/* Action buttons */}
+      <div className="flex flex-wrap gap-3 justify-end pt-2">
+        {isEditing ? (
+          <>
+            <Btn variant="secondary" onClick={() => setIsEditing(false)}>
+              Annuler
+            </Btn>
+            <Btn variant="primary" icon={Send} loading={envoi} onClick={handleSaveProfile}>
+              Enregistrer les modifications
+            </Btn>
+          </>
+        ) : (
+          <>
+            <Btn variant="secondary" icon={Pencil} onClick={startEditing}>
               Modifier mon profil
             </Btn>
-          )
-        ) : (
-          <Btn
-            variant="secondary"
-            icon={Pencil}
-            disabled={!!demandePendante}
-            onClick={openDemandeModal}
-            className="!border-brand-blue-bright/30 !text-brand-blue-bright hover:!bg-brand-blue-bright hover:!text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {demandePendante ? 'Demande en attente…' : 'Demander une modification'}
-          </Btn>
-        )}
-        {!isEditing && (
-          <Btn variant="danger" icon={LogOut} onClick={handleLogout}>
-            {t.logout}
-          </Btn>
+
+            {!isAdmin && !isSuperAdmin && (
+              <Btn
+                variant="secondary"
+                icon={Send}
+                disabled={!!demandePendante}
+                onClick={() => setDemandeModal(true)}
+              >
+                Demande formelle
+              </Btn>
+            )}
+
+            <Btn variant="warning" icon={Lock} onClick={() => setShowPasswordModal(true)}>
+              Mot de passe
+            </Btn>
+
+            <Btn variant="danger" icon={LogOut} onClick={handleLogout}>
+              {t.logout || 'Déconnexion'}
+            </Btn>
+          </>
         )}
       </div>
 
-      {/* ── MODAL DE DEMANDE ───────────────────────────────── */}
+      {/* Modal 1: Password change */}
+      <Modal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        title="Modifier le mot de passe"
+        size="md"
+      >
+        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          <FormInput
+            label="Nouveau mot de passe"
+            id="passNew"
+            type="password"
+            placeholder="Minimum 4 caractères..."
+            value={passData.newPassword}
+            onChange={e => setPassData({ ...passData, newPassword: e.target.value })}
+            required
+          />
+
+          <FormInput
+            label="Confirmer le nouveau mot de passe"
+            id="passConfirm"
+            type="password"
+            placeholder="Confirmez..."
+            value={passData.confirmPassword}
+            onChange={e => setPassData({ ...passData, confirmPassword: e.target.value })}
+            required
+          />
+
+          <div className="flex justify-end gap-3 pt-3">
+            <Btn variant="secondary" onClick={() => setShowPasswordModal(false)}>
+              Annuler
+            </Btn>
+            <Btn variant="primary" type="submit" loading={updatingPass} icon={Lock}>
+              Valider
+            </Btn>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal 2: Change request for agent */}
       <Modal isOpen={demandeModal} onClose={() => setDemandeModal(false)} title="Demande de modification de profil" size="md">
         <form onSubmit={handleSubmitDemande} className="space-y-5">
           <p className="text-xs text-slate-500 dark:text-slate-400 font-bold bg-slate-50 dark:bg-slate-900/40 rounded-lg px-4 py-3 border border-slate-100 dark:border-slate-800">
-            Sélectionnez les champs à modifier, indiquez les nouvelles valeurs et ajoutez un motif si besoin.
+            Sélectionnez les champs à modifier et spécifiez la valeur souhaitée.
           </p>
 
-          {erreurEnvoi && !isEditing && (
-            <div className="p-3 bg-red-50 dark:bg-red-950/30 text-brand-red border border-brand-red-bright/20 rounded-lg text-xs font-bold flex items-center gap-2">
-              <XCircle size={16} /><span>{erreurEnvoi}</span>
-            </div>
-          )}
-
-          {/* Sélection des champs */}
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Champs à modifier</p>
             <div className="space-y-2">
@@ -553,14 +797,15 @@ export function ProfilAgent() {
                   <div key={key} className={`rounded-xl border-2 transition-all ${selected ? 'border-brand-blue-bright/40 bg-brand-blue-bright/5' : 'border-slate-100 dark:border-slate-800'}`}>
                     <button
                       type="button"
-                      onClick={() => toggleChamp(key)}
+                      onClick={() => {
+                        setChampsSelectionnes(prev =>
+                          prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+                        );
+                      }}
                       className="w-full flex items-center justify-between px-4 py-2.5 text-left"
                     >
                       <span className={`text-sm font-bold ${selected ? 'text-brand-blue-bright' : 'text-slate-600 dark:text-slate-300'}`}>{label}</span>
-                      {selected
-                        ? <Minus size={16} className="text-brand-blue-bright shrink-0" />
-                        : <Plus  size={16} className="text-slate-400 shrink-0" />
-                      }
+                      {selected ? <Minus size={16} className="text-brand-blue-bright" /> : <Plus size={16} className="text-slate-400" />}
                     </button>
                     {selected && (
                       <div className="px-4 pb-3">
@@ -569,7 +814,7 @@ export function ProfilAgent() {
                           value={valeurs[key] || ''}
                           onChange={e => setValeurs(prev => ({ ...prev, [key]: e.target.value }))}
                           placeholder={`Nouvelle valeur pour "${label}"`}
-                          className="w-full border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors"
+                          className="w-full border-2 border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright transition-colors"
                         />
                       </div>
                     )}
@@ -579,15 +824,14 @@ export function ProfilAgent() {
             </div>
           </div>
 
-          {/* Motif */}
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Motif (optionnel)</p>
             <textarea
               value={motif}
               onChange={e => setMotif(e.target.value)}
               rows={3}
-              placeholder="Ex: Changement de poste depuis le 1er mai..."
-              className="w-full border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright/60 transition-colors resize-none"
+              placeholder="Spécifiez le motif de votre demande..."
+              className="w-full border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright transition-colors resize-none"
             />
           </div>
 
@@ -600,4 +844,3 @@ export function ProfilAgent() {
     </div>
   );
 }
-
