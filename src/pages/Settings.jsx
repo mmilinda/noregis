@@ -364,13 +364,15 @@ const CHAMPS_DEMANDE = [
 
 export function ProfilAgent() {
   const { state, dispatch, notify } = useApp();
-  const { settings } = state;
-  const agent = state.agent || state.user || {};
-  const role = (agent.role || '').toUpperCase();
+  const settings = state?.settings || {};
+  const notifications = state?.notifications || {};
+  const agent = state?.agent || state?.user || {};
+  const role = (agent?.role || '').toUpperCase();
   const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'SUPERADMIN';
   const isAdmin = role === 'ADMIN';
 
-  const t = TRANSLATIONS[settings.language] || TRANSLATIONS.fr;
+  const language = settings?.language || 'fr';
+  const t = TRANSLATIONS[language] || TRANSLATIONS.fr;
   const fileRef = useRef(null);
 
   const [demandeModal, setDemandeModal]       = useState(false);
@@ -394,7 +396,7 @@ export function ProfilAgent() {
   const [updatingPass, setUpdatingPass] = useState(false);
 
   // Demande agent state
-  const [champsSelectionnes, setChampsSelectionnes] = useState([CHAMPS_DEMANDE[0].key]);
+  const [champsSelectionnes, setChampsSelectionnes] = useState([CHAMPS_DEMANDE?.[0]?.key || 'prenom']);
   const [valeurs, setValeurs] = useState({});
   const [motif, setMotif]     = useState('');
 
@@ -404,15 +406,17 @@ export function ProfilAgent() {
       setLoadingDemande(false);
       return;
     }
+    let isMounted = true;
     const charger = async () => {
       try {
         const res = await demandeService.maDemande();
-        setDemandePendante(res?.demande || null);
+        if (isMounted) setDemandePendante(res?.demande || null);
       } catch { /* silencieux */ } finally {
-        setLoadingDemande(false);
+        if (isMounted) setLoadingDemande(false);
       }
     };
     charger();
+    return () => { isMounted = false; };
   }, [agent, isAdmin, isSuperAdmin]);
 
   // Synchroniser automatiquement le profil frais depuis le serveur au chargement
@@ -420,7 +424,7 @@ export function ProfilAgent() {
     let isMounted = true;
     authService.getProfile()
       .then(res => {
-        const userObj = res?.user || res?.utilisateur;
+        const userObj = res?.user || res?.utilisateur || res?.data?.user || res?.data?.utilisateur;
         if (userObj && isMounted) {
           dispatch({ type: 'UPDATE_AGENT', payload: userObj });
         }
@@ -432,13 +436,16 @@ export function ProfilAgent() {
   // Informations calculées précises et cohérentes selon le rôle
   const entrepriseNom = isSuperAdmin
     ? 'NoRegis Global (Supervision Centralisée)'
-    : (typeof agent.entrepriseId === 'object' ? agent.entrepriseId?.nom : agent.entrepriseNom) || 'Port Autonome de Dakar';
+    : (typeof agent?.entrepriseId === 'object' ? agent?.entrepriseId?.nom : agent?.entrepriseNom) || 'Port Autonome de Dakar';
 
-  const displayPoste = agent.poste || (isSuperAdmin ? 'Super Administrateur Système' : (isAdmin ? 'Chef Sécurité & Contrôle' : 'Agent d\'Accueil & Contrôle'));
-  const displayDepartement = agent.departement || (isSuperAdmin ? 'Direction des Systèmes d\'Information (DSI)' : (isAdmin ? 'Direction de la Sécurité' : 'Poste Nord'));
-  const displayAccreditation = agent.niveauAccreditation || agent.niveau || (isSuperAdmin ? 'Accès Total (SuperAdmin)' : (isAdmin ? 'Niveau 3 - Admin Boîte' : 'Niveau 1 - Agent d\'Accueil'));
-  const displayMatricule = agent.matricule || `ID-${String(agent._id || agent.id || '0042').slice(-6).toUpperCase()}`;
-  const displayDateArrivee = formatDateSafe(agent.dateArrivee || agent.createdAt);
+  const displayPoste = agent?.poste || (isSuperAdmin ? 'Super Administrateur Système' : (isAdmin ? 'Chef Sécurité & Contrôle' : 'Agent d\'Accueil & Contrôle'));
+  const displayDepartement = agent?.departement || (isSuperAdmin ? 'Direction des Systèmes d\'Information (DSI)' : (isAdmin ? 'Direction de la Sécurité' : 'Poste Nord'));
+  const displayAccreditation = agent?.niveauAccreditation || agent?.niveau || (isSuperAdmin ? 'Accès Total (SuperAdmin)' : (isAdmin ? 'Niveau 3 - Admin Boîte' : 'Niveau 1 - Agent d\'Accueil'));
+  const displayMatricule = agent?.matricule || `ID-${String(agent?._id || agent?.id || '0042').slice(-6).toUpperCase()}`;
+  const displayDateArrivee = formatDateSafe(agent?.dateArrivee || agent?.createdAt);
+
+  const fullName = `${agent?.prenom || ''} ${agent?.nom || ''}`.trim() || 'Utilisateur';
+  const initials = agent?.initials || `${(agent?.prenom?.[0] || 'A')}${(agent?.nom?.[0] || 'U')}`.toUpperCase();
 
   // QR Code download handler
   const handleDownloadQr = async () => {
@@ -447,13 +454,13 @@ export function ProfilAgent() {
     setQrLoading(true);
     try {
       const res = await authService.generateAgentQr(id);
-      if (res.qrPath || res.qr || res.qrCode) {
+      if (res?.qrPath || res?.qr || res?.qrCode) {
         notify('success', '📲 Lien de scan généré. QR Code prêt.');
       } else {
         notify('info', 'Generation du lien d\'identification effectuee.');
       }
     } catch (err) {
-      notify('error', err.message || 'Erreur lors de la génération du QR Code.');
+      notify('error', err?.message || 'Erreur lors de la génération du QR Code.');
     } finally {
       setQrLoading(false);
     }
@@ -461,7 +468,7 @@ export function ProfilAgent() {
 
   // Profile photo upload
   const handlePhoto = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = async () => {
@@ -480,19 +487,19 @@ export function ProfilAgent() {
 
   const handleLogout = () => {
     dispatch({ type: 'LOGOUT' });
-    notify('info', t.logout_ok);
+    notify('info', t.logout_ok || 'Déconnexion réussie');
   };
 
   const startEditing = () => {
     setEditForm({
-      prenom: agent.prenom || '',
-      nom: agent.nom || '',
-      email: agent.email || '',
-      telephone: agent.telephone || '',
-      departement: agent.departement || displayDepartement,
-      poste: agent.poste || displayPoste,
-      niveauAccreditation: agent.niveauAccreditation || displayAccreditation,
-      dateArrivee: formatDateInputSafe(agent.dateArrivee)
+      prenom: agent?.prenom || '',
+      nom: agent?.nom || '',
+      email: agent?.email || '',
+      telephone: agent?.telephone || '',
+      departement: agent?.departement || displayDepartement,
+      poste: agent?.poste || displayPoste,
+      niveauAccreditation: agent?.niveauAccreditation || displayAccreditation,
+      dateArrivee: formatDateInputSafe(agent?.dateArrivee)
     });
     setErreurEnvoi('');
     setIsEditing(true);
@@ -504,12 +511,12 @@ export function ProfilAgent() {
     setErreurEnvoi('');
     try {
       const res = await authService.updateProfile(editForm);
-      const updatedUser = res.user || res.utilisateur || { ...agent, ...editForm };
+      const updatedUser = res?.user || res?.utilisateur || res?.data?.user || res?.data?.utilisateur || { ...agent, ...editForm };
       dispatch({ type: 'UPDATE_AGENT', payload: updatedUser });
       notify('success', '✅ Profil mis à jour avec succès.');
       setIsEditing(false);
     } catch (err) {
-      setErreurEnvoi(err.response?.data?.message || err.message || 'Erreur lors de la mise à jour.');
+      setErreurEnvoi(err?.response?.data?.message || err?.message || 'Erreur lors de la mise à jour.');
     } finally {
       setEnvoi(false);
     }
@@ -532,7 +539,7 @@ export function ProfilAgent() {
       setShowPasswordModal(false);
       setPassData({ newPassword: '', confirmPassword: '' });
     } catch (err) {
-      notify('error', err.response?.data?.message || 'Erreur lors de la mise à jour du mot de passe.');
+      notify('error', err?.response?.data?.message || 'Erreur lors de la mise à jour du mot de passe.');
     } finally {
       setUpdatingPass(false);
     }
@@ -559,7 +566,7 @@ export function ProfilAgent() {
       const res = await demandeService.maDemande();
       setDemandePendante(res?.demande || null);
     } catch (err) {
-      setErreurEnvoi(err.message || "Erreur lors de l'envoi.");
+      setErreurEnvoi(err?.message || "Erreur lors de l'envoi.");
     } finally {
       setEnvoi(false);
     }
@@ -589,7 +596,7 @@ export function ProfilAgent() {
   };
 
   return (
-    <div className="p-4 lg:p-8 w-full max-w-7xl mx-auto space-y-6" dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="p-4 lg:p-8 w-full max-w-7xl mx-auto space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Mon Profil Utilisateur</h1>
 
       {/* Demande en attente (Agent) */}
@@ -599,9 +606,9 @@ export function ProfilAgent() {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Demande de modification en attente</p>
             <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-              Champ(s) : <span className="font-bold">{Object.keys(demandePendante.modifications || {}).join(', ')}</span>
+              Champ(s) : <span className="font-bold">{Object.keys(demandePendante?.modifications || {}).join(', ')}</span>
             </p>
-            {demandePendante.motif && (
+            {demandePendante?.motif && (
               <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5 italic">«{demandePendante.motif}»</p>
             )}
           </div>
@@ -619,7 +626,7 @@ export function ProfilAgent() {
             {agent?.photo ? (
               <img src={agent.photo} alt="Utilisateur" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-5xl lg:text-6xl font-black text-white">{agent?.initials || 'AU'}</span>
+              <span className="text-5xl lg:text-6xl font-black text-white">{initials}</span>
             )}
           </div>
           <button
@@ -635,8 +642,8 @@ export function ProfilAgent() {
         {/* User identity & QR button */}
         <div className="text-white text-center lg:text-left z-10 space-y-3">
           <div>
-            <p className="text-3xl lg:text-4xl font-black tracking-tight">{agent?.prenom || 'Nom'} {agent?.nom || ''}</p>
-            <p className="text-xs text-slate-400 font-mono font-bold mt-1">{agent?.email}</p>
+            <p className="text-3xl lg:text-4xl font-black tracking-tight">{fullName}</p>
+            <p className="text-xs text-slate-400 font-mono font-bold mt-1">{agent?.email || '—'}</p>
           </div>
 
           <div className="flex gap-2 flex-wrap justify-center lg:justify-start">
