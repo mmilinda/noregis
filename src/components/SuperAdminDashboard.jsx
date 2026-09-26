@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Building2, Users, ShieldAlert, Shield, CheckCircle2, XCircle, AlertTriangle,
   Plus, Search, Filter, RefreshCw, KeyRound, Lock, Eye, Building, Phone, Mail, MapPin, UserPlus, UserCheck, UserX, AlertCircle
@@ -7,15 +7,43 @@ import { Btn, FormInput, FormSelect, Modal } from './UI';
 import { entrepriseService } from '../services/entrepriseService';
 import { authService } from '../services/authService';
 import { visitService } from '../services/visitService';
+import { secteurService } from '../services/secteurService';
+import { useApp } from '../context/useAppState';
+
+const DEFAULT_ENT_FORM = {
+  nom: '',
+  code: '',
+  adresse: '',
+  telephone: '',
+  emailContact: '',
+  secteur: 'Maritime / Logistique',
+  statut: 'ACTIF',
+  maxAdmins: 5,
+  maxAgents: 20,
+};
+
+const DEFAULT_USER_FORM = {
+  nom: '',
+  prenom: '',
+  email: '',
+  password: '',
+  role: 'ADMIN',
+  entrepriseId: '',
+  telephone: '',
+  poste: '',
+};
 
 export function SuperAdminDashboard({ t }) {
-  const [activeTab, setActiveTab] = useState('entreprises'); // 'entreprises' | 'utilisateurs' | 'historique' | 'stats'
+  const { notify } = useApp();
+  const [activeTab, setActiveTab] = useState('entreprises'); // 'entreprises' | 'utilisateurs' | 'historique'
   
   // Data States
   const [entreprises, setEntreprises] = useState([]);
   const [utilisateurs, setUtilisateurs] = useState([]);
   const [visitesGlobales, setVisitesGlobales] = useState([]);
+  const [secteursOptions, setSecteursOptions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Filters & Search
   const [searchEnt, setSearchEnt] = useState('');
@@ -27,40 +55,58 @@ export function SuperAdminDashboard({ t }) {
   const [showCreateEntModal, setShowCreateEntModal] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
 
-  // Form Entreprise
-  const [entForm, setEntForm] = useState({ nom: '', code: '', adresse: '', telephone: '', emailContact: '' });
+  // Form States & Errors
+  const [entForm, setEntForm] = useState(DEFAULT_ENT_FORM);
   const [entErrors, setEntErrors] = useState({});
+  const [creatingEnt, setCreatingEnt] = useState(false);
 
-  // Form Utilisateur
-  const [userForm, setUserForm] = useState({ nom: '', prenom: '', email: '', password: '', role: 'ADMIN', entrepriseId: '', telephone: '', poste: '' });
+  const [userForm, setUserForm] = useState(DEFAULT_USER_FORM);
   const [userErrors, setUserErrors] = useState({});
+  const [creatingUser, setCreatingUser] = useState(false);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = useCallback(async (isRefresh = false) => {
+    if (isRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
-      const [resEnt, resUsr, resVis] = await Promise.all([
+      const [resEnt, resUsr, resVis, resSec] = await Promise.all([
         entrepriseService.getAll().catch(() => ({ entreprises: [] })),
         authService.getAllUsers().catch(() => ({ utilisateurs: [] })),
         visitService.getAll().catch(() => ({ visites: [] })),
+        secteurService.getAll().catch(() => ({ secteurs: [] })),
       ]);
 
       const rawEnt = resEnt.entreprises || (Array.isArray(resEnt) ? resEnt : []);
       const rawUsr = resUsr.utilisateurs || (Array.isArray(resUsr) ? resUsr : []);
       const rawVis = resVis.visites || (Array.isArray(resVis) ? resVis : []);
+      const rawSec = resSec.secteurs || (Array.isArray(resSec) ? resSec : []);
 
       setEntreprises(rawEnt);
       setUtilisateurs(rawUsr);
       setVisitesGlobales(rawVis);
+
+      const activeSecteurs = rawSec.filter(s => s.statut === 'ACTIF').map(s => s.nom);
+      const defaultSecteurs = ['Maritime / Logistique', 'Énergie', 'Télécommunications', 'Banque / Finance', 'Santé', 'Administration Publique', 'Industrie', 'Autre'];
+      setSecteursOptions(Array.from(new Set([...activeSecteurs, ...defaultSecteurs])));
+
+      if (isRefresh && notify) {
+        notify('success', 'Données du tableau de bord actualisées avec succès.');
+      }
     } catch (err) {
       console.error('Erreur chargement SuperAdmin:', err);
+      if (notify) notify('error', 'Erreur lors du rafraîchissement des données.');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
-  };
+  }, [notify]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Compute live real-time statistics
   const totalEntreprises = entreprises.length;
@@ -68,10 +114,10 @@ export function SuperAdminDashboard({ t }) {
   const suspendedEntreprises = entreprises.filter(e => (e.statut || '') === 'SUSPENDU').length;
 
   const totalAdmins = utilisateurs.filter(u => String(u.role || '').toUpperCase() === 'ADMIN').length;
-  const activeAdmins = utilisateurs.filter(u => String(u.role || '').toUpperCase() === 'ADMIN' && (u.statutCompte || 'ACTIF') === 'ACTIF').length;
+  const activeAdmins = utilisateurs.filter(u => String(u.role || '').toUpperCase() === 'ADMIN' && (u.statutCompte || u.statut || 'ACTIF') === 'ACTIF').length;
 
   const totalAgents = utilisateurs.filter(u => String(u.role || '').toUpperCase() === 'AGENT').length;
-  const activeAgents = utilisateurs.filter(u => String(u.role || '').toUpperCase() === 'AGENT' && (u.statutCompte || 'ACTIF') === 'ACTIF').length;
+  const activeAgents = utilisateurs.filter(u => String(u.role || '').toUpperCase() === 'AGENT' && (u.statutCompte || u.statut || 'ACTIF') === 'ACTIF').length;
 
   const totalVisites = visitesGlobales.length;
   const ongoingVisites = visitesGlobales.filter(v => {
@@ -82,17 +128,38 @@ export function SuperAdminDashboard({ t }) {
   // Handler Création Entreprise
   const handleCreateEntreprise = async (e) => {
     e.preventDefault();
-    if (!entForm.nom.trim() || !entForm.code.trim()) {
-      setEntErrors({ nom: !entForm.nom ? 'Nom requis' : '', code: !entForm.code ? 'Code requis' : '' });
+    if (!entForm.nom.trim()) {
+      setEntErrors({ nom: 'Nom requis' });
       return;
     }
+    
+    setCreatingEnt(true);
+    setEntErrors({});
+    
     try {
-      await entrepriseService.create(entForm);
+      const codeGenerated = entForm.code.trim() ? entForm.code.trim().toUpperCase() : `ENT-${Date.now().toString().slice(-4)}`;
+      await entrepriseService.create({
+        nom: entForm.nom,
+        code: codeGenerated,
+        immatriculation: entForm.code,
+        adresse: entForm.adresse,
+        telephone: entForm.telephone,
+        emailContact: entForm.emailContact,
+        secteur: entForm.secteur || 'Maritime / Logistique',
+        statut: entForm.statut || 'ACTIF',
+        maxAdmins: Number(entForm.maxAdmins) || 5,
+        maxAgents: Number(entForm.maxAgents) || 20,
+      });
+
+      if (notify) notify('success', `Entreprise "${entForm.nom}" créée avec succès.`);
       setShowCreateEntModal(false);
-      setEntForm({ nom: '', code: '', adresse: '', telephone: '', emailContact: '' });
-      loadData();
+      setEntForm(DEFAULT_ENT_FORM);
+      loadData(true);
     } catch (err) {
-      alert(err.message || 'Erreur lors de la création de l\'entreprise.');
+      setEntErrors({ global: err.message || 'Erreur lors de la création de l\'entreprise.' });
+      if (notify) notify('error', err.message || 'Erreur lors de la création de l\'entreprise.');
+    } finally {
+      setCreatingEnt(false);
     }
   };
 
@@ -100,9 +167,17 @@ export function SuperAdminDashboard({ t }) {
   const handleCreateUser = async (e) => {
     e.preventDefault();
     if (!userForm.nom.trim() || !userForm.email.trim() || !userForm.password.trim()) {
-      setUserErrors({ nom: !userForm.nom ? 'Nom requis' : '', email: !userForm.email ? 'Email requis' : '', password: !userForm.password ? 'Mot de passe requis' : '' });
+      setUserErrors({
+        nom: !userForm.nom.trim() ? 'Nom requis' : '',
+        email: !userForm.email.trim() ? 'Email requis' : '',
+        password: !userForm.password.trim() ? 'Mot de passe requis' : ''
+      });
       return;
     }
+
+    setCreatingUser(true);
+    setUserErrors({});
+
     try {
       await authService.createUser({
         nom: userForm.nom,
@@ -114,21 +189,27 @@ export function SuperAdminDashboard({ t }) {
         telephone: userForm.telephone,
         poste: userForm.poste,
       });
+
+      if (notify) notify('success', `Compte pour "${userForm.prenom || ''} ${userForm.nom}" créé avec succès.`);
       setShowCreateUserModal(false);
-      setUserForm({ nom: '', prenom: '', email: '', password: '', role: 'ADMIN', entrepriseId: '', telephone: '', poste: '' });
-      loadData();
+      setUserForm(DEFAULT_USER_FORM);
+      loadData(true);
     } catch (err) {
-      alert(err.message || 'Erreur lors de la création du compte.');
+      setUserErrors({ global: err.message || 'Erreur lors de la création du compte.' });
+      if (notify) notify('error', err.message || 'Erreur lors de la création du compte.');
+    } finally {
+      setCreatingUser(false);
     }
   };
 
-  // Handler Modification Statut Entreprise (ACTIF, SUSPENDU, DESACTIVE)
+  // Handler Modification Statut Entreprise
   const handleChangeEntStatus = async (id, newStatus) => {
     try {
       await entrepriseService.changeStatus(id, newStatus);
-      loadData();
+      if (notify) notify('success', `Statut entreprise mis à jour (${newStatus}).`);
+      loadData(true);
     } catch (err) {
-      alert(err.message || 'Erreur changement statut entreprise.');
+      if (notify) notify('error', err.message || 'Erreur changement statut entreprise.');
     }
   };
 
@@ -136,20 +217,21 @@ export function SuperAdminDashboard({ t }) {
   const handleChangeUserStatus = async (id, newStatus) => {
     try {
       await authService.toggleUserStatus(id, newStatus);
-      loadData();
+      if (notify) notify('success', `Statut utilisateur mis à jour (${newStatus}).`);
+      loadData(true);
     } catch (err) {
-      alert(err.message || 'Erreur changement statut compte.');
+      if (notify) notify('error', err.message || 'Erreur changement statut compte.');
     }
   };
 
   const filteredEntreprises = entreprises.filter(e =>
     (e.nom || '').toLowerCase().includes(searchEnt.toLowerCase()) ||
-    (e.code || '').toLowerCase().includes(searchEnt.toLowerCase())
+    (e.code || e.immatriculation || '').toLowerCase().includes(searchEnt.toLowerCase())
   );
 
   const filteredUsers = utilisateurs.filter(u => {
     const entId = u.entrepriseId?._id || u.entrepriseId;
-    const matchSearch = `${u.nom} ${u.prenom} ${u.email}`.toLowerCase().includes(searchUser.toLowerCase());
+    const matchSearch = `${u.nom || ''} ${u.prenom || ''} ${u.email || ''}`.toLowerCase().includes(searchUser.toLowerCase());
     const matchEnt = !filterEntId || String(entId) === String(filterEntId);
     const matchRole = !filterRole || u.role === filterRole;
     return matchSearch && matchEnt && matchRole;
@@ -176,10 +258,26 @@ export function SuperAdminDashboard({ t }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Btn variant="ghost" size="sm" icon={RefreshCw} onClick={loadData} className="text-white hover:bg-white/10">
+            <Btn
+              variant="ghost"
+              size="sm"
+              icon={RefreshCw}
+              onClick={() => loadData(true)}
+              loading={isRefreshing}
+              className="text-white hover:bg-white/10"
+            >
               Rafraîchir
             </Btn>
-            <Btn variant="primary" size="sm" icon={Plus} onClick={() => setShowCreateEntModal(true)}>
+            <Btn
+              variant="primary"
+              size="sm"
+              icon={Plus}
+              onClick={() => {
+                setEntForm(DEFAULT_ENT_FORM);
+                setEntErrors({});
+                setShowCreateEntModal(true);
+              }}
+            >
               Nouvelle Entreprise
             </Btn>
           </div>
@@ -605,42 +703,88 @@ export function SuperAdminDashboard({ t }) {
       {showCreateEntModal && (
         <Modal title="Créer une nouvelle Boîte / Entreprise" onClose={() => setShowCreateEntModal(false)}>
           <form onSubmit={handleCreateEntreprise} className="space-y-4">
+            {entErrors.global && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-600 rounded-xl text-xs font-bold">
+                {entErrors.global}
+              </div>
+            )}
             <FormInput
               label="Nom de l'entreprise *"
               value={entForm.nom}
               onChange={e => setEntForm({ ...entForm, nom: e.target.value })}
               error={entErrors.nom}
-              placeholder="ex: Sécurité Sénégal SA"
+              placeholder="ex: Port Autonome de Dakar"
             />
             <FormInput
-              label="Code Unique (ex: SENEGAL_SA, ALPHA) *"
+              label="Code Unique / NINEA *"
               value={entForm.code}
               onChange={e => setEntForm({ ...entForm, code: e.target.value.toUpperCase() })}
               error={entErrors.code}
-              placeholder="ex: ALPHA"
+              placeholder="ex: SN-DKR-2025-B-1234"
             />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormInput
+                label="Email de Contact"
+                type="email"
+                value={entForm.emailContact}
+                onChange={e => setEntForm({ ...entForm, emailContact: e.target.value })}
+                placeholder="contact@entreprise.sn"
+              />
+              <FormInput
+                label="Téléphone"
+                value={entForm.telephone}
+                onChange={e => setEntForm({ ...entForm, telephone: e.target.value })}
+                placeholder="+221 33 000 00 00"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormSelect
+                label="Secteur d'Activité"
+                value={entForm.secteur}
+                onChange={e => setEntForm({ ...entForm, secteur: e.target.value })}
+                options={secteursOptions.length > 0 ? secteursOptions : ['Maritime / Logistique', 'Énergie', 'Télécommunications', 'Banque / Finance', 'Santé', 'Administration Publique', 'Industrie', 'Autre']}
+              />
+              <FormSelect
+                label="Statut Initial"
+                value={entForm.statut}
+                onChange={e => setEntForm({ ...entForm, statut: e.target.value })}
+                options={[{ value: 'ACTIF', label: 'Actif' }, { value: 'SUSPENDU', label: 'Suspendu' }]}
+              />
+            </div>
+
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+              <p className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <Shield size={13} className="text-brand-blue-bright" /> Quotas & Limites d'Utilisateurs
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormInput
+                  label="Nombre Max d'Admins"
+                  type="number"
+                  min="1"
+                  value={entForm.maxAdmins}
+                  onChange={e => setEntForm({ ...entForm, maxAdmins: e.target.value })}
+                />
+                <FormInput
+                  label="Nombre Max d'Agents"
+                  type="number"
+                  min="1"
+                  value={entForm.maxAgents}
+                  onChange={e => setEntForm({ ...entForm, maxAgents: e.target.value })}
+                />
+              </div>
+            </div>
+
             <FormInput
-              label="Adresse"
+              label="Adresse Siège Social"
               value={entForm.adresse}
               onChange={e => setEntForm({ ...entForm, adresse: e.target.value })}
               placeholder="ex: Plateau, Dakar"
             />
-            <FormInput
-              label="Téléphone"
-              value={entForm.telephone}
-              onChange={e => setEntForm({ ...entForm, telephone: e.target.value })}
-              placeholder="+221 33 000 00 00"
-            />
-            <FormInput
-              label="Email de Contact"
-              type="email"
-              value={entForm.emailContact}
-              onChange={e => setEntForm({ ...entForm, emailContact: e.target.value })}
-              placeholder="contact@entreprise.sn"
-            />
+
             <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
               <Btn variant="ghost" size="sm" onClick={() => setShowCreateEntModal(false)} type="button">Annuler</Btn>
-              <Btn variant="primary" size="sm" type="submit">Créer l'Entreprise</Btn>
+              <Btn variant="primary" size="sm" type="submit" loading={creatingEnt}>Valider & Créer l'Entreprise</Btn>
             </div>
           </form>
         </Modal>
@@ -650,6 +794,11 @@ export function SuperAdminDashboard({ t }) {
       {showCreateUserModal && (
         <Modal title="Créer un nouveau Compte Utilisateur" onClose={() => setShowCreateUserModal(false)}>
           <form onSubmit={handleCreateUser} className="space-y-4">
+            {userErrors.global && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-600 rounded-xl text-xs font-bold">
+                {userErrors.global}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <FormInput
                 label="Prénom"
@@ -700,14 +849,14 @@ export function SuperAdminDashboard({ t }) {
                 onChange={e => setUserForm({ ...userForm, entrepriseId: e.target.value })}
                 options={[
                   { value: '', label: 'Aucune (Global)' },
-                  ...entreprises.map(e => ({ value: e._id, label: `${e.nom} (${e.code})` }))
+                  ...entreprises.map(e => ({ value: e._id || e.id, label: `${e.nom} (${e.code || e.immatriculation || '—'})` }))
                 ]}
               />
             </div>
 
             <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
               <Btn variant="ghost" size="sm" onClick={() => setShowCreateUserModal(false)} type="button">Annuler</Btn>
-              <Btn variant="primary" size="sm" type="submit">Créer le Compte</Btn>
+              <Btn variant="primary" size="sm" type="submit" loading={creatingUser}>Créer le Compte</Btn>
             </div>
           </form>
         </Modal>
