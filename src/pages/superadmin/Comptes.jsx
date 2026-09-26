@@ -178,8 +178,9 @@ export default function ComptesManagement({ isMobile }) {
     }
   };
 
+  const { searchQuery } = state;
   const filtered = users.filter(usr => {
-    const q = search.trim().toLowerCase();
+    const q = (search || searchQuery || '').trim().toLowerCase();
     const matchSearch = !q || [usr.prenom, usr.nom, usr.email, usr.telephone, usr.entrepriseNom, usr.entrepriseId?.nom, usr.poste]
       .filter(Boolean)
       .some(f => String(f).toLowerCase().includes(q));
@@ -229,7 +230,7 @@ export default function ComptesManagement({ isMobile }) {
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Rechercher par nom, prénom, email, poste..."
+              placeholder={t.search_compte || "Rechercher un compte (Nom, rôle, email...)"}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 focus:border-brand-blue-bright/20 rounded-xl py-2 pl-10 pr-4 text-xs font-bold outline-none"

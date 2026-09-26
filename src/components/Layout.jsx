@@ -190,9 +190,39 @@ function BottomNav({ activeTab, onTabChange, t, navItems }) {
 /* ============================================
    DESKTOP TOP BAR
 ============================================ */
+function getSearchPlaceholder(activeTab, t, isSuperAdmin) {
+  if (!t) return "Rechercher...";
+  switch (activeTab) {
+    case 'entreprises':
+      return t.search_entreprise || "Rechercher une entreprise (Nom, NINEA, secteur...)";
+    case 'secteurs':
+      return t.search_secteur || "Rechercher un secteur d'activité (Nom, code...)";
+    case 'admins':
+      return t.search_admin || "Rechercher un administrateur (Nom, email, entreprise...)";
+    case 'agents':
+      return t.search_agent || "Rechercher un agent (Nom, email, poste...)";
+    case 'comptes':
+      return t.search_compte || "Rechercher un compte (Nom, rôle, email...)";
+    case 'history':
+      return t.search_history || "Rechercher dans l'historique (Visiteur, hôte, date...)";
+    case 'settings':
+      return t.search_settings || "Rechercher dans les paramètres...";
+    case 'superadmin':
+      return t.search_global || "Rechercher une entreprise, administrateur...";
+    case 'dashboard':
+    default:
+      if (isSuperAdmin) {
+        return t.search_global || "Rechercher un visiteur, entreprise, badge...";
+      }
+      return t.search_visitor || "Rechercher un visiteur (Nom, CIN, Plaque...)";
+  }
+}
+
 function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
   const { dispatch, state } = useApp();
   const { searchQuery } = state;
+  const role = (state.agent?.role || state.user?.role || '').toUpperCase();
+  const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'SUPERADMIN';
   const tabLabel = navItems.find(n => n.id === activeTab)?.label || 'NoRegis';
   const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef(null);
@@ -238,7 +268,7 @@ function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue-bright transition-colors" />
           <input
             type="text"
-            placeholder={t.search}
+            placeholder={getSearchPlaceholder(activeTab, t, isSuperAdmin)}
             value={searchQuery}
             onChange={e => {
               dispatch({ type: 'SET_SEARCH', payload: e.target.value });

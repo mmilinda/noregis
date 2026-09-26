@@ -289,7 +289,7 @@ export default function AgentsManagement({ isMobile }) {
   };
 
   const filteredAgents = agents.filter(agent => {
-    const q = search.toLowerCase();
+    const q = (search || state.searchQuery || '').toLowerCase();
     const name = `${agent.prenom || ''} ${agent.nom || ''}`.toLowerCase();
     const entId = agent.entrepriseId?._id || agent.entrepriseId;
     const matchSearch = name.includes(q) || (agent.email || '').toLowerCase().includes(q) || (agent.entrepriseNom || agent.entrepriseId?.nom || '').toLowerCase().includes(q);
@@ -359,7 +359,7 @@ export default function AgentsManagement({ isMobile }) {
               <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue-bright transition-colors" />
               <input
                 type="text"
-                placeholder={t.search || "Rechercher un agent par nom, email..."}
+                placeholder={t.search_agent || "Rechercher un agent (Nom, email, poste...)"}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 focus:border-brand-blue-bright/20 rounded-xl py-2.5 pl-12 pr-4 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"

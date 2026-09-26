@@ -219,7 +219,7 @@ export default function AgentDashboard({ isMobile }) {
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue-bright transition-colors" />
             <input
               type="text"
-              placeholder={t.search}
+              placeholder={t.search_visitor || "Rechercher un visiteur (Nom, CIN, Plaque...)"}
               value={searchQuery}
               onChange={e => dispatch({ type: 'SET_SEARCH', payload: e.target.value })}
               className="w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 focus:border-brand-blue-bright/20 rounded-lg py-2 pl-10 pr-4 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"

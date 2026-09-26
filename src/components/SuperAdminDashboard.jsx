@@ -386,7 +386,7 @@ export function SuperAdminDashboard({ t }) {
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Rechercher une entreprise..."
+                placeholder={t?.search_entreprise || "Rechercher une entreprise (Nom, NINEA, secteur...)"}
                 value={searchEnt}
                 onChange={e => setSearchEnt(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white"
@@ -497,7 +497,7 @@ export function SuperAdminDashboard({ t }) {
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Nom, email..."
+                  placeholder={t?.search_compte || "Rechercher un utilisateur (Nom, email...)"}
                   value={searchUser}
                   onChange={e => setSearchUser(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white"

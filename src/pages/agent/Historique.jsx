@@ -104,7 +104,19 @@ export default function AgentHistorique({ isMobile }) {
       }
     }
 
-    // 2. Date filtering
+    // 2. Search query filtering (from top bar)
+    if (state.searchQuery && state.searchQuery.trim()) {
+      const q = state.searchQuery.trim().toLowerCase();
+      const nom = String(v.nom || v.visiteur?.nom || '').toLowerCase();
+      const prenom = String(v.prenom || v.visiteur?.prenom || '').toLowerCase();
+      const piece = String(v.numeroPiece || v.visiteur?.numeroPiece || '').toLowerCase();
+      const hote = String(v.personneVisitee || v.hote || '').toLowerCase();
+      const service = String(v.service || v.departement || '').toLowerCase();
+      const match = nom.includes(q) || prenom.includes(q) || piece.includes(q) || hote.includes(q) || service.includes(q);
+      if (!match) return false;
+    }
+
+    // 3. Date filtering
     if (!dateFilter) return true;
     const filterDateStr = new Date(dateFilter).toLocaleDateString('fr-FR');
     const visitorDate = v.date || (v.createdAt ? new Date(v.createdAt).toLocaleDateString('fr-FR') : '');

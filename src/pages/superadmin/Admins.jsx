@@ -174,8 +174,9 @@ export default function AdminsManagement({ isMobile }) {
     }
   };
 
+  const { searchQuery } = state;
   const filtered = admins.filter(adm => {
-    const q = search.trim().toLowerCase();
+    const q = (search || searchQuery || '').trim().toLowerCase();
     const entId = adm.entrepriseId?._id || adm.entrepriseId;
     const matchSearch = !q || [adm.prenom, adm.nom, adm.email, adm.telephone, adm.entrepriseNom, adm.entrepriseId?.nom]
       .filter(Boolean)
@@ -223,7 +224,7 @@ export default function AdminsManagement({ isMobile }) {
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Rechercher un administrateur (Nom, Email, Entreprise)..."
+              placeholder={t.search_admin || "Rechercher un administrateur (Nom, email, entreprise...)"}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 focus:border-brand-blue-bright/20 rounded-xl py-2 pl-10 pr-4 text-xs font-bold outline-none"

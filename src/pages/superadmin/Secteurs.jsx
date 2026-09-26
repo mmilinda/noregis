@@ -57,10 +57,10 @@ export default function SecteursManagement({ isMobile }) {
     return entreprises.filter(e => (e.secteur || '').toLowerCase().trim() === lowerName).length;
   };
 
-  // Filter logic
+  const { searchQuery } = state;
   const filtered = secteurs.filter(sec => {
     const matchStatut = statutFilter === 'ALL' || (sec.statut || 'ACTIF') === statutFilter;
-    const q = searchTerm.toLowerCase().trim();
+    const q = (searchTerm || searchQuery || '').toLowerCase().trim();
     const matchQuery = !q || sec.nom?.toLowerCase().includes(q) || sec.code?.toLowerCase().includes(q) || sec.description?.toLowerCase().includes(q);
     return matchStatut && matchQuery;
   });
@@ -224,7 +224,7 @@ export default function SecteursManagement({ isMobile }) {
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Rechercher par nom, code..."
+              placeholder={t.search_secteur || "Rechercher un secteur d'activité (Nom, code...)"}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl text-xs font-bold outline-none focus:border-brand-blue-bright transition-all"

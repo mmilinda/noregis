@@ -167,8 +167,9 @@ export default function EntreprisesManagement({ isMobile }) {
     navigate(`/history?entrepriseId=${entId}`);
   };
 
+  const { searchQuery } = state;
   const filtered = entreprises.filter(ent => {
-    const q = search.trim().toLowerCase();
+    const q = (search || searchQuery || '').trim().toLowerCase();
     const matchSearch = !q || [ent.nom, ent.email, ent.emailContact, ent.telephone, ent.immatriculation, ent.code, ent.secteur]
       .filter(Boolean)
       .some(f => String(f).toLowerCase().includes(q));
@@ -212,7 +213,7 @@ export default function EntreprisesManagement({ isMobile }) {
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Rechercher une entreprise (Nom, NINEA, email...)..."
+              placeholder={t.search_entreprise || "Rechercher une entreprise (Nom, NINEA, secteur...)"}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 focus:border-brand-blue-bright/20 rounded-xl py-2 pl-10 pr-4 text-xs font-bold outline-none"
