@@ -80,10 +80,10 @@ export function SuperAdminDashboard({ t }) {
         secteurService.getAll().catch(() => ({ secteurs: [] })),
       ]);
 
-      const rawEnt = resEnt.entreprises || (Array.isArray(resEnt) ? resEnt : []);
-      const rawUsr = resUsr.utilisateurs || (Array.isArray(resUsr) ? resUsr : []);
-      const rawVis = resVis.visites || (Array.isArray(resVis) ? resVis : []);
-      const rawSec = resSec.secteurs || (Array.isArray(resSec) ? resSec : []);
+      const rawEnt = resEnt.entreprises || resEnt.data || (Array.isArray(resEnt) ? resEnt : []);
+      const rawUsr = resUsr.utilisateurs || resUsr.users || resUsr.data || (Array.isArray(resUsr) ? resUsr : []);
+      const rawVis = resVis.visites || resVis.visits || resVis.data || (Array.isArray(resVis) ? resVis : []);
+      const rawSec = resSec.secteurs || resSec.data || (Array.isArray(resSec) ? resSec : []);
 
       setEntreprises(rawEnt);
       setUtilisateurs(rawUsr);
@@ -735,7 +735,7 @@ export function SuperAdminDashboard({ t }) {
 
       {/* MODAL CRÉATION ENTREPRISE */}
       {showCreateEntModal && (
-        <Modal title="Créer une nouvelle Boîte / Entreprise" onClose={() => setShowCreateEntModal(false)}>
+        <Modal isOpen={showCreateEntModal} title="Créer une nouvelle Boîte / Entreprise" onClose={() => setShowCreateEntModal(false)}>
           <form onSubmit={handleCreateEntreprise} className="space-y-4">
             {entErrors.global && (
               <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-600 rounded-xl text-xs font-bold">
@@ -826,7 +826,7 @@ export function SuperAdminDashboard({ t }) {
 
       {/* MODAL CRÉATION UTILISATEUR */}
       {showCreateUserModal && (
-        <Modal title="Créer un nouveau Compte Utilisateur" onClose={() => setShowCreateUserModal(false)}>
+        <Modal isOpen={showCreateUserModal} title="Créer un nouveau Compte Utilisateur" onClose={() => setShowCreateUserModal(false)}>
           <form onSubmit={handleCreateUser} className="space-y-4">
             {userErrors.global && (
               <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-600 rounded-xl text-xs font-bold">

@@ -16,4 +16,8 @@ export const entrepriseService = {
   changeStatus: async (id, statut) => {
     return api.patch(`/api/entreprises/${id}/statut`, { statut });
   },
+
+  updateStatus: async (id, statut) => {
+    return api.patch(`/api/entreprises/${id}/statut`, { statut });
+  },
 };

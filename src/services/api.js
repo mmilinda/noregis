@@ -85,6 +85,20 @@ const api = {
     const text = await response.text();
     return text ? JSON.parse(text) : { success: true };
   },
+
+  patch: async (endpoint, data) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    await handleResponse(response);
+    return response.json();
+  },
 };
 
 export default api;
