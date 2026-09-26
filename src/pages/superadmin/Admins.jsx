@@ -262,11 +262,11 @@ export default function AdminsManagement({ isMobile }) {
           <table className="w-full min-w-[700px] table-fixed text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-50 dark:bg-slate-900/50">
-                <th className="py-2.5 px-3 w-[28%]">Administrateur</th>
-                <th className="py-2.5 px-2 w-[24%]">Entreprise</th>
-                <th className="py-2.5 px-2 w-[24%]">Contact</th>
-                <th className="py-2.5 px-2 w-[10%]">Statut</th>
-                <th className="py-2.5 px-3 w-[14%] text-right">Actions</th>
+                <th className="py-2.5 px-3 w-[26%]">Administrateur</th>
+                <th className="py-2.5 px-2 w-[22%]">Entreprise</th>
+                <th className="py-2.5 px-2 w-[20%]">Contact</th>
+                <th className="py-2.5 px-2 w-[14%]">Statut</th>
+                <th className="py-2.5 px-3 w-[18%] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
@@ -277,7 +277,7 @@ export default function AdminsManagement({ isMobile }) {
 
                 return (
                   <tr key={adm.id || adm._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                    <td className="py-2.5 px-3 min-w-0">
+                    <td className="py-2.5 px-3 min-w-0 overflow-hidden">
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 font-black flex items-center justify-center text-[11px] shrink-0">
                           {(adm.prenom?.[0] || 'A') + (adm.nom?.[0] || '')}
@@ -288,16 +288,16 @@ export default function AdminsManagement({ isMobile }) {
                         </div>
                       </div>
                     </td>
-                    <td className="py-2.5 px-2 text-slate-900 dark:text-white font-bold min-w-0">
+                    <td className="py-2.5 px-2 text-slate-900 dark:text-white font-bold min-w-0 overflow-hidden">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <Building2 size={13} className="text-brand-blue-bright shrink-0" />
                         <span className="truncate text-xs">{entName}</span>
                       </div>
                     </td>
-                    <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 font-mono text-xs min-w-0">
+                    <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 font-mono text-xs min-w-0 overflow-hidden">
                       <p className="truncate">{adm.telephone || '—'}</p>
                     </td>
-                    <td className="py-2.5 px-2 min-w-0">
+                    <td className="py-2.5 px-2 min-w-0 overflow-hidden">
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider inline-block truncate max-w-full ${
                         currentStatus === 'ACTIF' ? 'bg-emerald-500/10 text-emerald-600' :
                         currentStatus === 'SUSPENDU' ? 'bg-amber-500/10 text-amber-600' : 'bg-rose-500/10 text-rose-600'
@@ -305,7 +305,7 @@ export default function AdminsManagement({ isMobile }) {
                         {currentStatus}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-right min-w-0">
+                    <td className="py-2.5 px-3 text-right min-w-0 overflow-hidden">
                       <div className="flex justify-end items-center gap-1 shrink-0">
                         <button
                           type="button"
@@ -338,33 +338,30 @@ export default function AdminsManagement({ isMobile }) {
                           <button
                             type="button"
                             onClick={() => handleStatusChange(adm.id || adm._id, 'ACTIF')}
-                            className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all shrink-0 flex items-center gap-1"
+                            className="p-1.5 rounded-lg text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all shrink-0"
                             title="Activer"
                           >
                             <UserCheck size={13} />
-                            <span className="hidden xl:inline">Activer</span>
                           </button>
                         )}
                         {currentStatus !== 'SUSPENDU' && (
                           <button
                             type="button"
                             onClick={() => handleStatusChange(adm.id || adm._id, 'SUSPENDU')}
-                            className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-all shrink-0 flex items-center gap-1"
+                            className="p-1.5 rounded-lg text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 transition-all shrink-0"
                             title="Suspendre"
                           >
                             <AlertCircle size={13} />
-                            <span className="hidden xl:inline">Suspendre</span>
                           </button>
                         )}
                         {currentStatus !== 'DESACTIVE' && (
                           <button
                             type="button"
                             onClick={() => handleStatusChange(adm.id || adm._id, 'DESACTIVE')}
-                            className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-rose-700 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all shrink-0 flex items-center gap-1"
+                            className="p-1.5 rounded-lg text-rose-700 bg-rose-500/10 hover:bg-rose-500/20 transition-all shrink-0"
                             title="Désactiver"
                           >
                             <UserX size={13} />
-                            <span className="hidden xl:inline">Désactiver</span>
                           </button>
                         )}
                       </div>

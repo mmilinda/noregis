@@ -402,13 +402,13 @@ export function SuperAdminDashboard({ t }) {
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black text-slate-500 uppercase tracking-wider">
                   <th className="py-2.5 px-3 w-[22%]">Code & Entreprise</th>
-                  <th className="py-2.5 px-2 w-[16%]">Secteur</th>
-                  <th className="py-2.5 px-2 w-[20%]">Contact</th>
-                  <th className="py-2.5 px-2 w-[8%]">Admins</th>
-                  <th className="py-2.5 px-2 w-[8%]">Agents</th>
-                  <th className="py-2.5 px-2 w-[8%]">Visites</th>
-                  <th className="py-2.5 px-2 w-[8%]">Statut</th>
-                  <th className="py-2.5 px-3 w-[10%] text-right">Actions</th>
+                  <th className="py-2.5 px-2 w-[14%]">Secteur</th>
+                  <th className="py-2.5 px-2 w-[18%]">Contact</th>
+                  <th className="py-2.5 px-2 w-[7%]">Admins</th>
+                  <th className="py-2.5 px-2 w-[7%]">Agents</th>
+                  <th className="py-2.5 px-2 w-[7%]">Visites</th>
+                  <th className="py-2.5 px-2 w-[11%]">Statut</th>
+                  <th className="py-2.5 px-3 w-[14%] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
@@ -421,7 +421,7 @@ export function SuperAdminDashboard({ t }) {
                 ) : (
                   filteredEntreprises.map((ent) => (
                     <tr key={ent._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                      <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white min-w-0">
+                      <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white min-w-0 overflow-hidden">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="px-1.5 py-0.5 rounded bg-brand-blue-bright/10 text-brand-blue-bright font-mono text-[9px] uppercase font-black border border-brand-blue-bright/20 shrink-0">
                             {ent.code}
@@ -429,18 +429,18 @@ export function SuperAdminDashboard({ t }) {
                           <span className="truncate text-xs">{ent.nom}</span>
                         </div>
                       </td>
-                      <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 font-bold min-w-0">
+                      <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 font-bold min-w-0 overflow-hidden">
                         <p className="truncate text-xs">{ent.secteur || 'Maritime / Logistique'}</p>
                       </td>
-                      <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 min-w-0">
+                      <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 min-w-0 overflow-hidden">
                         <p className="truncate text-xs">{ent.telephone || '—'}</p>
                         <p className="text-[10px] text-slate-400 truncate">{ent.emailContact}</p>
                       </td>
                       <td className="py-2.5 px-2 font-bold text-purple-600 dark:text-purple-400 min-w-0">{ent.nbAdmins || 0}</td>
                       <td className="py-2.5 px-2 font-bold text-brand-green-bright min-w-0">{ent.nbAgents || 0}</td>
                       <td className="py-2.5 px-2 font-bold text-slate-700 dark:text-slate-300 min-w-0">{ent.nbVisites || 0}</td>
-                      <td className="py-2.5 px-2 min-w-0">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                      <td className="py-2.5 px-2 min-w-0 overflow-hidden">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider max-w-full ${
                           ent.statut === 'ACTIF' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
                           ent.statut === 'SUSPENDU' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
                           'bg-rose-500/10 text-rose-600 border border-rose-500/20'
@@ -448,7 +448,7 @@ export function SuperAdminDashboard({ t }) {
                           <span className="truncate">{ent.statut}</span>
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-right min-w-0">
+                      <td className="py-2.5 px-3 text-right min-w-0 overflow-hidden">
                         <div className="flex items-center justify-end gap-1 shrink-0">
                           {ent.statut !== 'ACTIF' && (
                             <button
@@ -536,12 +536,12 @@ export function SuperAdminDashboard({ t }) {
             <table className="w-full min-w-[700px] table-fixed text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                  <th className="py-2.5 px-3 w-[26%]">Utilisateur</th>
-                  <th className="py-2.5 px-2 w-[14%]">Rôle</th>
-                  <th className="py-2.5 px-2 w-[24%]">Entreprise</th>
-                  <th className="py-2.5 px-2 w-[16%]">Téléphone / Poste</th>
-                  <th className="py-2.5 px-2 w-[10%]">Statut Compte</th>
-                  <th className="py-2.5 px-3 w-[10%] text-right">Actions</th>
+                  <th className="py-2.5 px-3 w-[25%]">Utilisateur</th>
+                  <th className="py-2.5 px-2 w-[12%]">Rôle</th>
+                  <th className="py-2.5 px-2 w-[22%]">Entreprise</th>
+                  <th className="py-2.5 px-2 w-[14%]">Téléphone / Poste</th>
+                  <th className="py-2.5 px-2 w-[12%]">Statut Compte</th>
+                  <th className="py-2.5 px-3 w-[15%] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
@@ -559,11 +559,11 @@ export function SuperAdminDashboard({ t }) {
 
                     return (
                       <tr key={u._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="py-2.5 px-3 min-w-0">
+                        <td className="py-2.5 px-3 min-w-0 overflow-hidden">
                           <p className="font-bold text-slate-900 dark:text-white truncate text-xs">{u.prenom} {u.nom}</p>
                           <p className="text-[10px] text-slate-400 font-mono truncate">{u.email}</p>
                         </td>
-                        <td className="py-2.5 px-2 font-bold min-w-0">
+                        <td className="py-2.5 px-2 font-bold min-w-0 overflow-hidden">
                           <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase inline-block truncate max-w-full ${
                             u.role === 'SUPER_ADMIN' || u.role === 'SUPERADMIN' ? 'bg-red-500/10 text-red-600 border border-red-500/20' :
                             u.role === 'ADMIN' ? 'bg-purple-500/10 text-purple-600 border border-purple-500/20' :
@@ -572,15 +572,15 @@ export function SuperAdminDashboard({ t }) {
                             {u.role}
                           </span>
                         </td>
-                        <td className="py-2.5 px-2 font-medium text-slate-700 dark:text-slate-300 min-w-0">
+                        <td className="py-2.5 px-2 font-medium text-slate-700 dark:text-slate-300 min-w-0 overflow-hidden">
                           <p className="truncate text-xs">{entName}</p>
                         </td>
-                        <td className="py-2.5 px-2 text-slate-600 dark:text-slate-400 min-w-0">
+                        <td className="py-2.5 px-2 text-slate-600 dark:text-slate-400 min-w-0 overflow-hidden">
                           <p className="truncate text-xs">{u.telephone || '-'}</p>
                           <p className="text-[10px] text-slate-400 truncate">{u.poste || u.departement || '-'}</p>
                         </td>
-                        <td className="py-2.5 px-2 min-w-0">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                        <td className="py-2.5 px-2 min-w-0 overflow-hidden">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider max-w-full ${
                             statut === 'ACTIF' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
                             statut === 'SUSPENDU' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
                             'bg-rose-500/10 text-rose-600 border border-rose-500/20'
@@ -588,7 +588,7 @@ export function SuperAdminDashboard({ t }) {
                             <span className="truncate">{statut}</span>
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 text-right min-w-0">
+                        <td className="py-2.5 px-3 text-right min-w-0 overflow-hidden">
                           <div className="flex items-center justify-end gap-1 shrink-0">
                             {statut !== 'ACTIF' && (
                               <button
@@ -637,19 +637,19 @@ export function SuperAdminDashboard({ t }) {
             <span className="text-xs font-bold text-slate-500">{visitesGlobales.length} passages enregistrés</span>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 w-full">
+            <table className="w-full min-w-[700px] table-fixed text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                  <th className="py-3 px-4">Date & Heure</th>
-                  <th className="py-3 px-4">Visiteur</th>
-                  <th className="py-3 px-4">Pièce & N°</th>
-                  <th className="py-3 px-4">Entreprise</th>
-                  <th className="py-3 px-4">Agent Créateur</th>
-                  <th className="py-3 px-4">Statut</th>
+                  <th className="py-3 px-3 w-[18%]">Date & Heure</th>
+                  <th className="py-3 px-3 w-[22%]">Visiteur</th>
+                  <th className="py-3 px-3 w-[18%]">Pièce & N°</th>
+                  <th className="py-3 px-3 w-[18%]">Entreprise</th>
+                  <th className="py-3 px-3 w-[14%]">Agent Créateur</th>
+                  <th className="py-3 px-3 w-[10%]">Statut</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
                 {visitesGlobales.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-slate-400">
@@ -664,26 +664,26 @@ export function SuperAdminDashboard({ t }) {
 
                     return (
                       <tr key={v._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
+                        <td className="py-3 px-3 text-slate-600 dark:text-slate-400 min-w-0 overflow-hidden truncate">
                           {new Date(v.heureEntree || v.createdAt).toLocaleString('fr-FR')}
                         </td>
-                        <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">
+                        <td className="py-3 px-3 font-bold text-slate-900 dark:text-white min-w-0 overflow-hidden truncate">
                           {vis.prenom} {vis.nom}
                         </td>
-                        <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-300">
+                        <td className="py-3 px-3 font-mono text-slate-600 dark:text-slate-300 min-w-0 overflow-hidden truncate">
                           <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold mr-1">
                             {vis.typePiece || 'CNI'}
                           </span>
                           {vis.numeroPiece || vis.nin || '-'}
                         </td>
-                        <td className="py-3 px-4 font-bold text-brand-blue-bright">
+                        <td className="py-3 px-3 font-bold text-brand-blue-bright min-w-0 overflow-hidden truncate">
                           {ent.nom ? `${ent.nom} (${ent.code})` : 'Global'}
                         </td>
-                        <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
+                        <td className="py-3 px-3 text-slate-700 dark:text-slate-300 min-w-0 overflow-hidden truncate">
                           {agent.prenom || agent.nom ? `${agent.prenom || ''} ${agent.nom || ''}`.trim() : 'Scanner QR / Inconnu'}
                         </td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                        <td className="py-3 px-3 min-w-0 overflow-hidden">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase inline-block truncate max-w-full ${
                             v.statut === 'EN_COURS' ? 'bg-amber-500/10 text-amber-600' : 'bg-emerald-500/10 text-emerald-600'
                           }`}>
                             {v.statut === 'EN_COURS' ? 'En Cours' : 'Terminé'}

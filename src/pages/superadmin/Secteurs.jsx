@@ -250,10 +250,10 @@ export default function SecteursManagement({ isMobile }) {
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-50 dark:bg-slate-900/50">
                 <th className="py-2.5 px-3 w-[28%]">Code & Nom du Secteur</th>
-                <th className="py-2.5 px-2 w-[34%]">Description</th>
-                <th className="py-2.5 px-2 w-[14%]">Boîtes Rattachées</th>
-                <th className="py-2.5 px-2 w-[10%]">Statut</th>
-                <th className="py-2.5 px-3 w-[14%] text-right">Actions</th>
+                <th className="py-2.5 px-2 w-[32%]">Description</th>
+                <th className="py-2.5 px-2 w-[16%]">Boîtes Rattachées</th>
+                <th className="py-2.5 px-2 w-[12%]">Statut</th>
+                <th className="py-2.5 px-3 w-[12%] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
@@ -278,7 +278,7 @@ export default function SecteursManagement({ isMobile }) {
 
                   return (
                     <tr key={secId} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                      <td className="py-2.5 px-3 min-w-0">
+                      <td className="py-2.5 px-3 min-w-0 overflow-hidden">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center font-black shrink-0">
                             <Briefcase size={16} />
@@ -289,23 +289,23 @@ export default function SecteursManagement({ isMobile }) {
                           </div>
                         </div>
                       </td>
-                      <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 text-xs min-w-0">
+                      <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 text-xs min-w-0 overflow-hidden">
                         <p className="truncate font-medium">{sec.description || 'Aucune description'}</p>
                       </td>
-                      <td className="py-2.5 px-2 min-w-0">
+                      <td className="py-2.5 px-2 min-w-0 overflow-hidden">
                         <div className="flex items-center gap-1.5 text-xs text-brand-blue-bright font-black">
                           <Building2 size={13} className="shrink-0" />
-                          <span>{count} entreprise{count > 1 ? 's' : ''}</span>
+                          <span className="truncate">{count} entreprise{count > 1 ? 's' : ''}</span>
                         </div>
                       </td>
-                      <td className="py-2.5 px-2 min-w-0">
+                      <td className="py-2.5 px-2 min-w-0 overflow-hidden">
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider inline-block truncate max-w-full ${
                           isActif ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
                         }`}>
                           {sec.statut || 'ACTIF'}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-right min-w-0">
+                      <td className="py-2.5 px-3 text-right min-w-0 overflow-hidden">
                         <div className="flex justify-end items-center gap-1 shrink-0">
                           <button
                             type="button"
@@ -320,21 +320,19 @@ export default function SecteursManagement({ isMobile }) {
                             <button
                               type="button"
                               onClick={() => handleStatusChange(secId, 'SUSPENDU')}
-                              className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-all shrink-0 flex items-center gap-1"
+                              className="p-1.5 rounded-lg text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 transition-all shrink-0"
                               title="Suspendre le secteur d'activité"
                             >
                               <AlertCircle size={13} />
-                              <span className="hidden xl:inline">Suspendre</span>
                             </button>
                           ) : (
                             <button
                               type="button"
                               onClick={() => handleStatusChange(secId, 'ACTIF')}
-                              className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all shrink-0 flex items-center gap-1"
+                              className="p-1.5 rounded-lg text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all shrink-0"
                               title="Activer le secteur d'activité"
                             >
                               <UserCheck size={13} />
-                              <span className="hidden xl:inline">Activer</span>
                             </button>
                           )}
                         </div>

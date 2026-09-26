@@ -235,13 +235,13 @@ export default function EntreprisesManagement({ isMobile }) {
           <table className="w-full min-w-[700px] table-fixed text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-50 dark:bg-slate-900/50">
-                <th className="py-2.5 px-3 w-[24%]">Entreprise</th>
-                <th className="py-2.5 px-2 w-[14%]">Code / NINEA</th>
-                <th className="py-2.5 px-2 w-[14%]">Secteur</th>
+                <th className="py-2.5 px-3 w-[22%]">Entreprise</th>
+                <th className="py-2.5 px-2 w-[13%]">Code / NINEA</th>
+                <th className="py-2.5 px-2 w-[13%]">Secteur</th>
                 <th className="py-2.5 px-2 w-[16%]">Contact</th>
-                <th className="py-2.5 px-2 w-[16%]">Quotas Max</th>
-                <th className="py-2.5 px-2 w-[8%]">Statut</th>
-                <th className="py-2.5 px-3 w-[8%] text-right">Actions</th>
+                <th className="py-2.5 px-2 w-[14%]">Quotas Max</th>
+                <th className="py-2.5 px-2 w-[10%]">Statut</th>
+                <th className="py-2.5 px-3 w-[12%] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
@@ -253,7 +253,7 @@ export default function EntreprisesManagement({ isMobile }) {
 
                 return (
                   <tr key={entId} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                    <td className="py-2.5 px-3 min-w-0">
+                    <td className="py-2.5 px-3 min-w-0 overflow-hidden">
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="w-8 h-8 rounded-lg bg-brand-blue-bright/10 text-brand-blue-bright flex items-center justify-center font-black shrink-0">
                           <Building2 size={18} />
@@ -266,34 +266,34 @@ export default function EntreprisesManagement({ isMobile }) {
                         </div>
                       </div>
                     </td>
-                    <td className="py-2.5 px-2 font-mono text-slate-600 dark:text-slate-300 text-xs min-w-0">
+                    <td className="py-2.5 px-2 font-mono text-slate-600 dark:text-slate-300 text-xs min-w-0 overflow-hidden">
                       <p className="truncate font-bold">{ent.immatriculation || ent.code || '—'}</p>
                     </td>
-                    <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 text-xs min-w-0">
+                    <td className="py-2.5 px-2 text-slate-600 dark:text-slate-300 text-xs min-w-0 overflow-hidden">
                       <p className="truncate font-bold">{ent.secteur || 'Autre'}</p>
                     </td>
-                    <td className="py-2.5 px-2 text-xs min-w-0">
+                    <td className="py-2.5 px-2 text-xs min-w-0 overflow-hidden">
                       <p className="text-slate-900 dark:text-white truncate font-bold">{ent.emailContact || ent.email || '—'}</p>
                       <p className="text-[10px] text-slate-400 font-mono truncate">{ent.telephone}</p>
                     </td>
-                    <td className="py-2.5 px-2 text-xs min-w-0">
+                    <td className="py-2.5 px-2 text-xs min-w-0 overflow-hidden">
                       <div className="flex flex-col gap-1 text-[10px]">
-                        <span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold whitespace-nowrap inline-flex items-center gap-1 w-fit">
-                          <Shield size={10} /> Admins: {ent.nbAdmins || 0} / {maxAdmins}
+                        <span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold whitespace-nowrap inline-flex items-center gap-1 w-fit max-w-full truncate">
+                          <Shield size={10} className="shrink-0" /> Admins: {ent.nbAdmins || 0} / {maxAdmins}
                         </span>
-                        <span className="px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-bold whitespace-nowrap inline-flex items-center gap-1 w-fit">
-                          <Users size={10} /> Agents: {ent.nbAgents || 0} / {maxAgents}
+                        <span className="px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-bold whitespace-nowrap inline-flex items-center gap-1 w-fit max-w-full truncate">
+                          <Users size={10} className="shrink-0" /> Agents: {ent.nbAgents || 0} / {maxAgents}
                         </span>
                       </div>
                     </td>
-                    <td className="py-2.5 px-2 min-w-0">
+                    <td className="py-2.5 px-2 min-w-0 overflow-hidden">
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider inline-block truncate max-w-full ${
                         isActif ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'
                       }`}>
                         {ent.statut || 'ACTIF'}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-right min-w-0">
+                    <td className="py-2.5 px-3 text-right min-w-0 overflow-hidden">
                       <div className="flex justify-end items-center gap-1 shrink-0">
                         <button
                           type="button"

@@ -418,11 +418,11 @@ export default function AgentsManagement({ isMobile }) {
                 <table className="w-full min-w-[700px] table-fixed text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                      <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[24%]">Agent</th>
-                      <th className="py-2.5 px-2 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[18%]">Entreprise</th>
-                      <th className="py-2.5 px-2 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[16%]">Poste / Dept</th>
+                      <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[26%]">Agent</th>
+                      <th className="py-2.5 px-2 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[20%]">Entreprise</th>
+                      <th className="py-2.5 px-2 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[18%]">Poste / Dept</th>
                       <th className="py-2.5 px-2 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[12%]">Statut</th>
-                      <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider text-right w-[30%]">Actions</th>
+                      <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider text-right w-[24%]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -434,7 +434,7 @@ export default function AgentsManagement({ isMobile }) {
 
                       return (
                         <tr key={agent._id || agent.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors">
-                          <td className="py-2.5 px-3 min-w-0">
+                          <td className="py-2.5 px-3 min-w-0 overflow-hidden">
                             <div className="flex items-center gap-2 min-w-0">
                               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-blue-bright to-brand-blue flex items-center justify-center text-white text-[11px] font-black shrink-0">
                                 {initials}
@@ -450,18 +450,18 @@ export default function AgentsManagement({ isMobile }) {
                               </div>
                             </div>
                           </td>
-                          <td className="py-2.5 px-2 text-xs font-bold text-slate-800 dark:text-slate-200 min-w-0">
+                          <td className="py-2.5 px-2 text-xs font-bold text-slate-800 dark:text-slate-200 min-w-0 overflow-hidden">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <Building2 size={13} className="text-brand-blue-bright shrink-0" />
                               <span className="truncate">{entName}</span>
                             </div>
                           </td>
-                          <td className="py-2.5 px-2 min-w-0">
+                          <td className="py-2.5 px-2 min-w-0 overflow-hidden">
                             <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{agent.poste || '—'}</p>
                             <p className="text-[9px] text-slate-400 uppercase tracking-wider font-bold truncate">{agent.departement || ''}</p>
                           </td>
-                          <td className="py-2.5 px-2 min-w-0">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                          <td className="py-2.5 px-2 min-w-0 overflow-hidden">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider max-w-full ${
                               currentStatus === 'ACTIF' ? 'bg-emerald-500/10 text-emerald-600' :
                               currentStatus === 'SUSPENDU' ? 'bg-amber-500/10 text-amber-600' : 'bg-rose-500/10 text-rose-600'
                             }`}>
@@ -469,7 +469,7 @@ export default function AgentsManagement({ isMobile }) {
                               <span className="truncate">{currentStatus}</span>
                             </span>
                           </td>
-                          <td className="py-2.5 px-3 text-right min-w-0">
+                          <td className="py-2.5 px-3 text-right min-w-0 overflow-hidden">
                             <div className="flex items-center justify-end gap-1 shrink-0">
                               <button
                                 type="button"
@@ -509,33 +509,30 @@ export default function AgentsManagement({ isMobile }) {
                                     <button
                                       type="button"
                                       onClick={() => handleToggleStatus(agent._id || agent.id, 'ACTIF')}
-                                      className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all shrink-0 flex items-center gap-1"
+                                      className="p-1.5 rounded-lg text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all shrink-0"
                                       title="Activer"
                                     >
                                       <UserCheck size={13} />
-                                      <span className="hidden xl:inline">Activer</span>
                                     </button>
                                   )}
                                   {currentStatus !== 'SUSPENDU' && (
                                     <button
                                       type="button"
                                       onClick={() => handleToggleStatus(agent._id || agent.id, 'SUSPENDU')}
-                                      className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-all shrink-0 flex items-center gap-1"
+                                      className="p-1.5 rounded-lg text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 transition-all shrink-0"
                                       title="Suspendre"
                                     >
                                       <AlertCircle size={13} />
-                                      <span className="hidden xl:inline">Suspendre</span>
                                     </button>
                                   )}
                                   {currentStatus !== 'DESACTIVE' && (
                                     <button
                                       type="button"
                                       onClick={() => handleToggleStatus(agent._id || agent.id, 'DESACTIVE')}
-                                      className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-[9px] font-black uppercase text-rose-700 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all shrink-0 flex items-center gap-1"
+                                      className="p-1.5 rounded-lg text-rose-700 bg-rose-500/10 hover:bg-rose-500/20 transition-all shrink-0"
                                       title="Désactiver"
                                     >
                                       <UserX size={13} />
-                                      <span className="hidden xl:inline">Désactiver</span>
                                     </button>
                                   )}
                                 </>
