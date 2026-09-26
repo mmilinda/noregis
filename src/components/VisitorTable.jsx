@@ -79,7 +79,24 @@ export default function VisitorTable({ visitors, onView, onCheckout, onDelete, c
     }
   };
 
-  const sorted = [...visitors].sort((a, b) => {
+  const searchQ = (state.searchQuery || '').trim().toLowerCase();
+
+  const filteredVisitors = visitors.filter(v => {
+    if (!searchQ) return true;
+    const nom = String(v.nom || v.visiteur?.nom || v.visitor?.nom || v.visiteurId?.nom || '').toLowerCase();
+    const prenom = String(v.prenom || v.visiteur?.prenom || v.visitor?.prenom || v.visiteurId?.prenom || '').toLowerCase();
+    const piece = String(v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || v.visiteurId?.numeroPiece || v.vehicule?.immatriculation || '').toLowerCase();
+    const hote = String(v.personneVisitee || v.hote || v.visitedPerson || '').toLowerCase();
+    const service = String(v.service || v.departement || '').toLowerCase();
+    const vehiculeMarque = String(v.vehicule?.marque || v.visiteur?.marque || '').toLowerCase();
+    const vehiculeImmat = String(v.vehicule?.immatriculation || '').toLowerCase();
+    return (
+      nom.includes(searchQ) || prenom.includes(searchQ) || piece.includes(searchQ) ||
+      hote.includes(searchQ) || service.includes(searchQ) || vehiculeMarque.includes(searchQ) || vehiculeImmat.includes(searchQ)
+    );
+  });
+
+  const sorted = [...filteredVisitors].sort((a, b) => {
     const va = String(a[sortBy] || '');
     const vb = String(b[sortBy] || '');
     return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);

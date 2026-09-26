@@ -60,6 +60,13 @@ export default function SecteursManagement({ isMobile }) {
   };
 
   const { searchQuery } = state;
+
+  useEffect(() => {
+    if (searchQuery !== undefined) {
+      setSearchTerm(searchQuery);
+    }
+  }, [searchQuery]);
+
   const filtered = secteurs.filter(sec => {
     const matchStatut = statutFilter === 'ALL' || (sec.statut || 'ACTIF') === statutFilter;
     const q = (searchTerm || searchQuery || '').toLowerCase().trim();

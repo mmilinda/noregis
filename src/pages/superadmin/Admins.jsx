@@ -175,6 +175,13 @@ export default function AdminsManagement({ isMobile }) {
   };
 
   const { searchQuery } = state;
+
+  useEffect(() => {
+    if (searchQuery !== undefined) {
+      setSearch(searchQuery);
+    }
+  }, [searchQuery]);
+
   const filtered = admins.filter(adm => {
     const q = (search || searchQuery || '').trim().toLowerCase();
     const entId = adm.entrepriseId?._id || adm.entrepriseId;

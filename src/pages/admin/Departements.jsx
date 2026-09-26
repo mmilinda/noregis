@@ -143,6 +143,12 @@ export default function DepartementsManagement() {
     }
   };
 
+  useEffect(() => {
+    if (state.searchQuery !== undefined) {
+      setSearchTerm(state.searchQuery);
+    }
+  }, [state.searchQuery]);
+
   // Filtrage par recherche
   const filteredDepartements = useMemo(() => {
     const q = (searchTerm || state.searchQuery || '').toLowerCase().trim();

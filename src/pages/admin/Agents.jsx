@@ -319,11 +319,19 @@ export default function AgentsManagement({ isMobile }) {
   const agentCount = agents.filter(u => (u.role || '').toUpperCase() === 'AGENT').length;
   const adminCount = agents.filter(u => (u.role || '').toUpperCase() === 'ADMIN' || (u.role || '').toUpperCase().includes('SUPER')).length;
 
+  useEffect(() => {
+    if (state.searchQuery !== undefined) {
+      setSearch(state.searchQuery);
+    }
+  }, [state.searchQuery]);
+
   const filteredAgents = agents.filter(agent => {
-    const q = (search || state.searchQuery || '').toLowerCase();
-    const name = `${agent.prenom || ''} ${agent.nom || ''}`.toLowerCase();
+    const q = (search || state.searchQuery || '').trim().toLowerCase();
     const entId = getEntId(agent);
-    const matchSearch = name.includes(q) || (agent.email || '').toLowerCase().includes(q) || (agent.entrepriseNom || agent.entrepriseId?.nom || '').toLowerCase().includes(q);
+    const entName = agent.entrepriseNom || agent.entrepriseId?.nom || '';
+    const matchSearch = !q || [agent.prenom, agent.nom, agent.email, agent.telephone, agent.poste, agent.departement, agent.role, entName]
+      .filter(Boolean)
+      .some(f => String(f).toLowerCase().includes(q));
     const matchEntreprise = entrepriseFilter === 'ALL' || entId === entrepriseFilter;
     const matchStatut = statutFilter === 'ALL' || (agent.statutCompte || agent.statut || 'ACTIF') === statutFilter;
     const matchRole = roleFilter === 'ALL' || (agent.role || '').toUpperCase() === roleFilter;

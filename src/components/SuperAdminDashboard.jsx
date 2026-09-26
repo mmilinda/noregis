@@ -34,7 +34,7 @@ const DEFAULT_USER_FORM = {
 };
 
 export function SuperAdminDashboard({ t }) {
-  const { notify } = useApp();
+  const { state, notify } = useApp();
   const [activeTab, setActiveTab] = useState('entreprises'); // 'entreprises' | 'utilisateurs' | 'historique'
   
   // Data States
@@ -48,6 +48,7 @@ export function SuperAdminDashboard({ t }) {
   // Filters & Search
   const [searchEnt, setSearchEnt] = useState('');
   const [searchUser, setSearchUser] = useState('');
+  const [searchVisits, setSearchVisits] = useState('');
   const [filterEntId, setFilterEntId] = useState('');
   const [filterRole, setFilterRole] = useState('');
 
@@ -224,17 +225,41 @@ export function SuperAdminDashboard({ t }) {
     }
   };
 
-  const filteredEntreprises = entreprises.filter(e =>
-    (e.nom || '').toLowerCase().includes(searchEnt.toLowerCase()) ||
-    (e.code || e.immatriculation || '').toLowerCase().includes(searchEnt.toLowerCase())
-  );
+  const globalQuery = (state?.searchQuery || '').trim().toLowerCase();
+
+  const filteredEntreprises = entreprises.filter(e => {
+    const q = searchEnt.trim().toLowerCase() || globalQuery;
+    if (!q) return true;
+    return [e.nom, e.code, e.immatriculation, e.secteur, e.emailContact, e.telephone, e.adresse]
+      .filter(Boolean)
+      .some(f => String(f).toLowerCase().includes(q));
+  });
 
   const filteredUsers = utilisateurs.filter(u => {
     const entId = u.entrepriseId?._id || u.entrepriseId;
-    const matchSearch = `${u.nom || ''} ${u.prenom || ''} ${u.email || ''}`.toLowerCase().includes(searchUser.toLowerCase());
+    const entName = u.entrepriseId?.nom || u.entrepriseNom || '';
+    const q = searchUser.trim().toLowerCase() || globalQuery;
+    const matchSearch = !q || [u.nom, u.prenom, u.email, u.telephone, u.poste, u.departement, u.role, entName]
+      .filter(Boolean)
+      .some(f => String(f).toLowerCase().includes(q));
     const matchEnt = !filterEntId || String(entId) === String(filterEntId);
     const matchRole = !filterRole || u.role === filterRole;
     return matchSearch && matchEnt && matchRole;
+  });
+
+  const filteredVisitesGlobales = visitesGlobales.filter(v => {
+    const q = searchVisits.trim().toLowerCase() || globalQuery;
+    if (!q) return true;
+    const vis = v.visiteurId || {};
+    const agent = v.agentId || {};
+    const ent = v.entrepriseId || {};
+    const fields = [
+      vis.nom, vis.prenom, vis.numeroPiece, vis.nin, vis.telephone,
+      v.personneVisitee, v.service, v.motif,
+      agent.nom, agent.prenom, agent.email,
+      ent.nom, ent.code
+    ];
+    return fields.filter(Boolean).some(f => String(f).toLowerCase().includes(q));
   });
 
   return (
@@ -632,9 +657,18 @@ export function SuperAdminDashboard({ t }) {
       {/* CONTENU ONGLET 3 : HISTORIQUE GLOBAL */}
       {activeTab === 'historique' && (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <h2 className="text-sm font-black uppercase text-slate-900 dark:text-white">Historique Général des Enregistrements</h2>
-            <span className="text-xs font-bold text-slate-500">{visitesGlobales.length} passages enregistrés</span>
+            <div className="relative w-full sm:w-72">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Rechercher (Visiteur, Pièce, Hôte, Agent...)"
+                value={searchVisits}
+                onChange={e => setSearchVisits(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white outline-none focus:border-brand-blue-bright transition-all"
+              />
+            </div>
           </div>
 
           <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 w-full">
@@ -650,14 +684,14 @@ export function SuperAdminDashboard({ t }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-bold">
-                {visitesGlobales.length === 0 ? (
+                {filteredVisitesGlobales.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-slate-400">
-                      Aucune visite enregistrée pour le moment.
+                      {searchVisits || globalQuery ? 'Aucun résultat ne correspond à votre recherche.' : 'Aucune visite enregistrée pour le moment.'}
                     </td>
                   </tr>
                 ) : (
-                  visitesGlobales.map((v) => {
+                  filteredVisitesGlobales.map((v) => {
                     const vis = v.visiteurId || {};
                     const agent = v.agentId || {};
                     const ent = v.entrepriseId || {};

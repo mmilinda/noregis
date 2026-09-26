@@ -179,6 +179,13 @@ export default function ComptesManagement({ isMobile }) {
   };
 
   const { searchQuery } = state;
+
+  useEffect(() => {
+    if (searchQuery !== undefined) {
+      setSearch(searchQuery);
+    }
+  }, [searchQuery]);
+
   const filtered = users.filter(usr => {
     const q = (search || searchQuery || '').trim().toLowerCase();
     const matchSearch = !q || [usr.prenom, usr.nom, usr.email, usr.telephone, usr.entrepriseNom, usr.entrepriseId?.nom, usr.poste]

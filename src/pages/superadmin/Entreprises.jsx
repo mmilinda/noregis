@@ -168,6 +168,13 @@ export default function EntreprisesManagement({ isMobile }) {
   };
 
   const { searchQuery } = state;
+
+  useEffect(() => {
+    if (searchQuery !== undefined) {
+      setSearch(searchQuery);
+    }
+  }, [searchQuery]);
+
   const filtered = entreprises.filter(ent => {
     const q = (search || searchQuery || '').trim().toLowerCase();
     const matchSearch = !q || [ent.nom, ent.email, ent.emailContact, ent.telephone, ent.immatriculation, ent.code, ent.secteur]
