@@ -33,6 +33,32 @@ function SettingRow({ icon: Icon, label, description, children }) {
   );
 }
 
+function formatDateSafe(dateVal, fallback = 'Compte Actif') {
+  if (!dateVal) return fallback;
+  try {
+    const d = new Date(dateVal);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+  } catch (e) {
+    /* silencieux */
+  }
+  return String(dateVal);
+}
+
+function formatDateInputSafe(dateVal) {
+  if (!dateVal) return '';
+  try {
+    const d = new Date(dateVal);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().split('T')[0];
+    }
+  } catch (e) {
+    /* silencieux */
+  }
+  return '';
+}
+
 function SectionCard({ title, children }) {
   return (
     <div className="mb-6">
@@ -412,9 +438,7 @@ export function ProfilAgent() {
   const displayDepartement = agent.departement || (isSuperAdmin ? 'Direction des Systèmes d\'Information (DSI)' : (isAdmin ? 'Direction de la Sécurité' : 'Poste Nord'));
   const displayAccreditation = agent.niveauAccreditation || agent.niveau || (isSuperAdmin ? 'Accès Total (SuperAdmin)' : (isAdmin ? 'Niveau 3 - Admin Boîte' : 'Niveau 1 - Agent d\'Accueil'));
   const displayMatricule = agent.matricule || `ID-${String(agent._id || agent.id || '0042').slice(-6).toUpperCase()}`;
-  const displayDateArrivee = agent.dateArrivee
-    ? new Date(agent.dateArrivee).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-    : (agent.createdAt ? new Date(agent.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Compte Actif');
+  const displayDateArrivee = formatDateSafe(agent.dateArrivee || agent.createdAt);
 
   // QR Code download handler
   const handleDownloadQr = async () => {
@@ -468,7 +492,7 @@ export function ProfilAgent() {
       departement: agent.departement || displayDepartement,
       poste: agent.poste || displayPoste,
       niveauAccreditation: agent.niveauAccreditation || displayAccreditation,
-      dateArrivee: agent.dateArrivee ? new Date(agent.dateArrivee).toISOString().split('T')[0] : ''
+      dateArrivee: formatDateInputSafe(agent.dateArrivee)
     });
     setErreurEnvoi('');
     setIsEditing(true);
