@@ -45,6 +45,7 @@ export default function AgentsManagement({ isMobile }) {
   const [search, setSearch]         = useState('');
   const [entrepriseFilter, setEntrepriseFilter] = useState('ALL');
   const [statutFilter, setStatutFilter]         = useState('ALL');
+  const [roleFilter, setRoleFilter]             = useState('ALL');
 
   // Create modal
   const [createOpen, setCreateOpen]   = useState(false);
@@ -82,7 +83,7 @@ export default function AgentsManagement({ isMobile }) {
     try {
       const entIdParam = isSuperAdmin ? null : state.agent?.entrepriseId;
       const [resUsers, resEnts] = await Promise.all([
-        authService.getAllUsers(entIdParam, 'AGENT'),
+        authService.getAllUsers(entIdParam),
         isSuperAdmin ? entrepriseService.getAll() : Promise.resolve([]),
       ]);
 
@@ -90,11 +91,11 @@ export default function AgentsManagement({ isMobile }) {
       if (!isSuperAdmin && state.agent?.entrepriseId) {
         list = list.filter(u => String(u.entrepriseId?._id || u.entrepriseId) === String(state.agent.entrepriseId));
       }
-      list = list.filter(u => u.role === 'AGENT' || (!isSuperAdmin && (u._id === state.agent?.id || u.id === state.agent?.id)));
+      list = list.filter(u => u.role === 'AGENT' || u.role === 'ADMIN' || u.role === 'SUPERADMIN' || u.role === 'SUPER_ADMIN');
       setAgents(list);
       setEntreprises(Array.isArray(resEnts) ? resEnts : (resEnts?.entreprises || []));
     } catch (err) {
-      notify('error', err.message || 'Impossible de récupérer la liste des agents.');
+      notify('error', err.message || 'Impossible de récupérer la liste des membres.');
     } finally {
       setLoading(false);
     }
@@ -148,11 +149,11 @@ export default function AgentsManagement({ isMobile }) {
       await authService.createUser({
         ...createForm,
         password: createForm.password,
-        role: 'AGENT',
+        role: createForm.role || 'AGENT',
         entrepriseId: entId,
         entrepriseNom: targetEnt ? targetEnt.nom : (state.agent?.entrepriseNom || ''),
       });
-      notify('success', 'Nouvel agent créé avec succès !');
+      notify('success', `Nouveau membre (${createForm.role || 'AGENT'}) créé avec succès !`);
       setCreateOpen(false);
       setCreateForm(EMPTY_FORM);
       fetchAgentsAndEntreprises(true);
@@ -288,6 +289,9 @@ export default function AgentsManagement({ isMobile }) {
     }
   };
 
+  const agentCount = agents.filter(u => (u.role || '').toUpperCase() === 'AGENT').length;
+  const adminCount = agents.filter(u => (u.role || '').toUpperCase() === 'ADMIN' || (u.role || '').toUpperCase().includes('SUPER')).length;
+
   const filteredAgents = agents.filter(agent => {
     const q = (search || state.searchQuery || '').toLowerCase();
     const name = `${agent.prenom || ''} ${agent.nom || ''}`.toLowerCase();
@@ -295,8 +299,9 @@ export default function AgentsManagement({ isMobile }) {
     const matchSearch = name.includes(q) || (agent.email || '').toLowerCase().includes(q) || (agent.entrepriseNom || agent.entrepriseId?.nom || '').toLowerCase().includes(q);
     const matchEntreprise = entrepriseFilter === 'ALL' || String(entId) === String(entrepriseFilter);
     const matchStatut = statutFilter === 'ALL' || (agent.statutCompte || agent.statut || 'ACTIF') === statutFilter;
+    const matchRole = roleFilter === 'ALL' || (agent.role || '').toUpperCase() === roleFilter;
 
-    return matchSearch && matchEntreprise && matchStatut;
+    return matchSearch && matchEntreprise && matchStatut && matchRole;
   });
 
   const isSelf = (agent) => state.agent?.id === agent._id || state.agent?._id === agent._id;
@@ -308,15 +313,17 @@ export default function AgentsManagement({ isMobile }) {
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <Shield className="text-brand-blue-bright fill-brand-blue-bright/10" size={26} />
-            {t.agent_management || 'Gestion des Agents de Sécurité'}
+            {t.agent_management || "Gestion de l'Équipe & des Accès"}
           </h1>
           <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">
-            {isSuperAdmin ? 'Gestion globale de tous les agents rattachés aux entreprises' : 'Gérez les accès et profils des agents de votre entreprise.'}
+            {isSuperAdmin
+              ? 'Gestion globale de tous les agents et administrateurs rattachés aux entreprises'
+              : 'Gérez les accès, rôles et profils des agents et administrateurs de votre entreprise.'}
           </p>
         </div>
         {activeTab === 'agents' && (
           <Btn variant="primary" icon={UserPlus} onClick={() => setCreateOpen(true)} className="text-[10px] font-black uppercase">
-            {t.add_agent || 'Ajouter un Agent'}
+            {t.add_agent || 'Ajouter un Membre'}
           </Btn>
         )}
       </div>
@@ -331,7 +338,7 @@ export default function AgentsManagement({ isMobile }) {
               : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
           }`}
         >
-          {t.active_agents || 'Agents'} ({agents.length})
+          Membres ({agents.length})
         </button>
         <button
           onClick={() => setActiveTab('demandes')}
@@ -359,7 +366,7 @@ export default function AgentsManagement({ isMobile }) {
               <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue-bright transition-colors" />
               <input
                 type="text"
-                placeholder={t.search_agent || "Rechercher un agent (Nom, email, poste...)"}
+                placeholder={t.search_agent || "Rechercher un membre (Nom, email, poste...)"}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 focus:border-brand-blue-bright/20 rounded-xl py-2.5 pl-12 pr-4 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none transition-all"
@@ -382,6 +389,16 @@ export default function AgentsManagement({ isMobile }) {
             )}
 
             <select
+              value={roleFilter}
+              onChange={e => setRoleFilter(e.target.value)}
+              className="px-3 py-2.5 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-xs font-black outline-none cursor-pointer"
+            >
+              <option value="ALL">Tous les rôles ({agents.length})</option>
+              <option value="AGENT">Agents de sécurité ({agentCount})</option>
+              <option value="ADMIN">Administrateurs ({adminCount})</option>
+            </select>
+
+            <select
               value={statutFilter}
               onChange={e => setStatutFilter(e.target.value)}
               className="px-3 py-2.5 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-xs font-black outline-none cursor-pointer"
@@ -395,7 +412,7 @@ export default function AgentsManagement({ isMobile }) {
 
           <Card className="border-slate-200 dark:border-slate-800">
             <CardHeader
-              title={`Total : ${filteredAgents.length} agent(s)`}
+              title={`Total : ${filteredAgents.length} membre(s) (${agentCount} Agent(s), ${adminCount} Admin(s))`}
               actions={
                 <Btn variant="secondary" size="sm" icon={RefreshCw} onClick={() => fetchAgentsAndEntreprises()} className="text-[10px] font-black uppercase">
                   Actualiser
@@ -411,18 +428,19 @@ export default function AgentsManagement({ isMobile }) {
             ) : filteredAgents.length === 0 ? (
               <div className="p-12 text-center text-slate-500">
                 <AlertTriangle className="mx-auto mb-3 text-slate-400" size={40} />
-                <p className="text-sm font-bold">Aucun agent trouvé</p>
+                <p className="text-sm font-bold">Aucun membre trouvé</p>
               </div>
             ) : (
               <div className="p-3 sm:p-4 overflow-x-auto w-full">
                 <table className="w-full min-w-[700px] table-fixed text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                      <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[26%]">Agent</th>
-                      <th className="py-2.5 px-2 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[20%]">Entreprise</th>
-                      <th className="py-2.5 px-2 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[18%]">Poste / Dept</th>
-                      <th className="py-2.5 px-2 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[12%]">Statut</th>
-                      <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider text-right w-[24%]">Actions</th>
+                      <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[24%]">Utilisateur</th>
+                      <th className="py-2.5 px-2 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[12%]">Rôle</th>
+                      <th className="py-2.5 px-2 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[18%]">Entreprise</th>
+                      <th className="py-2.5 px-2 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[16%]">Poste / Dept</th>
+                      <th className="py-2.5 px-2 text-[10px] font-black uppercase text-slate-400 tracking-wider w-[10%]">Statut</th>
+                      <th className="py-2.5 px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider text-right w-[20%]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -431,12 +449,17 @@ export default function AgentsManagement({ isMobile }) {
                       const self = isSelf(agent);
                       const entName = agent.entrepriseId?.nom || agent.entrepriseNom || '—';
                       const currentStatus = agent.statutCompte || agent.statut || 'ACTIF';
+                      const userRole = (agent.role || '').toUpperCase();
 
                       return (
                         <tr key={agent._id || agent.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors">
                           <td className="py-2.5 px-3 min-w-0 overflow-hidden">
                             <div className="flex items-center gap-2 min-w-0">
-                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-blue-bright to-brand-blue flex items-center justify-center text-white text-[11px] font-black shrink-0">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-[11px] font-black shrink-0 ${
+                                userRole === 'ADMIN' ? 'bg-gradient-to-br from-purple-600 to-indigo-600' :
+                                userRole.includes('SUPER') ? 'bg-gradient-to-br from-amber-500 to-orange-600' :
+                                'bg-gradient-to-br from-brand-blue-bright to-brand-blue'
+                              }`}>
                                 {initials}
                               </div>
                               <div className="min-w-0 flex-1">
@@ -449,6 +472,15 @@ export default function AgentsManagement({ isMobile }) {
                                 <p className="text-[10px] text-slate-400 truncate">{agent.email}</p>
                               </div>
                             </div>
+                          </td>
+                          <td className="py-2.5 px-2 min-w-0 overflow-hidden">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider max-w-full ${
+                              userRole === 'ADMIN' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20' :
+                              userRole.includes('SUPER') ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
+                              'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                            }`}>
+                              {userRole === 'ADMIN' ? 'ADMIN' : userRole.includes('SUPER') ? 'SUPERADMIN' : 'AGENT'}
+                            </span>
                           </td>
                           <td className="py-2.5 px-2 text-xs font-bold text-slate-800 dark:text-slate-200 min-w-0 overflow-hidden">
                             <div className="flex items-center gap-1.5 min-w-0">
@@ -651,7 +683,7 @@ export default function AgentsManagement({ isMobile }) {
       )}
 
       {/* ── MODAL CRÉATION ────────────────────────────────── */}
-      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="Créer un nouvel Agent de Sécurité" size="md">
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="Créer un nouveau Membre (Agent ou Admin)" size="md">
         <form onSubmit={handleCreate} className="space-y-4">
           {createError && (
             <div className="p-3 bg-red-50 dark:bg-red-950/30 text-brand-red border border-brand-red-bright/20 rounded-lg text-xs font-bold flex items-center gap-2">
@@ -664,8 +696,21 @@ export default function AgentsManagement({ isMobile }) {
             <FormInput label="Nom *" id="c-nom" required value={createForm.nom}
               onChange={e => setCreateForm(f => ({ ...f, nom: e.target.value }))} icon={User} placeholder="Ex: Dupont" />
           </div>
-          <FormInput label="Email *" id="c-email" type="email" required value={createForm.email}
-            onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} icon={Mail} placeholder="j.dupont@company.com" />
+          <div className="grid grid-cols-2 gap-4">
+            <FormInput label="Email *" id="c-email" type="email" required value={createForm.email}
+              onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} icon={Mail} placeholder="j.dupont@company.com" />
+            <FormSelect
+              label="Rôle *"
+              id="c-role"
+              required
+              value={createForm.role}
+              onChange={e => setCreateForm(f => ({ ...f, role: e.target.value }))}
+              options={[
+                { value: 'AGENT', label: 'Agent de Sécurité' },
+                { value: 'ADMIN', label: 'Administrateur de Boîte' },
+              ]}
+            />
+          </div>
           <FormInput label="Mot de passe *" id="c-password" type="password" required value={createForm.password}
             onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} icon={Lock} placeholder="••••••••" />
 

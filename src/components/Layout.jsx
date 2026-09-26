@@ -350,7 +350,7 @@ export function Layout({ children, activeTab, onTabChange }) {
       { id: 'comptes', label: 'Tous les Comptes', icon: UserIcon },
     ] : []),
     ...(isAdmin ? [
-      { id: 'agents', label: t.agents || 'Agents & Accès', icon: Users },
+      { id: 'agents', label: 'Équipe & Accès', icon: Users },
     ] : []),
     { id: 'history', label: isSuperAdmin ? 'Historique Global' : t.history, icon: History },
     { id: 'settings', label: t.settings, icon: Settings },
