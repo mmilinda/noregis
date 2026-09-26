@@ -13,6 +13,7 @@ import { Card, CardHeader, Btn, FormInput, FormSelect, Modal } from '../../compo
 import { authService } from '../../services/authService';
 import { entrepriseService } from '../../services/entrepriseService';
 import { demandeService } from '../../services/demandeService';
+import { departementService } from '../../services/departementService';
 import { TRANSLATIONS } from '../../translations';
 import { ResetPasswordModal } from '../../components/ResetPasswordModal';
 
@@ -38,14 +39,28 @@ export default function AgentsManagement({ isMobile }) {
 
   const [activeTab, setActiveTab] = useState('agents'); // 'agents' | 'demandes'
 
-  // ── Agents & Entreprises state ─────────────────────────────
+  // ── Agents, Entreprises & Départements state ─────────────────────────────
   const [agents, setAgents]         = useState([]);
   const [entreprises, setEntreprises] = useState([]);
+  const [departementsList, setDepartementsList] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState('');
   const [entrepriseFilter, setEntrepriseFilter] = useState('ALL');
   const [statutFilter, setStatutFilter]         = useState('ALL');
   const [roleFilter, setRoleFilter]             = useState('ALL');
+
+  useEffect(() => {
+    departementService.getAll()
+      .then(res => {
+        if (res && res.departements) {
+          const activeDepts = res.departements
+            .filter(d => d.statut === 'ACTIF')
+            .map(d => ({ value: d.nom, label: d.nom }));
+          setDepartementsList(activeDepts);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Create modal
   const [createOpen, setCreateOpen]   = useState(false);
@@ -745,8 +760,20 @@ export default function AgentsManagement({ isMobile }) {
               onChange={e => setCreateForm(f => ({ ...f, dateArrivee: e.target.value }))} icon={Calendar} />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <FormInput label="Département" id="c-dept" value={createForm.departement}
-              onChange={e => setCreateForm(f => ({ ...f, departement: e.target.value }))} icon={Building2} placeholder="Ex: Sécurité" />
+            {departementsList.length > 0 ? (
+              <FormSelect
+                label="Département"
+                id="c-dept"
+                value={createForm.departement}
+                onChange={e => setCreateForm(f => ({ ...f, departement: e.target.value }))}
+                options={departementsList}
+                placeholder="Sélectionner..."
+                icon={Building2}
+              />
+            ) : (
+              <FormInput label="Département" id="c-dept" value={createForm.departement}
+                onChange={e => setCreateForm(f => ({ ...f, departement: e.target.value }))} icon={Building2} placeholder="Ex: Sécurité" />
+            )}
             <FormInput label="Poste" id="c-poste" value={createForm.poste}
               onChange={e => setCreateForm(f => ({ ...f, poste: e.target.value }))} icon={Briefcase} placeholder="Ex: Entrée Principale" />
           </div>
@@ -806,8 +833,20 @@ export default function AgentsManagement({ isMobile }) {
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <FormInput label="Département" id="e-dept" value={editForm.departement}
-                onChange={e => setEditForm(f => ({ ...f, departement: e.target.value }))} icon={Building2} />
+              {departementsList.length > 0 ? (
+                <FormSelect
+                  label="Département"
+                  id="e-dept"
+                  value={editForm.departement}
+                  onChange={e => setEditForm(f => ({ ...f, departement: e.target.value }))}
+                  options={departementsList}
+                  placeholder="Sélectionner..."
+                  icon={Building2}
+                />
+              ) : (
+                <FormInput label="Département" id="e-dept" value={editForm.departement}
+                  onChange={e => setEditForm(f => ({ ...f, departement: e.target.value }))} icon={Building2} />
+              )}
               <FormInput label="Poste" id="e-poste" value={editForm.poste}
                 onChange={e => setEditForm(f => ({ ...f, poste: e.target.value }))} icon={Briefcase} />
             </div>

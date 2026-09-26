@@ -20,6 +20,7 @@ import ComptesManagement from './pages/superadmin/Comptes';
 // Admin & Agent Pages
 import AdminDashboard from './pages/admin/Dashboard';
 import AgentsManagement from './pages/admin/Agents';
+import DepartementsManagement from './pages/admin/Departements';
 import AgentDashboard from './pages/agent/Dashboard';
 import AgentHistorique from './pages/agent/Historique';
 
@@ -125,6 +126,7 @@ function AppInner() {
           {isSuperAdmin && <Route path="/superadmin" element={<SuperAdminDashboard />} />}
           {isSuperAdmin && <Route path="/entreprises" element={<EntreprisesManagement />} />}
           {isSuperAdmin && <Route path="/secteurs" element={<SecteursManagement />} />}
+          {(isSuperAdmin || isAdmin) && <Route path="/departements" element={<DepartementsManagement />} />}
           {isSuperAdmin && <Route path="/admins" element={<AdminsManagement />} />}
           {(isSuperAdmin || isAdmin) && <Route path="/agents" element={<AgentsManagement />} />}
           {isSuperAdmin && <Route path="/comptes" element={<ComptesManagement />} />}

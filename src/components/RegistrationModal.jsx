@@ -11,6 +11,7 @@ import { SERVICES } from '../data/mockData';
 import { useApp } from '../context/useAppState';
 import { visitorService } from '../services/visitorService';
 import { visitService } from '../services/visitService';
+import { departementService } from '../services/departementService';
 import { TRANSLATIONS } from '../translations';
 import { verifierFiabiliteDocument, PAYS_OPTIONS, normalizeTypePiece } from '../services/localOcrService';
 
@@ -77,6 +78,24 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t: translations
   const [foundVisitorMsg, setFoundVisitorMsg] = useState(null);
   const [ninSuggestions, setNinSuggestions] = useState([]);
   const [showNinSuggestions, setShowNinSuggestions] = useState(false);
+  const [servicesList, setServicesList] = useState(SERVICES);
+
+  useEffect(() => {
+    let mounted = true;
+    departementService.getAll()
+      .then(res => {
+        if (mounted && res && res.departements && res.departements.length > 0) {
+          const activeDepts = res.departements
+            .filter(d => d.statut === 'ACTIF')
+            .map(d => d.nom);
+          if (activeDepts.length > 0) {
+            setServicesList(activeDepts);
+          }
+        }
+      })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, []);
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -641,7 +660,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t: translations
           <div className="flex flex-col gap-4">
             <FormInput label={t.host_name} id="personneVisitee" required value={form.personneVisitee} onChange={set('personneVisitee')} error={errors.personneVisitee} icon={User} placeholder={t.host_placeholder} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <FormSelect label={t.service_dept} id="service" required value={form.service} onChange={set('service')} options={SERVICES} placeholder={t.select} error={errors.service} icon={Building} />
+              <FormSelect label={t.service_dept} id="service" required value={form.service} onChange={set('service')} options={servicesList} placeholder={t.select} error={errors.service} icon={Building} />
               <FormInput label={t.visit_reason} id="motif" required value={form.motif} onChange={set('motif')} placeholder={t.reason_placeholder} />
             </div>
           </div>

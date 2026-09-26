@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard, History, Settings, User as UserIcon,
-  Shield, Clock, Plus, Bell, Search, LogOut, Camera, Building2, Users, Briefcase } from 'lucide-react';
+  Shield, Clock, Plus, Bell, Search, LogOut, Camera, Building2, Users, Briefcase, FolderTree } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { RegistrationModal } from './RegistrationModal';
 import { TRANSLATIONS } from '../translations';
@@ -197,6 +197,8 @@ function getSearchPlaceholder(activeTab, t, isSuperAdmin) {
       return t.search_entreprise || "Rechercher une entreprise (Nom, NINEA, secteur...)";
     case 'secteurs':
       return t.search_secteur || "Rechercher un secteur d'activité (Nom, code...)";
+    case 'departements':
+      return "Rechercher un département (Nom, code, description...)";
     case 'admins':
       return t.search_admin || "Rechercher un administrateur (Nom, email, entreprise...)";
     case 'agents':
@@ -345,12 +347,14 @@ export function Layout({ children, activeTab, onTabChange }) {
     ...(isSuperAdmin ? [
       { id: 'entreprises', label: 'Entreprises & Boîtes', icon: Building2 },
       { id: 'secteurs', label: "Secteurs d'Activité", icon: Briefcase },
+      { id: 'departements', label: 'Départements & Services', icon: FolderTree },
       { id: 'admins', label: 'Admins de Boîte', icon: Shield },
       { id: 'agents', label: 'Agents de Sécurité', icon: Users },
       { id: 'comptes', label: 'Tous les Comptes', icon: UserIcon },
     ] : []),
     ...(isAdmin ? [
       { id: 'agents', label: 'Équipe & Accès', icon: Users },
+      { id: 'departements', label: 'Départements & Services', icon: FolderTree },
     ] : []),
     { id: 'history', label: isSuperAdmin ? 'Historique Global' : t.history, icon: History },
     { id: 'settings', label: t.settings, icon: Settings },
