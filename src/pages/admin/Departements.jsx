@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   FolderTree, Plus, Search, CheckCircle, XCircle,
-  Edit3, Trash2, Building2, RefreshCw, AlertCircle, Shield
+  Edit3, Trash2, Building2, RefreshCw, AlertCircle, Shield, Power
 } from 'lucide-react';
 import { useApp } from '../../context/useAppState';
 import { departementService } from '../../services/departementService';
@@ -109,6 +109,19 @@ export default function DepartementsManagement() {
       notify('error', err.message || 'Erreur lors de la sauvegarde du département.');
     } finally {
       setModalLoading(false);
+    }
+  };
+
+  // Action Basculer Statut (Activer / Désactiver)
+  const handleToggleStatus = async (dept) => {
+    const newStatut = dept.statut === 'ACTIF' ? 'DESACTIVE' : 'ACTIF';
+    try {
+      const id = dept._id || dept.id;
+      const res = await departementService.update(id, { statut: newStatut });
+      notify('success', `Département ${newStatut === 'ACTIF' ? 'activé' : 'désactivé'} avec succès.`);
+      loadDepartements();
+    } catch (err) {
+      notify('error', err.message || 'Impossible de modifier le statut.');
     }
   };
 
@@ -306,17 +319,32 @@ export default function DepartementsManagement() {
                       </p>
                     </td>
                     <td className="p-4">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider ${
-                        dept.statut === 'ACTIF'
-                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                          : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                      }`}>
+                      <button
+                        onClick={() => handleToggleStatus(dept)}
+                        title={dept.statut === 'ACTIF' ? 'Cliquer pour désactiver' : 'Cliquer pour activer'}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+                          dept.statut === 'ACTIF'
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-rose-500/20 hover:text-rose-600'
+                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:bg-emerald-500/20 hover:text-emerald-600'
+                        }`}
+                      >
                         <span className={`w-1.5 h-1.5 rounded-full ${dept.statut === 'ACTIF' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
                         {dept.statut}
-                      </span>
+                      </button>
                     </td>
                     <td className="p-4 pr-6 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleToggleStatus(dept)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            dept.statut === 'ACTIF'
+                              ? 'text-emerald-600 dark:text-emerald-400 hover:text-rose-500 hover:bg-rose-500/10'
+                              : 'text-rose-500 hover:text-emerald-500 hover:bg-emerald-500/10'
+                          }`}
+                          title={dept.statut === 'ACTIF' ? 'Désactiver ce département' : 'Activer ce département'}
+                        >
+                          <Power size={16} />
+                        </button>
                         <button
                           onClick={() => handleOpenEdit(dept)}
                           className="p-2 text-slate-400 hover:text-brand-blue-bright hover:bg-brand-blue-bright/10 rounded-lg transition-colors"
