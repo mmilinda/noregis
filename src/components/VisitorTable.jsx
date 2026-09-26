@@ -92,20 +92,20 @@ export default function VisitorTable({ visitors, onView, onCheckout, onDelete, c
           <table className="w-full table-fixed border-collapse">
             <thead>
               <tr className="border-b border-slate-50 dark:border-slate-800">
-                <Th label={t.type} col="type" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[14%]" />
-                <Th label={`${t.person} / ${t.vehicle}`} col="nom" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[23%]" />
-                <Th label={`${t.id_card} / ${t.plate_number}`} col="numeroPiece" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[18%]" />
-                <Th label={t.destination} col="personneVisitee" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[17%]" />
+                <Th label={t.type} col="type" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[15%]" />
+                <Th label={`${t.person} / ${t.vehicle}`} col="nom" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[22%]" />
+                <Th label={`${t.id_card} / ${t.plate_number}`} col="numeroPiece" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[17%]" />
+                <Th label={t.destination} col="personneVisitee" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[16%]" />
                 <Th label={t.time} col="heureEntree" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[12%]" />
-                <Th label={t.status} col="statut" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[9%]" />
-                <th className="px-3 py-2.5 w-[7%] text-right" />
+                <Th label={t.status} col="statut" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} widthClass="w-[10%]" />
+                <th className="px-2 py-2.5 w-[8%] text-right" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {sorted.map(v => (
                 <tr key={v._id || v.id} className="group hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
-                  <td className="px-3 py-2.5 min-w-0 overflow-hidden"><TypeBadge type={v.type} /></td>
-                  <td className="px-3 py-2.5 min-w-0">
+                  <td className="px-2 py-2.5 min-w-0 overflow-hidden"><TypeBadge type={v.type} /></td>
+                  <td className="px-2 py-2.5 min-w-0">
                     <p className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">
                       {v.type === 'vehicule' 
                         ? (v.vehicule?.immatriculation || v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || v.visiteurId?.numeroPiece || v.visitorId?.numeroPiece) 
@@ -113,7 +113,7 @@ export default function VisitorTable({ visitors, onView, onCheckout, onDelete, c
                     </p>
                     {v.type === 'vehicule' && <p className="text-[10px] text-slate-500 font-medium truncate">{v.vehicule?.marque || v.visitor?.marque || v.visiteur?.marque || v.visiteurId?.marque} {v.vehicule?.modele || v.visitor?.modele || v.visiteur?.modele || v.visiteurId?.modele}</p>}
                   </td>
-                  <td className="px-3 py-2.5 min-w-0">
+                  <td className="px-2 py-2.5 min-w-0">
                     <p className="text-[10px] font-bold font-mono text-slate-600 dark:text-slate-400 truncate">
                       {v.numeroPiece || v.visiteur?.numeroPiece || v.visitor?.numeroPiece || v.visiteurId?.numeroPiece || v.visitorId?.numeroPiece || v.vehicule?.immatriculation || '—'}
                     </p>
@@ -121,11 +121,11 @@ export default function VisitorTable({ visitors, onView, onCheckout, onDelete, c
                       {v.typePiece || v.visiteur?.typePiece || v.visitor?.typePiece || v.visiteurId?.typePiece || (v.vehicule ? 'CARTE GRISE' : 'CNI')}
                     </p>
                   </td>
-                  <td className="px-3 py-2.5 min-w-0">
+                  <td className="px-2 py-2.5 min-w-0">
                     <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate">{v.personneVisitee || v.hote || v.visitedPerson || '—'}</p>
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter truncate">{v.service || v.departement}</p>
                   </td>
-                  <td className="px-3 py-2.5 min-w-0">
+                  <td className="px-2 py-2.5 min-w-0">
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate">
                       {formatBackendDate(v.heureEntree || v.createdAt)}
                     </p>
@@ -138,8 +138,8 @@ export default function VisitorTable({ visitors, onView, onCheckout, onDelete, c
                       </p>
                     )}
                   </td>
-                  <td className="px-3 py-2.5 min-w-0"><StatusBadge statut={v.statut} heureSortie={v.heureSortie} /></td>
-                  <td className="px-3 py-2.5 min-w-0">
+                  <td className="px-2 py-2.5 min-w-0 overflow-hidden"><StatusBadge statut={v.statut} heureSortie={v.heureSortie} /></td>
+                  <td className="px-2 py-2.5 min-w-0 text-right">
                     <div className="flex gap-1 justify-end items-center shrink-0">
                       <Btn variant="ghost" size="sm" icon={Eye} onClick={() => onView(v)} className="rounded-full w-7 h-7 !p-0" />
                       {(() => {
@@ -148,10 +148,10 @@ export default function VisitorTable({ visitors, onView, onCheckout, onDelete, c
                         return isPresent && (
                           <button 
                             onClick={() => onCheckout(v.id || v._id)}
-                            className="flex items-center gap-1 p-1 sm:px-2 sm:py-1 bg-brand-amber-bright text-white border border-brand-amber-bright rounded-lg text-[9px] font-black uppercase hover:bg-amber-600 transition-all active:scale-95 shrink-0"
+                            className="p-1.5 rounded-lg text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-all active:scale-95 shrink-0 flex items-center justify-center"
                             title={t.exited}
                           >
-                            <LogOut size={12} /> <span className="hidden xl:inline">{t.exited}</span>
+                            <LogOut size={13} />
                           </button>
                         );
                       })()}
@@ -163,7 +163,7 @@ export default function VisitorTable({ visitors, onView, onCheckout, onDelete, c
                             e.stopPropagation();
                             setDeleteTarget(v);
                           }}
-                          className="w-7 h-7 rounded-full flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors shrink-0"
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors shrink-0"
                         >
                           <Trash2 size={14} />
                         </button>

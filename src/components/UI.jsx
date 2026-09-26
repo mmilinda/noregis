@@ -226,11 +226,14 @@ export function StatusBadge({ statut, heureSortie }) {
   
   return (
     <span className={`
-      inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest
-      ${isPresent ? 'bg-brand-green-light text-brand-green' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}
+      inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shrink-0 max-w-full truncate
+      ${isPresent 
+        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
+        : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+      }
     `}>
-      <span className={`w-1.5 h-1.5 rounded-full ${isPresent ? 'bg-brand-green animate-pulse' : 'bg-slate-400'}`} />
-      {isPresent ? t.present : t.exited}
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isPresent ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+      <span className="truncate">{isPresent ? t.present : t.exited}</span>
     </span>
   );
 }
