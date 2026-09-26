@@ -389,6 +389,33 @@ export function ProfilAgent() {
     charger();
   }, [agent, isAdmin, isSuperAdmin]);
 
+  // Synchroniser automatiquement le profil frais depuis le serveur au chargement
+  useEffect(() => {
+    let isMounted = true;
+    authService.getProfile()
+      .then(res => {
+        const userObj = res?.user || res?.utilisateur;
+        if (userObj && isMounted) {
+          dispatch({ type: 'UPDATE_AGENT', payload: userObj });
+        }
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, [dispatch]);
+
+  // Informations calculées précises et cohérentes selon le rôle
+  const entrepriseNom = isSuperAdmin
+    ? 'NoRegis Global (Supervision Centralisée)'
+    : (typeof agent.entrepriseId === 'object' ? agent.entrepriseId?.nom : agent.entrepriseNom) || 'Port Autonome de Dakar';
+
+  const displayPoste = agent.poste || (isSuperAdmin ? 'Super Administrateur Système' : (isAdmin ? 'Chef Sécurité & Contrôle' : 'Agent d\'Accueil & Contrôle'));
+  const displayDepartement = agent.departement || (isSuperAdmin ? 'Direction des Systèmes d\'Information (DSI)' : (isAdmin ? 'Direction de la Sécurité' : 'Poste Nord'));
+  const displayAccreditation = agent.niveauAccreditation || agent.niveau || (isSuperAdmin ? 'Accès Total (SuperAdmin)' : (isAdmin ? 'Niveau 3 - Admin Boîte' : 'Niveau 1 - Agent d\'Accueil'));
+  const displayMatricule = agent.matricule || `ID-${String(agent._id || agent.id || '0042').slice(-6).toUpperCase()}`;
+  const displayDateArrivee = agent.dateArrivee
+    ? new Date(agent.dateArrivee).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : (agent.createdAt ? new Date(agent.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Compte Actif');
+
   // QR Code download handler
   const handleDownloadQr = async () => {
     const id = agent?.id || agent?._id;
@@ -418,7 +445,6 @@ export function ProfilAgent() {
       dispatch({ type: 'UPDATE_AGENT', payload: { photo: photoBase64 } });
       notify('success', `📸 Photo de profil mise à jour.`);
 
-      // Tentative de sauvegarde côté serveur
       try {
         await authService.updateProfile({ photo: photoBase64 });
       } catch (err) {
@@ -439,9 +465,9 @@ export function ProfilAgent() {
       nom: agent.nom || '',
       email: agent.email || '',
       telephone: agent.telephone || '',
-      departement: agent.departement || '',
-      poste: agent.poste || '',
-      niveauAccreditation: agent.niveauAccreditation || agent.niveau || '',
+      departement: agent.departement || displayDepartement,
+      poste: agent.poste || displayPoste,
+      niveauAccreditation: agent.niveauAccreditation || displayAccreditation,
       dateArrivee: agent.dateArrivee ? new Date(agent.dateArrivee).toISOString().split('T')[0] : ''
     });
     setErreurEnvoi('');
@@ -592,11 +618,9 @@ export function ProfilAgent() {
           <div className="flex gap-2 flex-wrap justify-center lg:justify-start">
             {getRoleBadge(role)}
 
-            {agent?.matricule && (
-              <span className="bg-white/10 px-4 py-1.5 rounded-full text-xs font-mono font-bold text-slate-300 border border-white/10">
-                ID: {agent.matricule}
-              </span>
-            )}
+            <span className="bg-white/10 px-4 py-1.5 rounded-full text-xs font-mono font-bold text-slate-300 border border-white/10">
+              {displayMatricule}
+            </span>
 
             <button
               onClick={handleDownloadQr}
@@ -609,7 +633,7 @@ export function ProfilAgent() {
           </div>
 
           <p className="text-sm opacity-80 flex items-center gap-2 justify-center lg:justify-start pt-1">
-            <Building size={16} /> {agent?.poste || 'Poste non spécifié'}
+            <Building size={16} /> {entrepriseNom} — {displayPoste}
           </p>
         </div>
       </div>
@@ -623,7 +647,7 @@ export function ProfilAgent() {
       {/* Profil details grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 ml-1">{t.coordinates || 'Coordonnées'}</h3>
+          <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 ml-1">Coordonnées & Identité</h3>
           <Card>
             {isEditing ? (
               <div className="p-4 space-y-4">
@@ -655,17 +679,17 @@ export function ProfilAgent() {
               </div>
             ) : (
               <>
-                <InfoRow icon={User}    label="Prénom & Nom" value={`${agent?.prenom || ''} ${agent?.nom || ''}`} />
-                <InfoRow icon={Mail}    label={t.email || 'E-mail'} value={agent?.email} />
-                <InfoRow icon={Phone}   label={t.phone || 'Téléphone'} value={agent?.telephone} />
-                <InfoRow icon={Building} label={t.dept || 'Département'} value={agent?.departement} />
+                <InfoRow icon={User}      label="Nom Complet" value={`${agent?.prenom || ''} ${agent?.nom || ''}`} />
+                <InfoRow icon={Mail}      label="Adresse E-mail" value={agent?.email} />
+                <InfoRow icon={Phone}     label="Numéro de Téléphone" value={agent?.telephone || 'Non renseigné'} />
+                <InfoRow icon={Building2} label="Entreprise / Organisation" value={entrepriseNom} />
               </>
             )}
           </Card>
         </div>
 
         <div>
-          <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 ml-1">{t.ops_info || 'Infos Opérationnelles'}</h3>
+          <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 ml-1">Infos Opérationnelles & Accès</h3>
           <Card>
             {isEditing ? (
               <div className="p-4 space-y-4">
@@ -690,13 +714,10 @@ export function ProfilAgent() {
               </div>
             ) : (
               <>
-                <InfoRow icon={BadgeCheck} label={t.acc_level || 'Accréditation'} value={agent?.niveauAccreditation || agent?.niveau || 'Niveau 1'} />
-                <InfoRow icon={Building}   label={t.workstation || 'Poste de travail'} value={agent?.poste} />
-                <InfoRow icon={Calendar}   label={t.arrival || 'Date d\'arrivée'} value={
-                  agent?.dateArrivee
-                    ? new Date(agent.dateArrivee).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-                    : 'Actif'
-                } />
+                <InfoRow icon={Building}   label="Département / Service" value={displayDepartement} />
+                <InfoRow icon={Briefcase}  label="Poste de travail" value={displayPoste} />
+                <InfoRow icon={BadgeCheck} label="Niveau d'accréditation" value={displayAccreditation} />
+                <InfoRow icon={Calendar}   label="Date de prise de fonction" value={displayDateArrivee} />
               </>
             )}
           </Card>
