@@ -23,6 +23,7 @@ import AgentsManagement from './pages/admin/Agents';
 import DepartementsManagement from './pages/admin/Departements';
 import AgentDashboard from './pages/agent/Dashboard';
 import AgentHistorique from './pages/agent/Historique';
+import BugsManagement from './pages/Bugs';
 
 /* ============================================
    INNER APP (has access to context and router)
@@ -131,6 +132,7 @@ function AppInner() {
           {(isSuperAdmin || isAdmin) && <Route path="/agents" element={<AgentsManagement />} />}
           {isSuperAdmin && <Route path="/comptes" element={<ComptesManagement />} />}
           <Route path="/history" element={<AgentHistorique />} />
+          <Route path="/bugs" element={<BugsManagement />} />
           <Route path="/settings" element={<Parametres />} />
           <Route path="/profile" element={<ProfilAgent />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

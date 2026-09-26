@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard, History, Settings, User as UserIcon,
-  Shield, Clock, Plus, Bell, Search, LogOut, Camera, Building2, Users, Briefcase, FolderTree } from 'lucide-react';
+  Shield, Clock, Plus, Bell, Search, LogOut, Camera, Building2, Users, Briefcase, FolderTree, AlertTriangle } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { RegistrationModal } from './RegistrationModal';
 import { TRANSLATIONS } from '../translations';
@@ -206,7 +206,9 @@ function getSearchPlaceholder(activeTab, t, isSuperAdmin) {
     case 'comptes':
       return t.search_compte || "Rechercher un compte (Nom, rôle, email...)";
     case 'history':
-      return t.search_history || "Rechercher dans l'historique (Visiteur, hôte, date...)";
+      return t.search_history || "Rechercher dans l'historique (Visiteur, hôte, date...) font-bold";
+    case 'bugs':
+      return "Rechercher un signalement, bug, statut...";
     case 'settings':
       return t.search_settings || "Rechercher dans les paramètres...";
     case 'superadmin':
@@ -357,6 +359,7 @@ export function Layout({ children, activeTab, onTabChange }) {
       { id: 'departements', label: 'Départements & Services', icon: FolderTree },
     ] : []),
     { id: 'history', label: isSuperAdmin ? 'Historique Global' : t.history, icon: History },
+    { id: 'bugs', label: 'Signalements & Bugs', icon: AlertTriangle },
     { id: 'settings', label: t.settings, icon: Settings },
     { id: 'profile', label: t.profile, icon: UserIcon },
   ];
