@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, History, Settings, User as UserIcon,
-  Shield, Clock, Plus, Bell, Search, LogOut, Camera, Building2, Users, Briefcase, FolderTree, AlertTriangle } from 'lucide-react';
+  Shield, Clock, Plus, Bell, Search, LogOut, Camera, Building2, Users, Briefcase, FolderTree, AlertTriangle, Menu, X, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { RegistrationModal } from './RegistrationModal';
 import { TRANSLATIONS } from '../translations';
@@ -96,7 +96,7 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
       </nav>
 
       {/* CTA */}
-      {agent?.role !== 'ADMIN' && (
+      {agent?.role !== 'ADMIN' && agent?.role !== 'SUPER_ADMIN' && agent?.role !== 'SUPERADMIN' && (
         <div className="p-4">
           <button
             onClick={onNewEntry}
@@ -126,7 +126,6 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
         <button 
           onClick={() => {
             dispatch({ type: 'LOGOUT' });
-            // Pas besoin de notify ici car le retour au login est immédiat
           }}
           className="w-full flex items-center gap-3 px-6 py-4 text-brand-red hover:bg-red-500/10 transition-colors border-t border-white/5 group"
         >
@@ -139,20 +138,156 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
 }
 
 /* ============================================
+   MOBILE DRAWER SIDEBAR (HAMBURGER MENU)
+============================================ */
+function MobileDrawer({ isOpen, onClose, activeTab, onTabChange, onNewEntry, t, navItems }) {
+  const { state, dispatch } = useApp();
+  const agent = state.agent || state.user || {};
+  const visitors = state.visitors || [];
+  const present = visitors.filter(v => v.statut === 'present').length;
+  const initials = agent.initials || `${(agent.prenom||'S')[0] || ''}${(agent.nom||'A')[0] || ''}`.toUpperCase();
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[250] flex">
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+        onClick={onClose}
+      />
+
+      {/* Drawer Panel */}
+      <div className="relative w-80 max-w-[85vw] bg-brand-navy flex flex-col h-full z-[260] shadow-2xl border-r border-white/10 overflow-hidden animate-in slide-in-from-left duration-250">
+        {/* Header */}
+        <div className="p-5 border-b border-white/10 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-blue-bright to-brand-blue flex items-center justify-center shrink-0">
+              <img src={Logo} alt="NoRegis" className="rounded-lg" />
+            </div>
+            <div>
+              <p className="text-base font-black text-white tracking-tight"><span className='text-white'>No</span><span className='text-brand-blue-bright'>Regis</span></p>
+              <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Registre Digital</p>
+            </div>
+          </div>
+
+          <button 
+            onClick={onClose}
+            className="p-2 text-white/50 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* User Card */}
+        <div 
+          className="p-3.5 mx-3 my-3 bg-white/5 rounded-xl border border-white/10 flex items-center gap-3 cursor-pointer hover:bg-white/10 transition-colors"
+          onClick={() => {
+            onTabChange('profile');
+            onClose();
+          }}
+        >
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 border border-white/20 flex items-center justify-center text-white text-xs font-black shrink-0 overflow-hidden">
+            {agent.photo ? <img src={agent.photo} alt="" className="w-full h-full object-cover" /> : initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-black text-white truncate">{agent.prenom || ''} {agent.nom || ''}</p>
+            <p className="text-[10px] font-extrabold text-brand-blue-bright uppercase tracking-wider truncate">{agent.role || ''}</p>
+          </div>
+          {present > 0 && (
+            <span className="px-2 py-0.5 text-[9px] font-black rounded-full bg-brand-green-bright/20 text-brand-green-bright border border-brand-green-bright/30 shrink-0">
+              {present} pris.
+            </span>
+          )}
+        </div>
+
+        {/* Navigation List */}
+        <div className="px-3 py-2 flex-1 overflow-y-auto space-y-1">
+          <p className="px-3 text-[10px] font-black uppercase tracking-widest text-white/30 mb-2">Toutes les pages</p>
+          {navItems.map(({ id, label, icon: Icon }) => {
+            if (!Icon) return null;
+            const active = activeTab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => {
+                  onTabChange(id);
+                  onClose();
+                }}
+                className={`
+                  w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group
+                  ${active 
+                    ? 'bg-brand-blue-bright/15 text-brand-blue-bright border border-brand-blue-bright/30 font-black' 
+                    : 'text-white/70 hover:text-white hover:bg-white/5 border border-transparent font-bold'
+                  }
+                `}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon size={19} className={active ? 'text-brand-blue-bright' : 'text-white/40 group-hover:text-white'} />
+                  <span className="text-xs">{label}</span>
+                </div>
+                <ChevronRight size={14} className={active ? 'text-brand-blue-bright' : 'text-white/20'} />
+              </button>
+            );
+          })}
+        </div>
+
+        {/* New entry button for Agents */}
+        {agent?.role !== 'ADMIN' && agent?.role !== 'SUPER_ADMIN' && agent?.role !== 'SUPERADMIN' && (
+          <div className="px-4 py-2">
+            <button
+              onClick={() => {
+                onNewEntry();
+                onClose();
+              }}
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-blue-bright to-brand-blue text-white p-3 rounded-xl font-black text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg"
+            >
+              <Plus size={18} strokeWidth={3} />
+              {t.new_entry || 'Nouveau Visiteur'}
+            </button>
+          </div>
+        )}
+
+        {/* Footer Logout */}
+        <div className="p-3 border-t border-white/10">
+          <button 
+            onClick={() => {
+              onClose();
+              dispatch({ type: 'LOGOUT' });
+            }}
+            className="w-full flex items-center justify-center gap-2 p-3 rounded-xl text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-colors text-xs font-black uppercase tracking-wider"
+          >
+            <LogOut size={16} />
+            <span>{t.logout || 'Déconnexion'}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================
    MOBILE HEADER
 ============================================ */
-function MobileHeader({ activeTab, navItems }) {
+function MobileHeader({ activeTab, navItems, onOpenMenu }) {
   const tabLabel = navItems.find(n => n.id === activeTab)?.label || 'NoRegis';
 
   return (
-    <header className="sticky top-0 z-[100] bg-brand-navy p-4 flex items-center justify-between border-b border-white/5">
+    <header className="sticky top-0 z-[100] bg-brand-navy p-3.5 flex items-center justify-between border-b border-white/5">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-blue-bright to-brand-blue flex items-center justify-center">
-        <img src={Logo} alt="no regis logo " className="rounded-lg" />
-        </div>
+        <button 
+          onClick={onOpenMenu}
+          className="p-2 text-white/80 hover:text-white rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors flex items-center gap-1.5"
+          title="Ouvrir le menu complet"
+        >
+          <Menu size={20} />
+        </button>
+
         <div className="flex items-center gap-2">
-          {/* <span className="text-base font-black text-white tracking-tight">NoRegis</span> */}
-          <span className="text-xs font-bold text-white/30">/ {tabLabel}</span>
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-blue-bright to-brand-blue flex items-center justify-center shrink-0">
+            <img src={Logo} alt="no regis logo " className="rounded-lg" />
+          </div>
+          <span className="text-xs font-black text-white/90 truncate max-w-[140px]">{tabLabel}</span>
         </div>
       </div>
       <LiveClock light />
@@ -163,27 +298,62 @@ function MobileHeader({ activeTab, navItems }) {
 /* ============================================
    MOBILE BOTTOM NAV
 ============================================ */
-function BottomNav({ activeTab, onTabChange, t, navItems }) {
+function BottomNav({ activeTab, onTabChange, onOpenMenu, navItems, role }) {
   const { state } = useApp();
   const present = (state.visitors || []).filter(v => v.statut === 'present').length;
+  const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'SUPERADMIN';
+  const isAdmin = role === 'ADMIN';
+
+  // Déterminer les 3 pages les plus pertinentes selon le rôle
+  let mainTabIds = ['dashboard', 'history', 'bugs'];
+  if (isSuperAdmin) {
+    mainTabIds = ['dashboard', 'entreprises', 'bugs'];
+  } else if (isAdmin) {
+    mainTabIds = ['dashboard', 'agents', 'bugs'];
+  }
+
+  const urgentNavItems = mainTabIds
+    .map(id => navItems.find(n => n.id === id))
+    .filter(Boolean);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-brand-navy border-t border-white/10 flex items-center justify-around px-2 pb-safe-area z-[100] h-16">
-      {navItems.map(({ id, label, icon: Icon }) => {
+    <nav className="fixed bottom-0 left-0 right-0 bg-brand-navy border-t border-white/10 flex items-center justify-around px-2 pb-safe-area z-[100] h-16 shadow-2xl">
+      {urgentNavItems.map(({ id, label, icon: Icon }) => {
         if (!Icon) return null;
         const active = activeTab === id;
         return (
-          <button key={id} onClick={() => onTabChange(id)} className="flex-grow flex flex-col items-center gap-1.5 transition-all">
+          <button 
+            key={id} 
+            onClick={() => onTabChange(id)} 
+            className="flex-1 flex flex-col items-center justify-center gap-1 transition-all py-1"
+          >
             <div className="relative">
-              <Icon size={22} className={active ? 'text-brand-blue-bright' : 'text-white/30'} />
+              <Icon size={20} className={active ? 'text-brand-blue-bright' : 'text-white/40'} />
               {id === 'dashboard' && present > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-brand-green-bright text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg">{present}</span>
+                <span className="absolute -top-1.5 -right-2.5 bg-brand-green-bright text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg">
+                  {present}
+                </span>
               )}
             </div>
-            <span className={`text-[8px] font-black uppercase tracking-tight ${active ? 'text-brand-blue-bright' : 'text-white/30'}`}>{label}</span>
+            <span className={`text-[9px] font-black tracking-tight truncate max-w-[75px] ${active ? 'text-brand-blue-bright' : 'text-white/40'}`}>
+              {label}
+            </span>
           </button>
         );
       })}
+
+      {/* Bouton Hamburger Menu (Tous les services) */}
+      <button 
+        onClick={onOpenMenu} 
+        className="flex-1 flex flex-col items-center justify-center gap-1 transition-all py-1 group"
+      >
+        <div className="relative">
+          <Menu size={20} className="text-white/40 group-hover:text-white" />
+        </div>
+        <span className="text-[9px] font-black tracking-tight text-white/40 group-hover:text-white uppercase">
+          Menu ☰
+        </span>
+      </button>
     </nav>
   );
 }
@@ -259,7 +429,6 @@ function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
     return fallback;
   };
 
-  // Compute dynamic notification list combining bug reports and visitor entries
   const bugNotifs = (bugs || []).map(b => {
     if (!b) return null;
     const isResolu = b.statut === 'RESOLU' || b.statut === 'FERME';
@@ -294,7 +463,6 @@ function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
         subtext = `Signalé par ${bSignaleur}`;
       }
     } else {
-      // Role AGENT
       if (hasResponses && lastResponse?.roleAuteur !== 'AGENT') {
         const authorRole = (lastResponse?.roleAuteur === 'SUPER_ADMIN' || lastResponse?.roleAuteur === 'SUPERADMIN') ? 'SuperAdmin' : 'Admin';
         text = `💬 Réponse de ${authorRole} (${safeStr(lastResponse?.nomAuteur, 'Utilisateur')}) : ${bTitre}`;
@@ -433,6 +601,7 @@ function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
 export function Layout({ children, activeTab, onTabChange }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [regOpen, setRegOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { state } = useApp();
   const t = TRANSLATIONS[state.settings?.language || 'fr'];
 
@@ -478,7 +647,7 @@ export function Layout({ children, activeTab, onTabChange }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-slate-100 dark:bg-[#0D1117]">
         {isMobile ? (
-          <MobileHeader activeTab={activeTab} navItems={navItems} />
+          <MobileHeader activeTab={activeTab} navItems={navItems} onOpenMenu={() => setMobileMenuOpen(true)} />
         ) : (
           <DesktopTopBar activeTab={activeTab} navItems={navItems} t={t} onTabChange={onTabChange} />
         )}
@@ -490,12 +659,29 @@ export function Layout({ children, activeTab, onTabChange }) {
         </main>
       </div>
 
-      {/* Mobile Nav */}
+      {/* Mobile Nav & Drawer */}
       {isMobile && (
-        <BottomNav activeTab={activeTab} onTabChange={onTabChange} onNewEntry={() => setRegOpen(true)} t={t} navItems={navItems} />
+        <>
+          <BottomNav 
+            activeTab={activeTab} 
+            onTabChange={onTabChange} 
+            onOpenMenu={() => setMobileMenuOpen(true)} 
+            navItems={navItems} 
+            role={role} 
+          />
+          <MobileDrawer 
+            isOpen={mobileMenuOpen} 
+            onClose={() => setMobileMenuOpen(false)} 
+            activeTab={activeTab} 
+            onTabChange={onTabChange} 
+            onNewEntry={() => setRegOpen(true)} 
+            t={t} 
+            navItems={navItems} 
+          />
+        </>
       )}
 
-      {/* Bouton Flottant (FAB) - Scan Rapide (Desktop uniquement pour éviter le chevauchement du menu mobile) */}
+      {/* Bouton Flottant (FAB) - Scan Rapide (Desktop uniquement) */}
       {!isMobile && (
         <button
           onClick={() => setRegOpen(true)}
@@ -515,4 +701,3 @@ export function Layout({ children, activeTab, onTabChange }) {
     </div>
   );
 }
-
