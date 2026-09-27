@@ -341,19 +341,6 @@ function BottomNav({ activeTab, onTabChange, onOpenMenu, navItems, role }) {
           </button>
         );
       })}
-
-      {/* Bouton Hamburger Menu (Tous les services) */}
-      <button 
-        onClick={onOpenMenu} 
-        className="flex-1 flex flex-col items-center justify-center gap-1 transition-all py-1 group"
-      >
-        <div className="relative">
-          <Menu size={20} className="text-white/40 group-hover:text-white" />
-        </div>
-        <span className="text-[9px] font-black tracking-tight text-white/40 group-hover:text-white uppercase">
-          Menu ☰
-        </span>
-      </button>
     </nav>
   );
 }
