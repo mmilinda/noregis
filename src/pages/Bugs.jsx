@@ -33,7 +33,7 @@ const safeDate = (dateVal, isTime = false) => {
 };
 
 export default function BugsManagement() {
-  const { state, notify } = useApp();
+  const { state, dispatch, notify } = useApp();
   const location = useLocation();
   const user = state.user || state.agent || {};
   const role = (user.role || '').toUpperCase();
@@ -110,6 +110,7 @@ export default function BugsManagement() {
       const bugsList = res?.bugs || res?.data?.bugs || [];
       if (res?.success || Array.isArray(bugsList)) {
         setBugs(bugsList);
+        if (dispatch) dispatch({ type: 'SET_BUGS', payload: bugsList });
       }
     } catch (err) {
       console.error('Erreur chargement bugs:', err);
@@ -118,7 +119,7 @@ export default function BugsManagement() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [filterStatut, filterPriorite, notify]);
+  }, [filterStatut, filterPriorite, notify, dispatch]);
 
   useEffect(() => {
     loadBugs();
@@ -178,7 +179,11 @@ export default function BugsManagement() {
         notify('success', 'Réponse enregistrée avec succès.');
         setResponseMsg('');
         setNewStatut('');
-        if (res.bug) setSelectedBug(res.bug);
+        const updatedBug = res.bug || res.data?.bug;
+        if (updatedBug) {
+          setSelectedBug(updatedBug);
+          if (dispatch) dispatch({ type: 'UPDATE_BUG_REALTIME', payload: updatedBug });
+        }
         loadBugs(true);
       } else {
         notify('error', res?.message || 'Erreur lors de l\'envoi de la réponse.');
@@ -595,6 +600,21 @@ export default function BugsManagement() {
                 )}
               </div>
             </div>
+
+            {/* SuperAdmin Official Response callout (if set) */}
+            {selectedBug.reponseSuperAdmin && (
+              <div className="p-4 rounded-xl bg-amber-500/10 border-2 border-amber-500/30 space-y-1.5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                    <ShieldCheck size={16} /> Réponse Officielle du SuperAdmin
+                  </span>
+                  <span className="text-[10px] font-bold text-amber-600/70">👑 SuperAdmin</span>
+                </div>
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 whitespace-pre-wrap leading-relaxed">
+                  {safeStr(selectedBug.reponseSuperAdmin)}
+                </p>
+              </div>
+            )}
 
             {/* Response thread list */}
             <div className="space-y-3">
