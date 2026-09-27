@@ -42,9 +42,45 @@ class ErrorBoundary extends Component {
             <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: '#38BDF8' }}>
               NoRegis — Une erreur est survenue
             </h2>
-            <p style={{ fontSize: '0.875rem', color: '#94A3B8', marginBottom: '1.5rem' }}>
+            <p style={{ fontSize: '0.875rem', color: '#94A3B8', marginBottom: '1rem' }}>
               Une exception inattendue s'est produite lors de l'affichage de la page.
             </p>
+            {this.state.error && (
+              <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+                <div style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 'bold',
+                  color: '#EF4444',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  padding: '0.75rem',
+                  borderRadius: '0.5rem',
+                  wordBreak: 'break-word',
+                  fontFamily: 'monospace'
+                }}>
+                  {this.state.error.toString()}
+                </div>
+                {this.state.error.stack && (
+                  <details style={{ marginTop: '0.5rem' }}>
+                    <summary style={{ fontSize: '0.75rem', color: '#64748B', cursor: 'pointer' }}>Voir les détails de l'erreur (Stack)</summary>
+                    <pre style={{
+                      fontSize: '0.7rem',
+                      color: '#CBD5E1',
+                      backgroundColor: '#0D1117',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      marginTop: '0.5rem',
+                      overflowX: 'auto',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      maxHeight: '200px'
+                    }}>
+                      {this.state.error.stack}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            )}
             <button
               onClick={() => window.location.reload()}
               style={{

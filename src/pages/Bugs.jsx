@@ -225,10 +225,10 @@ export default function BugsManagement() {
   });
 
   // Stats calculation
-  const totalBugs = bugs.length;
-  const ouvertsCount = bugs.filter(b => b.statut === 'OUVERT').length;
-  const enCoursCount = bugs.filter(b => b.statut === 'EN_COURS').length;
-  const resolusCount = bugs.filter(b => b.statut === 'RESOLU' || b.statut === 'FERME').length;
+  const totalBugs = (bugs || []).filter(Boolean).length;
+  const ouvertsCount = (bugs || []).filter(b => b && b.statut === 'OUVERT').length;
+  const enCoursCount = (bugs || []).filter(b => b && b.statut === 'EN_COURS').length;
+  const resolusCount = (bugs || []).filter(b => b && (b.statut === 'RESOLU' || b.statut === 'FERME')).length;
 
   // Helper styles for status badges
   const getStatusBadge = (statut) => {
