@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Moon, Sun, Globe, Bell, Smartphone, Volume2,
   LifeBuoy, Bug, Info, ShieldAlert, KeyRound, Lock,
-  Camera, Building, Phone, Mail, Calendar, BadgeCheck,
+  Camera, Building, Building2, Briefcase, Phone, Mail, Calendar, BadgeCheck,
   LogOut, Pencil, Send, Clock, XCircle, Plus, Minus, QrCode,
   Shield, CheckCircle2, User, Database, Server, RefreshCw
 } from 'lucide-react';
@@ -17,11 +17,12 @@ import { demandeService } from '../services/demandeService';
    PARAMÈTRES HELPERS
 ============================================ */
 function SettingRow({ icon: Icon, label, description, children }) {
+  const IconComponent = Icon || Info;
   return (
     <div className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-800 last:border-0">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 text-brand-blue flex items-center justify-center shrink-0 border border-slate-100 dark:border-slate-800">
-          <Icon size={20} />
+          <IconComponent size={20} />
         </div>
         <div>
           <p className="font-bold text-sm text-slate-900 dark:text-slate-100">{label}</p>
@@ -338,10 +339,11 @@ export function Parametres() {
    2. COMPOSANT PROFIL UTILISATEUR
 ============================================ */
 function InfoRow({ icon: Icon, label, value }) {
+  const IconComponent = Icon || User;
   return (
     <div className="flex items-center gap-4 p-4 border-b border-slate-100 dark:border-slate-800 last:border-0">
       <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-brand-blue flex items-center justify-center shrink-0 border border-blue-500/10">
-        <Icon size={18} />
+        <IconComponent size={18} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{label}</p>
