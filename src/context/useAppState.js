@@ -25,7 +25,7 @@ try {
   if (storedSettings) parsedSettings = { ...parsedSettings, ...JSON.parse(storedSettings) };
 } catch (e) {}
 
-let parsedNotifs = { newVisits: true, reminders: false, email: false, push: true, sounds: true };
+let parsedNotifs = { newVisits: true, reminders: false, email: false, push: true, sounds: true, appUpdates: true };
 try {
   if (storedNotifs) parsedNotifs = { ...parsedNotifs, ...JSON.parse(storedNotifs) };
 } catch (e) {}

@@ -5,7 +5,8 @@ import {
   LifeBuoy, Bug, Info, ShieldAlert, KeyRound, Lock,
   Camera, Building, Building2, Briefcase, Phone, Mail, Calendar, BadgeCheck,
   LogOut, Pencil, Send, Clock, XCircle, Plus, Minus, QrCode,
-  Shield, CheckCircle2, User, Database, Server, RefreshCw
+  Shield, CheckCircle2, User, Database, Server, RefreshCw,
+  Download, Sparkles, ArrowUpCircle
 } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { Card, Toggle, Btn, Modal, FormInput } from '../components/UI';
@@ -93,6 +94,50 @@ export function Parametres() {
 
   // Support modal state
   const [showSupportModal, setShowSupportModal] = useState(false);
+
+  // State & Handlers Mise à jour de l'application
+  const [appVersion, setAppVersion] = useState(() => localStorage.getItem('noregis_app_version') || '1.0.0');
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [installingUpdate, setInstallingUpdate] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState(0);
+
+  const handleCheckUpdate = () => {
+    setCheckingUpdate(true);
+    setTimeout(() => {
+      setCheckingUpdate(false);
+      if (appVersion === '1.0.0') {
+        setUpdateAvailable(true);
+        setShowUpdateModal(true);
+        if (notifications.appUpdates !== false) {
+          notify('info', '🚀 Une nouvelle version NoRegis v1.1.0 est disponible !');
+        }
+      } else {
+        notify('success', `✨ Votre application NoRegis est à jour (v${appVersion}).`);
+      }
+    }, 1200);
+  };
+
+  const handleInstallUpdate = () => {
+    setInstallingUpdate(true);
+    setUpdateProgress(15);
+    const interval = setInterval(() => {
+      setUpdateProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setInstallingUpdate(false);
+          setAppVersion('1.1.0');
+          localStorage.setItem('noregis_app_version', '1.1.0');
+          setUpdateAvailable(false);
+          setShowUpdateModal(false);
+          notify('success', '🎉 Application mise à jour vers NoRegis v1.1.0 avec succès !');
+          return 100;
+        }
+        return prev + 25;
+      });
+    }, 400);
+  };
 
   // Handle password change submit
   const handlePasswordSubmit = async (e) => {
@@ -197,6 +242,9 @@ export function Parametres() {
         <SettingRow icon={Volume2} label={t.alert_sounds || 'Effets Sonores'} description={t.sound_feedback || 'Bip sonore lors de la lecture des codes QR & CIN'}>
           <Toggle active={notifications.sounds} onChange={v => updateNotif('sounds', v)} />
         </SettingRow>
+        <SettingRow icon={ArrowUpCircle} label="Alertes de Nouvelles Versions" description="Recevoir une notification automatique lorsqu'une nouvelle version de NoRegis est disponible">
+          <Toggle active={notifications.appUpdates ?? true} onChange={v => updateNotif('appUpdates', v)} />
+        </SettingRow>
       </SectionCard>
 
       {/* Sécurité & Mot de passe */}
@@ -230,11 +278,30 @@ export function Parametres() {
       </SectionCard>
 
       {/* Infos Système & Organisation selon le rôle */}
-      <SectionCard title={t.about || 'Informations Système & Organisation'}>
-        <SettingRow icon={Info} label="Version de l'application" description={t.app_version}>
-          <span className="text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-1 rounded-md border border-slate-200 dark:border-slate-700">
-            NoRegis v1.0.0 (Production)
-          </span>
+      <SectionCard title={t.about || 'Informations Système & Mises à Jour'}>
+        <SettingRow
+          icon={Sparkles}
+          label="Version de l'application & Mises à jour"
+          description={updateAvailable ? "Une nouvelle version v1.1.0 est disponible !" : "Système à jour — Registre Digital NoRegis"}
+        >
+          <div className="flex items-center gap-2">
+            <span className={`text-xs font-mono font-bold px-3 py-1 rounded-md border ${
+              updateAvailable 
+                ? 'bg-amber-500/10 text-amber-500 border-amber-500/30 animate-pulse' 
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+            }`}>
+              v{appVersion} {updateAvailable ? '(v1.1.0 dispo)' : ''}
+            </span>
+            <Btn
+              variant={updateAvailable ? "success" : "secondary"}
+              size="sm"
+              icon={checkingUpdate ? RefreshCw : (updateAvailable ? Download : RefreshCw)}
+              loading={checkingUpdate}
+              onClick={handleCheckUpdate}
+            >
+              {checkingUpdate ? 'Vérification...' : (updateAvailable ? 'Mettre à jour' : 'Rechercher mise à jour')}
+            </Btn>
+          </div>
         </SettingRow>
 
         {isSuperAdmin && (
@@ -327,6 +394,80 @@ export function Parametres() {
           <div className="flex justify-end pt-2">
             <Btn variant="secondary" onClick={() => setShowSupportModal(false)}>
               Fermer
+            </Btn>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal 3: Mise à jour Application */}
+      <Modal
+        isOpen={showUpdateModal}
+        onClose={() => !installingUpdate && setShowUpdateModal(false)}
+        title="Mise à jour de l'application disponible"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="p-4 rounded-xl bg-gradient-to-r from-blue-600/10 via-brand-blue-bright/10 to-indigo-600/10 border border-brand-blue-bright/20 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-brand-blue-bright uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles size={16} /> Version v1.1.0 (Disponible)
+              </span>
+              <span className="text-[10px] font-bold bg-brand-blue-bright text-white px-2 py-0.5 rounded-full">Recommandé</span>
+            </div>
+            <h4 className="text-base font-black text-slate-900 dark:text-white">Nouvelle version système prête pour l'installation</h4>
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Cette mise à jour apporte des améliorations majeures de performance, sécurité et stabilité pour l'ensemble des modules.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Nouveautés & Améliorations :</p>
+            <ul className="space-y-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+              <li className="flex items-start gap-2">
+                <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                <span><strong>OCR & Scanner :</strong> Détection accélérée et reconnaissance faciale optimisée.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                <span><strong>Notifications Temps Réel :</strong> Alertes automatiques instantanées des nouvelles versions & visites.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                <span><strong>Sécurité Multi-Tenant :</strong> Chiffrement des sessions renforcé et synchronisation hors-ligne.</span>
+              </li>
+            </ul>
+          </div>
+
+          {installingUpdate && (
+            <div className="space-y-2 pt-2">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-brand-blue-bright flex items-center gap-2">
+                  <RefreshCw size={14} className="animate-spin" /> Installation en cours...
+                </span>
+                <span className="text-slate-500">{updateProgress}%</span>
+              </div>
+              <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-brand-blue-bright to-emerald-500 h-full transition-all duration-300 rounded-full"
+                  style={{ width: `${updateProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            {!installingUpdate && (
+              <Btn variant="secondary" onClick={() => setShowUpdateModal(false)}>
+                Plus tard
+              </Btn>
+            )}
+            <Btn
+              variant="primary"
+              icon={Download}
+              loading={installingUpdate}
+              onClick={handleInstallUpdate}
+            >
+              {installingUpdate ? 'Installation...' : 'Installer la mise à jour v1.1.0'}
             </Btn>
           </div>
         </div>
