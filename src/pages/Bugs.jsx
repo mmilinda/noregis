@@ -469,7 +469,7 @@ export default function BugsManagement() {
                         <ShieldCheck size={13} /> Répondu par SuperAdmin
                       </span>
                     ) : hasAdminResponse ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-blue-600 dark:text-blue-400">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-indigo-600 dark:text-indigo-400">
                         <ShieldCheck size={13} /> Répondu par Admin
                       </span>
                     ) : bug.statut !== 'OUVERT' ? (
@@ -640,12 +640,12 @@ export default function BugsManagement() {
 
               if (isAdminCallout) {
                 return (
-                  <div className="p-4 rounded-xl bg-blue-500/10 border-2 border-blue-500/30 space-y-1.5 shadow-sm">
+                  <div className="p-4 rounded-xl bg-indigo-500/10 border-2 border-indigo-500/30 space-y-1.5 shadow-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
+                      <span className="text-xs font-black text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5">
                         <ShieldCheck size={16} /> Réponse Officielle de l'Admin
                       </span>
-                      <span className="text-[10px] font-bold text-blue-600/70">💼 Admin</span>
+                      <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">💼 Admin</span>
                     </div>
                     <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 whitespace-pre-wrap leading-relaxed">
                       {safeStr(selectedBug.reponseAdmin || lastModalRep?.message || `Signalement ${safeStr(selectedBug.statut).toLowerCase()}`)}
@@ -672,12 +672,15 @@ export default function BugsManagement() {
                   {selectedBug.reponses.map((rep, idx) => {
                     if (!rep) return null;
                     const isRepSuperAdmin = rep.roleAuteur === 'SUPER_ADMIN' || rep.roleAuteur === 'SUPERADMIN';
+                    const isRepAdmin = rep.roleAuteur === 'ADMIN';
                     return (
                       <div
                         key={rep._id || idx}
                         className={`p-4 rounded-xl border transition-all ${
                           isRepSuperAdmin
                             ? 'bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/30'
+                            : isRepAdmin
+                            ? 'bg-gradient-to-r from-indigo-500/10 via-indigo-500/5 to-transparent border-indigo-500/30'
                             : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800'
                         }`}
                       >
@@ -687,9 +690,13 @@ export default function BugsManagement() {
                               {safeStr(rep.nomAuteur, 'Utilisateur')}
                             </span>
                             <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${
-                              isRepSuperAdmin ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                              isRepSuperAdmin
+                                ? 'bg-amber-500 text-white'
+                                : isRepAdmin
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                             }`}>
-                              {isRepSuperAdmin ? '👑 SuperAdmin' : safeStr(rep.roleAuteur, 'AGENT')}
+                              {isRepSuperAdmin ? '👑 SuperAdmin' : isRepAdmin ? '💼 Admin' : safeStr(rep.roleAuteur, 'AGENT')}
                             </span>
                           </div>
 
