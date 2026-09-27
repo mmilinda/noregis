@@ -7,6 +7,31 @@ import {
 } from 'lucide-react';
 import { Btn, Card, FormInput, FormSelect, StatCard, Modal, EmptyState } from '../components/UI';
 
+const safeStr = (val, fallback = '') => {
+  if (!val) return fallback;
+  if (typeof val === 'string' || typeof val === 'number') return String(val);
+  if (typeof val === 'object') {
+    if (val.nom || val.prenom) return `${val.prenom || ''} ${val.nom || ''}`.trim();
+    if (val.name) return String(val.name);
+    if (val.code) return String(val.code);
+    return fallback;
+  }
+  return fallback;
+};
+
+const safeDate = (dateVal, isTime = false) => {
+  if (!dateVal) return '';
+  try {
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return '';
+    return isTime 
+      ? d.toLocaleString('fr-FR')
+      : d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+  } catch (e) {
+    return '';
+  }
+};
+
 export default function BugsManagement() {
   const { state, notify } = useApp();
   const location = useLocation();
@@ -25,6 +50,18 @@ export default function BugsManagement() {
       setBugs(state.bugs);
     }
   }, [state.bugs]);
+
+  // Keep selectedBug updated when bugs array updates
+  const [selectedBug, setSelectedBug] = useState(null);
+  useEffect(() => {
+    if (selectedBug) {
+      const curId = selectedBug._id || selectedBug.id;
+      const updated = bugs.find(b => (b._id === curId || b.id === curId));
+      if (updated) {
+        setSelectedBug(updated);
+      }
+    }
+  }, [bugs]);
 
   // Auto-open bug modal from URL query parameter (e.g. /bugs?bugId=xxx)
   useEffect(() => {
@@ -45,7 +82,6 @@ export default function BugsManagement() {
 
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedBug, setSelectedBug] = useState(null);
 
   // New bug form
   const [newBug, setNewBug] = useState({
@@ -382,18 +418,18 @@ export default function BugsManagement() {
                       {getStatusBadge(bug.statut)}
                     </div>
                     <span className="text-[10px] font-bold text-slate-400">
-                      {new Date(bug.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                      {safeDate(bug.createdAt)}
                     </span>
                   </div>
 
                   {/* Title */}
                   <h3 className="text-sm font-black text-slate-900 dark:text-white group-hover:text-brand-blue-bright transition-colors line-clamp-1">
-                    {bug.titre}
+                    {safeStr(bug.titre, 'Signalement technique')}
                   </h3>
 
                   {/* Description preview */}
                   <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 font-medium">
-                    {bug.description}
+                    {safeStr(bug.description)}
                   </p>
                 </div>
 
@@ -402,16 +438,16 @@ export default function BugsManagement() {
                   <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
                     <div className="flex items-center gap-1.5 truncate">
                       <User size={13} className="text-slate-400 shrink-0" />
-                      <span className="truncate text-slate-700 dark:text-slate-300">{bug.nomSignaleur || 'Anonyme'}</span>
+                      <span className="truncate text-slate-700 dark:text-slate-300">{safeStr(bug.nomSignaleur, 'Anonyme')}</span>
                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase font-black">
-                        {bug.roleSignaleur}
+                        {safeStr(bug.roleSignaleur, 'AGENT')}
                       </span>
                     </div>
 
                     {bug.entrepriseNom && (
                       <div className="flex items-center gap-1 text-[10px] text-brand-blue-bright font-black truncate max-w-[120px]">
                         <Building2 size={12} className="shrink-0" />
-                        <span className="truncate">{bug.entrepriseNom}</span>
+                        <span className="truncate">{safeStr(bug.entrepriseNom)}</span>
                       </div>
                     )}
                   </div>
@@ -513,7 +549,7 @@ export default function BugsManagement() {
         <Modal
           isOpen={!!selectedBug}
           onClose={() => setSelectedBug(null)}
-          title={`Detail du bug: ${selectedBug.titre}`}
+          title={`Detail du bug: ${safeStr(selectedBug.titre)}`}
           size="lg"
         >
           <div className="space-y-6">
@@ -531,29 +567,29 @@ export default function BugsManagement() {
                 </div>
 
                 <span className="text-xs font-bold text-slate-400">
-                  Signalé le {new Date(selectedBug.createdAt).toLocaleString('fr-FR')}
+                  Signalé le {safeDate(selectedBug.createdAt, true)}
                 </span>
               </div>
 
               <div>
                 <h2 className="text-base font-black text-slate-900 dark:text-white mb-2">
-                  {selectedBug.titre}
+                  {safeStr(selectedBug.titre)}
                 </h2>
                 <p className="text-xs font-medium text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                  {selectedBug.description}
+                  {safeStr(selectedBug.description)}
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500">
                 <div>
                   <span className="text-slate-400">Signalé par: </span>
-                  <strong className="text-slate-800 dark:text-slate-200">{selectedBug.nomSignaleur}</strong> ({selectedBug.roleSignaleur})
+                  <strong className="text-slate-800 dark:text-slate-200">{safeStr(selectedBug.nomSignaleur, 'Anonyme')}</strong> ({safeStr(selectedBug.roleSignaleur, 'AGENT')})
                 </div>
 
                 {selectedBug.entrepriseNom && (
                   <div>
                     <span className="text-slate-400">Entreprise: </span>
-                    <strong className="text-brand-blue-bright">{selectedBug.entrepriseNom}</strong>
+                    <strong className="text-brand-blue-bright">{safeStr(selectedBug.entrepriseNom)}</strong>
                   </div>
                 )}
               </div>
@@ -562,20 +598,21 @@ export default function BugsManagement() {
             {/* Response thread list */}
             <div className="space-y-3">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                <MessageSquare size={14} /> Fil des Réponses & Actions ({selectedBug.reponses?.length || 0})
+                <MessageSquare size={14} /> Fil des Réponses & Actions ({(Array.isArray(selectedBug.reponses) ? selectedBug.reponses : []).length})
               </h3>
 
-              {(!selectedBug.reponses || selectedBug.reponses.length === 0) ? (
+              {(!Array.isArray(selectedBug.reponses) || selectedBug.reponses.length === 0) ? (
                 <p className="text-xs text-slate-400 italic p-4 bg-slate-50 dark:bg-slate-900 rounded-lg text-center">
                   Aucune réponse enregistrée pour le moment. Vous ou le SuperAdmin pouvez répondre ci-dessous.
                 </p>
               ) : (
                 <div className="space-y-3">
                   {selectedBug.reponses.map((rep, idx) => {
+                    if (!rep) return null;
                     const isRepSuperAdmin = rep.roleAuteur === 'SUPER_ADMIN' || rep.roleAuteur === 'SUPERADMIN';
                     return (
                       <div
-                        key={idx}
+                        key={rep._id || idx}
                         className={`p-4 rounded-xl border transition-all ${
                           isRepSuperAdmin
                             ? 'bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/30'
@@ -585,22 +622,22 @@ export default function BugsManagement() {
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-black text-slate-900 dark:text-white">
-                              {rep.nomAuteur}
+                              {safeStr(rep.nomAuteur, 'Utilisateur')}
                             </span>
                             <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${
                               isRepSuperAdmin ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                             }`}>
-                              {isRepSuperAdmin ? '👑 SuperAdmin' : rep.roleAuteur}
+                              {isRepSuperAdmin ? '👑 SuperAdmin' : safeStr(rep.roleAuteur, 'AGENT')}
                             </span>
                           </div>
 
                           <span className="text-[10px] font-bold text-slate-400">
-                            {new Date(rep.createdAt).toLocaleString('fr-FR')}
+                            {safeDate(rep.createdAt, true)}
                           </span>
                         </div>
 
                         <p className="text-xs font-medium text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
-                          {rep.message}
+                          {safeStr(rep.message)}
                         </p>
                       </div>
                     );
