@@ -33,9 +33,15 @@ function AppInner() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Determine active tab based on route path
-  const path = location.pathname.replace('/', '') || 'dashboard';
-  const activeTab = path;
+  // Determine active tab based on route path with alias support
+  const rawPath = location.pathname.split('/')[1] || 'dashboard';
+  const pathAliasMap = {
+    'profil': 'profile',
+    'parametres': 'settings',
+    'historique': 'history',
+    'signalements': 'bugs',
+  };
+  const activeTab = pathAliasMap[rawPath] || rawPath;
 
   const handleTabChange = (tabId) => {
     navigate('/' + tabId);
@@ -132,9 +138,13 @@ function AppInner() {
           {(isSuperAdmin || isAdmin) && <Route path="/agents" element={<AgentsManagement />} />}
           {isSuperAdmin && <Route path="/comptes" element={<ComptesManagement />} />}
           <Route path="/history" element={<AgentHistorique />} />
+          <Route path="/historique" element={<AgentHistorique />} />
           <Route path="/bugs" element={<BugsManagement />} />
+          <Route path="/signalements" element={<BugsManagement />} />
           <Route path="/settings" element={<Parametres />} />
+          <Route path="/parametres" element={<Parametres />} />
           <Route path="/profile" element={<ProfilAgent />} />
+          <Route path="/profil" element={<ProfilAgent />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Layout>
