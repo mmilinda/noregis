@@ -229,6 +229,7 @@ function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
   const { searchQuery, bugs = [], visitors = [] } = state;
   const role = (state.agent?.role || state.user?.role || '').toUpperCase();
   const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'SUPERADMIN';
+  const isAdmin = role === 'ADMIN';
   const tabLabel = navItems.find(n => n.id === activeTab)?.label || 'NoRegis';
   const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef(null);
