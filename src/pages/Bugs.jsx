@@ -217,9 +217,26 @@ export default function BugsManagement() {
     }
   };
 
-  // Filtered bugs search
-  const filteredBugs = (bugs || []).filter(b => {
+  // Filter bugs by role permissions first
+  const userBugs = (bugs || []).filter(b => {
     if (!b) return false;
+    if (!isSuperAdmin && !isAdmin) {
+      // AGENT : Ne voit QUE ses propres signalements et JAMAIS les signalements créés par un ADMIN
+      const bugSignaleurId = b.signaleParId?._id || b.signaleParId || b.signaleParId;
+      const currentUserId = user._id || user.id;
+
+      if (b.roleSignaleur === 'ADMIN' || b.roleSignaleur === 'SUPER_ADMIN' || b.roleSignaleur === 'SUPERADMIN') {
+        return false;
+      }
+      if (bugSignaleurId && currentUserId && bugSignaleurId.toString() !== currentUserId.toString()) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  // Filtered bugs search
+  const filteredBugs = userBugs.filter(b => {
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
     const titre = safeStr(b.titre).toLowerCase();
@@ -230,10 +247,10 @@ export default function BugsManagement() {
   });
 
   // Stats calculation
-  const totalBugs = (bugs || []).filter(Boolean).length;
-  const ouvertsCount = (bugs || []).filter(b => b && b.statut === 'OUVERT').length;
-  const enCoursCount = (bugs || []).filter(b => b && b.statut === 'EN_COURS').length;
-  const resolusCount = (bugs || []).filter(b => b && (b.statut === 'RESOLU' || b.statut === 'FERME')).length;
+  const totalBugs = userBugs.length;
+  const ouvertsCount = userBugs.filter(b => b && b.statut === 'OUVERT').length;
+  const enCoursCount = userBugs.filter(b => b && b.statut === 'EN_COURS').length;
+  const resolusCount = userBugs.filter(b => b && (b.statut === 'RESOLU' || b.statut === 'FERME')).length;
 
   // Helper styles for status badges
   const getStatusBadge = (statut) => {
@@ -466,15 +483,21 @@ export default function BugsManagement() {
                   <div className="flex items-center justify-between pt-1 gap-4 flex-wrap sm:flex-nowrap">
                     {hasSuperAdminResponse ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600 dark:text-emerald-400 shrink-0">
-                        <ShieldCheck size={13} /> Répondu par SuperAdmin
+                        <ShieldCheck size={13} /> {(!isSuperAdmin && !isAdmin) ? 'Répondu par le Support' : 'Répondu par SuperAdmin'}
                       </span>
                     ) : hasAdminResponse ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-purple-600 dark:text-purple-400 shrink-0">
-                        <ShieldCheck size={13} /> Répondu par Admin
-                      </span>
+                      (!isSuperAdmin && !isAdmin) ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black text-blue-600 dark:text-blue-400 shrink-0">
+                          <RefreshCw size={13} className="animate-spin" /> En cours de traitement
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black text-purple-600 dark:text-purple-400 shrink-0">
+                          <ShieldCheck size={13} /> Répondu par Admin
+                        </span>
+                      )
                     ) : bug.statut !== 'OUVERT' ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-black text-slate-600 dark:text-slate-400 shrink-0">
-                        <CheckCircle2 size={13} /> Traité par Admin
+                        <CheckCircle2 size={13} /> Traité
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-500 shrink-0">
