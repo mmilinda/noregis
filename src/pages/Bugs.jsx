@@ -409,7 +409,8 @@ export default function BugsManagement() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredBugs.map((bug) => {
             const reponsesArr = Array.isArray(bug.reponses) ? bug.reponses : [];
-            const hasSuperAdminResponse = bug.reponseSuperAdmin || reponsesArr.some(r => r && (r.roleAuteur === 'SUPER_ADMIN' || r.roleAuteur === 'SUPERADMIN'));
+            const hasSuperAdminResponse = bug.reponduPar === 'SUPER_ADMIN' || (bug.reponseSuperAdmin && bug.reponseSuperAdmin.trim() !== '') || reponsesArr.some(r => r && (r.roleAuteur === 'SUPER_ADMIN' || r.roleAuteur === 'SUPERADMIN'));
+            const hasAdminResponse = !hasSuperAdminResponse && (bug.reponduPar === 'ADMIN' || (bug.reponseAdmin && bug.reponseAdmin.trim() !== '') || reponsesArr.some(r => r && r.roleAuteur === 'ADMIN'));
             return (
               <Card
                 key={bug._id}
@@ -458,11 +459,19 @@ export default function BugsManagement() {
                     )}
                   </div>
 
-                  {/* Status Indicator Bar / SuperAdmin response badge */}
+                  {/* Status Indicator Bar / SuperAdmin vs Admin response badge */}
                   <div className="flex items-center justify-between pt-1">
                     {hasSuperAdminResponse ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600 dark:text-emerald-400">
                         <ShieldCheck size={13} /> Répondu par SuperAdmin
+                      </span>
+                    ) : hasAdminResponse ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-blue-600 dark:text-blue-400">
+                        <ShieldCheck size={13} /> Répondu par Admin
+                      </span>
+                    ) : bug.statut !== 'OUVERT' ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-slate-600 dark:text-slate-400">
+                        <CheckCircle2 size={13} /> Traité par Admin
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-500">
@@ -612,6 +621,21 @@ export default function BugsManagement() {
                 </div>
                 <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 whitespace-pre-wrap leading-relaxed">
                   {safeStr(selectedBug.reponseSuperAdmin)}
+                </p>
+              </div>
+            )}
+
+            {/* Admin Official Response callout (if set and no superadmin response) */}
+            {selectedBug.reponseAdmin && !selectedBug.reponseSuperAdmin && (
+              <div className="p-4 rounded-xl bg-blue-500/10 border-2 border-blue-500/30 space-y-1.5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
+                    <ShieldCheck size={16} /> Réponse Officielle de l'Admin
+                  </span>
+                  <span className="text-[10px] font-bold text-blue-600/70">💼 Admin</span>
+                </div>
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 whitespace-pre-wrap leading-relaxed">
+                  {safeStr(selectedBug.reponseAdmin)}
                 </p>
               </div>
             )}
