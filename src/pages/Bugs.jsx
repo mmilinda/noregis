@@ -428,9 +428,16 @@ export default function BugsManagement() {
                       </span>
                     )}
 
-                    <span className="text-xs font-black text-brand-blue-bright flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedBug(bug);
+                      }}
+                      className="text-xs font-black text-brand-blue-bright hover:text-blue-600 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
+                    >
                       Consulter & Répondre <ArrowRight size={13} />
-                    </span>
+                    </button>
                   </div>
                 </div>
               </Card>

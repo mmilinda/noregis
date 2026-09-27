@@ -103,9 +103,13 @@ export function Btn({
 /* ============================================
    CARD COMPONENTS
 ============================================ */
-export function Card({ children, className = "" }) {
+export function Card({ children, className = "", onClick, ...props }) {
   return (
-    <div className={`bg-white dark:bg-[#161B22] border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden ${className}`}>
+    <div 
+      onClick={onClick}
+      className={`bg-white dark:bg-[#161B22] border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden ${className}`}
+      {...props}
+    >
       {children}
     </div>
   );
