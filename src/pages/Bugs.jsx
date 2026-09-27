@@ -429,7 +429,7 @@ export default function BugsManagement() {
                     )}
 
                     <span className="text-xs font-black text-brand-blue-bright flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                      Voir fil <ArrowRight size={13} />
+                      Consulter & Répondre <ArrowRight size={13} />
                     </span>
                   </div>
                 </div>
@@ -560,7 +560,7 @@ export default function BugsManagement() {
 
               {(!selectedBug.reponses || selectedBug.reponses.length === 0) ? (
                 <p className="text-xs text-slate-400 italic p-4 bg-slate-50 dark:bg-slate-900 rounded-lg text-center">
-                  Aucune réponse enregistrée pour le moment. Le SuperAdmin ou l'Admin peut répondre ci-dessous.
+                  Aucune réponse enregistrée pour le moment. Vous ou le SuperAdmin pouvez répondre ci-dessous.
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -602,62 +602,60 @@ export default function BugsManagement() {
               )}
             </div>
 
-            {/* Form response (Available for SuperAdmin & Admin) */}
-            {(isSuperAdmin || isAdmin) && (
-              <form onSubmit={handleSendResponse} className="bg-white dark:bg-[#161B22] p-5 rounded-xl border-2 border-brand-blue-bright/20 space-y-4">
-                <h3 className="text-xs font-black uppercase tracking-wider text-brand-blue-bright flex items-center gap-2">
-                  <Send size={14} /> Ajouter une réponse officielle / Modifier le statut
-                </h3>
+            {/* Form response (Available for All Authorized Users: SuperAdmin, Admin, Agent) */}
+            <form onSubmit={handleSendResponse} className="bg-white dark:bg-[#161B22] p-5 rounded-xl border-2 border-brand-blue-bright/20 space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-wider text-brand-blue-bright flex items-center gap-2">
+                <Send size={14} /> {isSuperAdmin || isAdmin ? 'Ajouter une réponse officielle / Modifier le statut' : 'Répondre dans le fil de discussion'}
+              </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormSelect
-                    label="Nouveau Statut du Bug"
-                    id="newStatut"
-                    value={newStatut || selectedBug.statut}
-                    onChange={(e) => setNewStatut(e.target.value)}
-                    options={[
-                      { value: 'OUVERT', label: 'Ouvert (En attente)' },
-                      { value: 'EN_COURS', label: 'En cours de résolution' },
-                      { value: 'RESOLU', label: 'Résolu' },
-                      { value: 'FERME', label: 'Fermé' },
-                    ]}
-                  />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormSelect
+                  label="Statut du Signalement"
+                  id="newStatut"
+                  value={newStatut || selectedBug.statut}
+                  onChange={(e) => setNewStatut(e.target.value)}
+                  options={[
+                    { value: 'OUVERT', label: 'Ouvert (En attente)' },
+                    { value: 'EN_COURS', label: 'En cours de résolution' },
+                    { value: 'RESOLU', label: 'Résolu (Problème réglé)' },
+                    ...(isSuperAdmin || isAdmin ? [{ value: 'FERME', label: 'Fermé (Clôturé)' }] : []),
+                  ]}
+                />
 
-                  {isAdmin && !selectedBug.transmisAuSuperAdmin && (
-                    <div className="flex items-end">
-                      <Btn
-                        variant="warning"
-                        fullWidth
-                        icon={ShieldAlert}
-                        loading={transmittingId === selectedBug._id}
-                        onClick={(e) => handleTransmit(selectedBug._id, e)}
-                      >
-                        Transmettre au SuperAdmin
-                      </Btn>
-                    </div>
-                  )}
-                </div>
+                {isAdmin && !selectedBug.transmisAuSuperAdmin && (
+                  <div className="flex items-end">
+                    <Btn
+                      variant="warning"
+                      fullWidth
+                      icon={ShieldAlert}
+                      loading={transmittingId === selectedBug._id}
+                      onClick={(e) => handleTransmit(selectedBug._id, e)}
+                    >
+                      Transmettre au SuperAdmin
+                    </Btn>
+                  </div>
+                )}
+              </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">
-                    Message de réponse / Solution apportée
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Saisissez votre réponse pour le signaleur..."
-                    value={responseMsg}
-                    onChange={(e) => setResponseMsg(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-lg p-3 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright"
-                  />
-                </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider ml-1">
+                  Message / Précision pour la suite
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder={isSuperAdmin || isAdmin ? "Saisissez votre réponse pour le signaleur..." : "Saisissez votre réponse ou précision..."}
+                  value={responseMsg}
+                  onChange={(e) => setResponseMsg(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-lg p-3 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright"
+                />
+              </div>
 
-                <div className="flex justify-end gap-3 pt-2">
-                  <Btn variant="primary" type="submit" loading={responding} icon={Send}>
-                    Publier la réponse
-                  </Btn>
-                </div>
-              </form>
-            )}
+              <div className="flex justify-end gap-3 pt-2">
+                <Btn variant="primary" type="submit" loading={responding} icon={Send}>
+                  Publier la réponse
+                </Btn>
+              </div>
+            </form>
           </div>
         </Modal>
       )}
