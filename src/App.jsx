@@ -7,6 +7,7 @@ import { Toast } from './components/UI';
 import { Parametres, ProfilAgent } from './pages/Settings';
 import { Login } from './pages/Login';
 import { visitService } from './services/visitService';
+import { bugService } from './services/bugService';
 import { PublicScan } from './pages/PublicScan';
 import { connectSocket, disconnectSocket } from './services/socketService';
 
@@ -67,17 +68,24 @@ function AppInner() {
   }, [dispatch, navigate, notify]);
 
   // Global data preload — runs once after authentication regardless of role.
-  // Ensures Historique and any other page that reads state.visitors always has data.
+  // Ensures Historique and any other page that reads state.visitors or state.bugs always has data.
   useEffect(() => {
     if (!state.isAuthenticated) return;
     let cancelled = false;
     (async () => {
       try {
-        const data = await visitService.getAll();
+        const [visitData, bugData] = await Promise.all([
+          visitService.getAll().catch(() => ({})),
+          bugService.getAll().catch(() => ({})),
+        ]);
         if (!cancelled) {
-          const raw = data.visites || [];
-          const unique = Array.from(new Map(raw.map(v => [v._id || v.id, v])).values());
-          dispatch({ type: 'SET_VISITORS', payload: unique });
+          if (visitData?.visites) {
+            const uniqueVis = Array.from(new Map(visitData.visites.map(v => [v._id || v.id, v])).values());
+            dispatch({ type: 'SET_VISITORS', payload: uniqueVis });
+          }
+          if (bugData?.bugs) {
+            dispatch({ type: 'SET_BUGS', payload: bugData.bugs });
+          }
         }
       } catch {
         // Silent — individual pages can handle their own error states

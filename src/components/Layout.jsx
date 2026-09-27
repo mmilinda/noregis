@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, History, Settings, User as UserIcon,
   Shield, Clock, Plus, Bell, Search, LogOut, Camera, Building2, Users, Briefcase, FolderTree, AlertTriangle } from 'lucide-react';
@@ -224,17 +225,15 @@ function getSearchPlaceholder(activeTab, t, isSuperAdmin) {
 
 function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
   const { dispatch, state } = useApp();
-  const { searchQuery } = state;
+  const navigate = useNavigate();
+  const { searchQuery, bugs = [], visitors = [] } = state;
   const role = (state.agent?.role || state.user?.role || '').toUpperCase();
   const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'SUPERADMIN';
   const tabLabel = navItems.find(n => n.id === activeTab)?.label || 'NoRegis';
   const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef(null);
 
-  const [notificationsList, setNotificationsList] = useState([
-    { id: 1, text: "Nouveau visiteur enregistré", time: "Il y a 5 minutes", read: false, tab: "dashboard" },
-    { id: 2, text: "Véhicule détecté à l'entrée", time: "Il y a 10 minutes", read: false, tab: "dashboard" },
-  ]);
+  const [readNotifIds, setReadNotifIds] = useState([]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -248,19 +247,47 @@ function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
     };
   }, [dropdownRef]);
 
-  const handleNotifClick = (id, tab) => {
-    setNotificationsList(notificationsList.map(n => n.id === id ? { ...n, read: true } : n));
+  // Compute dynamic notification list combining bug reports and visitor entries
+  const bugNotifs = (bugs || []).map(b => {
+    const isResolu = b.statut === 'RESOLU' || b.statut === 'FERME';
+    return {
+      id: `bug_${b._id || b.id}`,
+      type: 'bug',
+      bugId: b._id || b.id,
+      text: `🐛 Bug : ${b.titre || 'Signalement technique'}`,
+      subtext: `De: ${b.nomSignaleur || 'Agent'}${b.entrepriseNom ? ` (${b.entrepriseNom})` : ''}`,
+      time: b.createdAt ? new Date(b.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : 'Récemment',
+      read: readNotifIds.includes(`bug_${b._id || b.id}`) || isResolu,
+      statut: b.statut,
+    };
+  });
+
+  const visitNotifs = (visitors || []).slice(0, 2).map(v => ({
+    id: `vis_${v._id || v.id}`,
+    type: 'visit',
+    text: `Entrée visiteur: ${v.prenom || ''} ${v.nom || 'Visiteur'}`,
+    subtext: v.motifVisite ? `Motif: ${v.motifVisite}` : 'Registre d\'accès',
+    time: v.heureEntree || 'Aujourd\'hui',
+    read: readNotifIds.includes(`vis_${v._id || v.id}`),
+    tab: 'dashboard',
+  }));
+
+  const notificationsList = [...bugNotifs, ...visitNotifs];
+  const unreadCount = notificationsList.filter(n => !n.read).length;
+
+  const handleNotifClick = (item) => {
+    setReadNotifIds(prev => [...prev, item.id]);
     setShowNotifications(false);
-    if (onTabChange) {
-      onTabChange(tab);
+    if (item.type === 'bug' && item.bugId) {
+      navigate(`/bugs?bugId=${item.bugId}`);
+    } else if (onTabChange) {
+      onTabChange(item.tab || 'dashboard');
     }
   };
 
   const markAllAsRead = () => {
-    setNotificationsList(notificationsList.map(n => ({ ...n, read: true })));
+    setReadNotifIds(notificationsList.map(n => n.id));
   };
-
-  const unreadCount = notificationsList.filter(n => !n.read).length;
 
   return (
     <header className="h-20 bg-white dark:bg-[#0D1117]/80 backdrop-blur-md border-b border-slate-100 dark:border-white/5 px-8 flex items-center justify-between sticky top-0 z-[90]">
@@ -293,7 +320,7 @@ function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
           >
             <Bell size={20} />
             {unreadCount > 0 && (
-              <span className="absolute top-2 right-2 w-2 h-2 bg-brand-red-bright rounded-full border-2 border-white dark:border-[#0D1117]" />
+              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-brand-red-bright rounded-full border-2 border-white dark:border-[#0D1117] animate-pulse" />
             )}
           </button>
 
@@ -303,17 +330,18 @@ function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t.notifications || "Notifications"}</h3>
                 <button onClick={markAllAsRead} className="text-xs text-brand-blue-bright hover:underline">{t.mark_all_read || "Tout marquer comme lu"}</button>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                 {notificationsList.map(n => (
                   <div 
                     key={n.id}
-                    onClick={() => handleNotifClick(n.id, n.tab)}
-                    className="flex items-start gap-3 p-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+                    onClick={() => handleNotifClick(n)}
+                    className="flex items-start gap-3 p-2.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-colors cursor-pointer group"
                   >
-                    <span className={`w-2 h-2 rounded-full mt-1.5 ${n.read ? 'bg-slate-300 dark:bg-slate-600' : 'bg-brand-blue-bright'}`} />
-                    <div>
-                      <p className={`text-sm ${n.read ? 'text-slate-500' : 'text-slate-900 dark:text-white font-bold'}`}>{n.text}</p>
-                      <p className="text-xs text-slate-500">{n.time}</p>
+                    <span className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${n.read ? 'bg-slate-300 dark:bg-slate-600' : 'bg-brand-blue-bright animate-pulse'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs ${n.read ? 'text-slate-500 font-medium' : 'text-slate-900 dark:text-white font-black'} truncate`}>{n.text}</p>
+                      {n.subtext && <p className="text-[10px] font-bold text-slate-400 truncate">{n.subtext}</p>}
+                      <p className="text-[9px] font-bold text-brand-blue-bright mt-0.5">{n.time} {n.type === 'bug' ? '• Ouvrir & Répondre' : ''}</p>
                     </div>
                   </div>
                 ))}

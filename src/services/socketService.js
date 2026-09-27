@@ -38,6 +38,16 @@ export function connectSocket(dispatch) {
   socket.on('visite:supprimee', ({ id }) => {
     dispatch({ type: 'DELETE_VISIT', payload: id });
   });
+
+  // Nouveau bug créé en temps réel
+  socket.on('bug:created', (bug) => {
+    dispatch({ type: 'ADD_BUG_REALTIME', payload: bug });
+  });
+
+  // Bug mis à jour / répondu en temps réel
+  socket.on('bug:updated', (bug) => {
+    dispatch({ type: 'UPDATE_BUG_REALTIME', payload: bug });
+  });
 }
 
 /**

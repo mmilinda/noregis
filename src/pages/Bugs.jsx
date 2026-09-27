@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useApp } from '../context/useAppState';
 import { bugService } from '../services/bugService';
 import {
@@ -8,14 +9,34 @@ import { Btn, Card, FormInput, FormSelect, StatCard, Modal, EmptyState } from '.
 
 export default function BugsManagement() {
   const { state, notify } = useApp();
+  const location = useLocation();
   const user = state.user || state.agent || {};
   const role = (user.role || '').toUpperCase();
   const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'SUPERADMIN';
   const isAdmin = role === 'ADMIN';
 
-  const [bugs, setBugs] = useState([]);
+  const [bugs, setBugs] = useState(state.bugs || []);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Sync with global state bugs
+  useEffect(() => {
+    if (state.bugs && state.bugs.length > 0) {
+      setBugs(state.bugs);
+    }
+  }, [state.bugs]);
+
+  // Auto-open bug modal from URL query parameter (e.g. /bugs?bugId=xxx)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const targetBugId = searchParams.get('bugId');
+    if (targetBugId && bugs.length > 0) {
+      const found = bugs.find(b => (b._id === targetBugId || b.id === targetBugId));
+      if (found) {
+        setSelectedBug(found);
+      }
+    }
+  }, [location.search, bugs]);
 
   // Filters
   const [filterStatut, setFilterStatut] = useState('');

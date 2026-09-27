@@ -48,6 +48,7 @@ export const initialState = {
   filterDate: new Date().toLocaleDateString('fr-FR'),
   settings: parsedSettings,
   notifications: parsedNotifs,
+  bugs: [],
 };
 
 export function reducer(state, action) {
@@ -180,6 +181,37 @@ export function reducer(state, action) {
           : v
       );
       return { ...state, visitors: updated };
+    }
+
+    case 'SET_BUGS':
+      return { ...state, bugs: action.payload };
+
+    case 'ADD_BUG_REALTIME': {
+      if (!action.payload) return state;
+      const newBug = action.payload;
+      const newId = newBug._id || newBug.id;
+      const exists = (state.bugs || []).some(
+        b => (b._id && b._id === newId) || (b.id && b.id === newId)
+      );
+      if (exists) {
+        return {
+          ...state,
+          bugs: (state.bugs || []).map(b => (b._id === newId || b.id === newId) ? { ...b, ...newBug } : b),
+        };
+      }
+      return { ...state, bugs: [newBug, ...(state.bugs || [])] };
+    }
+
+    case 'UPDATE_BUG_REALTIME': {
+      if (!action.payload) return state;
+      const updatedBug = action.payload;
+      const bugId = updatedBug._id || updatedBug.id;
+      return {
+        ...state,
+        bugs: (state.bugs || []).map(b =>
+          (b._id === bugId || b.id === bugId) ? { ...b, ...updatedBug } : b
+        ),
+      };
     }
 
     default:
