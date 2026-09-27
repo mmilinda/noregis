@@ -50,8 +50,9 @@ export default function BugsManagement() {
       if (filterPriorite) params.priorite = filterPriorite;
 
       const res = await bugService.getAll(params);
-      if (res.data?.success) {
-        setBugs(res.data.bugs || []);
+      const bugsList = res?.bugs || res?.data?.bugs || [];
+      if (res?.success || Array.isArray(bugsList)) {
+        setBugs(bugsList);
       }
     } catch (err) {
       console.error('Erreur chargement bugs:', err);
@@ -84,14 +85,16 @@ export default function BugsManagement() {
     setCreating(true);
     try {
       const res = await bugService.create(newBug);
-      if (res.data?.success) {
+      if (res?.success || res?.bug) {
         notify('success', 'Le bug a été signalé et transmis au SuperAdmin.');
         setShowCreateModal(false);
         setNewBug({ titre: '', description: '', priorite: 'MOYENNE' });
         loadBugs(true);
+      } else {
+        notify('error', res?.message || 'Erreur lors de la création du bug.');
       }
     } catch (err) {
-      notify('error', err.response?.data?.message || 'Erreur lors de la création du bug.');
+      notify('error', err.response?.data?.message || err.message || 'Erreur lors de la création du bug.');
     } finally {
       setCreating(false);
     }
@@ -108,20 +111,23 @@ export default function BugsManagement() {
 
     setResponding(true);
     try {
-      const res = await bugService.respond(selectedBug._id, {
+      const bugId = selectedBug._id || selectedBug.id;
+      const res = await bugService.respond(bugId, {
         message: responseMsg.trim(),
         nouveauStatut: newStatut || selectedBug.statut,
       });
 
-      if (res.data?.success) {
+      if (res?.success || res?.bug) {
         notify('success', 'Réponse enregistrée avec succès.');
         setResponseMsg('');
         setNewStatut('');
-        setSelectedBug(res.data.bug);
+        if (res.bug) setSelectedBug(res.bug);
         loadBugs(true);
+      } else {
+        notify('error', res?.message || 'Erreur lors de l\'envoi de la réponse.');
       }
     } catch (err) {
-      notify('error', err.response?.data?.message || 'Erreur lors de l\'envoi de la réponse.');
+      notify('error', err.response?.data?.message || err.message || 'Erreur lors de l\'envoi de la réponse.');
     } finally {
       setResponding(false);
     }
@@ -133,15 +139,17 @@ export default function BugsManagement() {
     setTransmittingId(bugId);
     try {
       const res = await bugService.transmit(bugId);
-      if (res.data?.success) {
+      if (res?.success || res?.bug) {
         notify('success', 'Signalement transmis avec succès au SuperAdmin.');
-        if (selectedBug && selectedBug._id === bugId) {
-          setSelectedBug(res.data.bug);
+        if (selectedBug && (selectedBug._id === bugId || selectedBug.id === bugId)) {
+          if (res.bug) setSelectedBug(res.bug);
         }
         loadBugs(true);
+      } else {
+        notify('error', res?.message || 'Erreur lors de la transmission.');
       }
     } catch (err) {
-      notify('error', err.response?.data?.message || 'Erreur lors de la transmission.');
+      notify('error', err.response?.data?.message || err.message || 'Erreur lors de la transmission.');
     } finally {
       setTransmittingId(null);
     }
