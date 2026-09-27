@@ -247,48 +247,75 @@ function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
     };
   }, [dropdownRef]);
 
+  const safeStr = (val, fallback = '') => {
+    if (!val) return fallback;
+    if (typeof val === 'string' || typeof val === 'number') return String(val);
+    if (typeof val === 'object') {
+      if (val.nom || val.prenom) return `${val.prenom || ''} ${val.nom || ''}`.trim();
+      if (val.name) return String(val.name);
+      return fallback;
+    }
+    return fallback;
+  };
+
   // Compute dynamic notification list combining bug reports and visitor entries
   const bugNotifs = (bugs || []).map(b => {
+    if (!b) return null;
     const isResolu = b.statut === 'RESOLU' || b.statut === 'FERME';
-    const hasResponses = b.reponses && b.reponses.length > 0;
-    const lastResponse = hasResponses ? b.reponses[b.reponses.length - 1] : null;
+    const reponsesArr = Array.isArray(b.reponses) ? b.reponses : [];
+    const hasResponses = reponsesArr.length > 0;
+    const lastResponse = hasResponses ? reponsesArr[reponsesArr.length - 1] : null;
 
-    let text = `🐛 Bug : ${b.titre || 'Signalement technique'}`;
-    let subtext = `De: ${b.nomSignaleur || 'Agent'}${b.entrepriseNom ? ` (${b.entrepriseNom})` : ''}`;
+    const bTitre = safeStr(b.titre, 'Signalement technique');
+    const bSignaleur = safeStr(b.nomSignaleur, 'Agent');
+    const bEnt = safeStr(b.entrepriseNom);
+
+    let text = `🐛 Bug : ${bTitre}`;
+    let subtext = `De: ${bSignaleur}${bEnt ? ` (${bEnt})` : ''}`;
 
     if (isSuperAdmin) {
       if (hasResponses && lastResponse?.roleAuteur !== 'SUPER_ADMIN' && lastResponse?.roleAuteur !== 'SUPERADMIN') {
-        text = `💬 Réponse de ${lastResponse.nomAuteur} (${lastResponse.roleAuteur}) : ${b.titre}`;
-        subtext = `« ${lastResponse.message} »`;
+        text = `💬 Réponse de ${safeStr(lastResponse?.nomAuteur, 'Utilisateur')} (${safeStr(lastResponse?.roleAuteur)}) : ${bTitre}`;
+        subtext = `« ${safeStr(lastResponse?.message)} »`;
       } else {
-        text = `🐛 Nouveau Bug : ${b.titre}`;
-        subtext = `Par ${b.nomSignaleur || 'Agent'}${b.entrepriseNom ? ` • ${b.entrepriseNom}` : ''}`;
+        text = `🐛 Nouveau Bug : ${bTitre}`;
+        subtext = `Par ${bSignaleur}${bEnt ? ` • ${bEnt}` : ''}`;
       }
     } else if (isAdmin) {
       if (hasResponses && (lastResponse?.roleAuteur === 'SUPER_ADMIN' || lastResponse?.roleAuteur === 'SUPERADMIN')) {
-        text = `👑 Réponse du SuperAdmin : ${b.titre}`;
-        subtext = `« ${lastResponse.message} »`;
+        text = `👑 Réponse du SuperAdmin : ${bTitre}`;
+        subtext = `« ${safeStr(lastResponse?.message)} »`;
       } else if (hasResponses && lastResponse?.roleAuteur === 'AGENT') {
-        text = `💬 Réponse de l'Agent ${lastResponse.nomAuteur} : ${b.titre}`;
-        subtext = `« ${lastResponse.message} »`;
+        text = `💬 Réponse de l'Agent ${safeStr(lastResponse?.nomAuteur, 'Agent')} : ${bTitre}`;
+        subtext = `« ${safeStr(lastResponse?.message)} »`;
       } else {
-        text = `🐛 Bug Équipe : ${b.titre}`;
-        subtext = `Signalé par ${b.nomSignaleur || 'Agent'}`;
+        text = `🐛 Bug Équipe : ${bTitre}`;
+        subtext = `Signalé par ${bSignaleur}`;
       }
     } else {
       // Role AGENT
       if (hasResponses && lastResponse?.roleAuteur !== 'AGENT') {
         const authorRole = (lastResponse?.roleAuteur === 'SUPER_ADMIN' || lastResponse?.roleAuteur === 'SUPERADMIN') ? 'SuperAdmin' : 'Admin';
-        text = `💬 Réponse de ${authorRole} (${lastResponse.nomAuteur}) : ${b.titre}`;
-        subtext = `« ${lastResponse.message} »`;
+        text = `💬 Réponse de ${authorRole} (${safeStr(lastResponse?.nomAuteur, 'Utilisateur')}) : ${bTitre}`;
+        subtext = `« ${safeStr(lastResponse?.message)} »`;
       } else {
-        text = `🐛 Mon signalement : ${b.titre}`;
-        subtext = `Statut : ${b.statut}`;
+        text = `🐛 Mon signalement : ${bTitre}`;
+        subtext = `Statut : ${safeStr(b.statut)}`;
       }
     }
 
+    let timeStr = 'Récemment';
     const lastDate = lastResponse?.createdAt || b.updatedAt || b.createdAt;
-    const notifKey = `bug_${b._id || b.id}_${b.reponses?.length || 0}_${b.statut}`;
+    if (lastDate) {
+      try {
+        const d = new Date(lastDate);
+        if (!isNaN(d.getTime())) {
+          timeStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        }
+      } catch (e) {}
+    }
+
+    const notifKey = `bug_${b._id || b.id || Math.random()}_${reponsesArr.length}_${b.statut}`;
 
     return {
       id: notifKey,
@@ -296,11 +323,11 @@ function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
       bugId: b._id || b.id,
       text,
       subtext,
-      time: lastDate ? new Date(lastDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : 'Récemment',
+      time: timeStr,
       read: readNotifIds.includes(notifKey) || isResolu,
       statut: b.statut,
     };
-  });
+  }).filter(Boolean);
 
   const visitNotifs = (visitors || []).slice(0, 2).map(v => ({
     id: `vis_${v._id || v.id}`,

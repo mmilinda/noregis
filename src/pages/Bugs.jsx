@@ -213,15 +213,15 @@ export default function BugsManagement() {
   };
 
   // Filtered bugs search
-  const filteredBugs = bugs.filter(b => {
+  const filteredBugs = (bugs || []).filter(b => {
+    if (!b) return false;
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
-    return (
-      (b.titre && b.titre.toLowerCase().includes(term)) ||
-      (b.description && b.description.toLowerCase().includes(term)) ||
-      (b.nomSignaleur && b.nomSignaleur.toLowerCase().includes(term)) ||
-      (b.entrepriseNom && b.entrepriseNom.toLowerCase().includes(term))
-    );
+    const titre = safeStr(b.titre).toLowerCase();
+    const desc = safeStr(b.description).toLowerCase();
+    const nom = safeStr(b.nomSignaleur).toLowerCase();
+    const ent = safeStr(b.entrepriseNom).toLowerCase();
+    return titre.includes(term) || desc.includes(term) || nom.includes(term) || ent.includes(term);
   });
 
   // Stats calculation
@@ -403,7 +403,8 @@ export default function BugsManagement() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredBugs.map((bug) => {
-            const hasSuperAdminResponse = bug.reponseSuperAdmin || bug.reponses?.some(r => r.roleAuteur === 'SUPER_ADMIN' || r.roleAuteur === 'SUPERADMIN');
+            const reponsesArr = Array.isArray(bug.reponses) ? bug.reponses : [];
+            const hasSuperAdminResponse = bug.reponseSuperAdmin || reponsesArr.some(r => r && (r.roleAuteur === 'SUPER_ADMIN' || r.roleAuteur === 'SUPERADMIN'));
             return (
               <Card
                 key={bug._id}
