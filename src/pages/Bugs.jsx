@@ -409,8 +409,11 @@ export default function BugsManagement() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredBugs.map((bug) => {
             const reponsesArr = Array.isArray(bug.reponses) ? bug.reponses : [];
-            const hasSuperAdminResponse = bug.reponduPar === 'SUPER_ADMIN' || (bug.reponseSuperAdmin && bug.reponseSuperAdmin.trim() !== '') || reponsesArr.some(r => r && (r.roleAuteur === 'SUPER_ADMIN' || r.roleAuteur === 'SUPERADMIN'));
-            const hasAdminResponse = !hasSuperAdminResponse && (bug.reponduPar === 'ADMIN' || (bug.reponseAdmin && bug.reponseAdmin.trim() !== '') || reponsesArr.some(r => r && r.roleAuteur === 'ADMIN'));
+            const lastRep = reponsesArr.length > 0 ? reponsesArr[reponsesArr.length - 1] : null;
+            const lastRole = lastRep ? (lastRep.roleAuteur || '').toUpperCase() : '';
+
+            const hasSuperAdminResponse = lastRole === 'SUPER_ADMIN' || lastRole === 'SUPERADMIN' || bug.reponduPar === 'SUPER_ADMIN';
+            const hasAdminResponse = !hasSuperAdminResponse && (lastRole === 'ADMIN' || bug.reponduPar === 'ADMIN' || (bug.reponseAdmin && bug.reponseAdmin.trim() !== ''));
             return (
               <Card
                 key={bug._id}
@@ -610,35 +613,49 @@ export default function BugsManagement() {
               </div>
             </div>
 
-            {/* SuperAdmin Official Response callout (if set) */}
-            {selectedBug.reponseSuperAdmin && (
-              <div className="p-4 rounded-xl bg-amber-500/10 border-2 border-amber-500/30 space-y-1.5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                    <ShieldCheck size={16} /> Réponse Officielle du SuperAdmin
-                  </span>
-                  <span className="text-[10px] font-bold text-amber-600/70">👑 SuperAdmin</span>
-                </div>
-                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 whitespace-pre-wrap leading-relaxed">
-                  {safeStr(selectedBug.reponseSuperAdmin)}
-                </p>
-              </div>
-            )}
+            {/* Determine last response role for callouts */}
+            {(() => {
+              const modalReps = Array.isArray(selectedBug.reponses) ? selectedBug.reponses : [];
+              const lastModalRep = modalReps.length > 0 ? modalReps[modalReps.length - 1] : null;
+              const lastRole = lastModalRep ? (lastModalRep.roleAuteur || '').toUpperCase() : '';
 
-            {/* Admin Official Response callout (if set and no superadmin response) */}
-            {selectedBug.reponseAdmin && !selectedBug.reponseSuperAdmin && (
-              <div className="p-4 rounded-xl bg-blue-500/10 border-2 border-blue-500/30 space-y-1.5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
-                    <ShieldCheck size={16} /> Réponse Officielle de l'Admin
-                  </span>
-                  <span className="text-[10px] font-bold text-blue-600/70">💼 Admin</span>
-                </div>
-                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 whitespace-pre-wrap leading-relaxed">
-                  {safeStr(selectedBug.reponseAdmin)}
-                </p>
-              </div>
-            )}
+              const isSuperAdminCallout = lastRole === 'SUPER_ADMIN' || lastRole === 'SUPERADMIN' || (selectedBug.reponseSuperAdmin && !selectedBug.reponseAdmin && !lastRole);
+              const isAdminCallout = !isSuperAdminCallout && (lastRole === 'ADMIN' || selectedBug.reponseAdmin || selectedBug.reponduPar === 'ADMIN' || (selectedBug.statut && selectedBug.statut !== 'OUVERT'));
+
+              if (isSuperAdminCallout && (selectedBug.reponseSuperAdmin || lastModalRep)) {
+                return (
+                  <div className="p-4 rounded-xl bg-amber-500/10 border-2 border-amber-500/30 space-y-1.5 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                        <ShieldCheck size={16} /> Réponse Officielle du SuperAdmin
+                      </span>
+                      <span className="text-[10px] font-bold text-amber-600/70">👑 SuperAdmin</span>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 whitespace-pre-wrap leading-relaxed">
+                      {safeStr(selectedBug.reponseSuperAdmin || lastModalRep?.message)}
+                    </p>
+                  </div>
+                );
+              }
+
+              if (isAdminCallout) {
+                return (
+                  <div className="p-4 rounded-xl bg-blue-500/10 border-2 border-blue-500/30 space-y-1.5 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
+                        <ShieldCheck size={16} /> Réponse Officielle de l'Admin
+                      </span>
+                      <span className="text-[10px] font-bold text-blue-600/70">💼 Admin</span>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 whitespace-pre-wrap leading-relaxed">
+                      {safeStr(selectedBug.reponseAdmin || lastModalRep?.message || `Signalement ${safeStr(selectedBug.statut).toLowerCase()}`)}
+                    </p>
+                  </div>
+                );
+              }
+
+              return null;
+            })()}
 
             {/* Response thread list */}
             <div className="space-y-3">

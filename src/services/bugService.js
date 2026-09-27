@@ -39,6 +39,14 @@ export const bugService = {
     }
 
     let bugs = getStoredBugs();
+    bugs = bugs.map(b => {
+      const reponses = b.reponses || [];
+      const derniereRep = reponses.length > 0 ? reponses[reponses.length - 1] : null;
+      if (derniereRep && (derniereRep.roleAuteur === 'ADMIN' || (derniereRep.nomAuteur && derniereRep.nomAuteur.includes('ADMIN')))) {
+        return { ...b, reponseSuperAdmin: '', reponseAdmin: derniereRep.message, reponduPar: 'ADMIN' };
+      }
+      return b;
+    });
     if (params.statut) bugs = bugs.filter(b => b.statut === params.statut);
     if (params.priorite) bugs = bugs.filter(b => b.priorite === params.priorite);
     return { success: true, bugs, total: bugs.length };
