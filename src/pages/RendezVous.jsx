@@ -1,21 +1,31 @@
 import { useState, useEffect } from 'react';
 import { 
-  Calendar, Clock, Plus, Search, Filter, RefreshCw, UserCheck, 
-  CheckCircle2, XCircle, AlertCircle, Edit2, Trash2, User, Building2, 
-  Phone, Mail, FileText, Check, ArrowRight, ShieldCheck
+  Calendar, Clock, Plus, Search, RefreshCw, UserCheck, 
+  CheckCircle2, XCircle, Edit2, Trash2, User, Building2, 
+  Phone, Mail, FileText, Check 
 } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { rdvService } from '../services/rdvService';
 import { visitService } from '../services/visitService';
 import { departementService } from '../services/departementService';
+import { entrepriseService } from '../services/entrepriseService';
 import { 
   Card, CardHeader, Btn, FormInput, FormSelect, Modal, EmptyState, StatCard 
 } from '../components/UI';
 
 export default function RendezVousManagement({ isMobile }) {
-  const { notify } = useApp();
+  const { state, notify } = useApp();
+  const role = (state.agent?.role || state.user?.role || '').toUpperCase();
+  const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'SUPERADMIN';
+
+  const userCompanyNom = state.agent?.entrepriseNom || 
+    (typeof state.agent?.entreprise === 'object' ? state.agent?.entreprise?.nom : state.agent?.entreprise) || '';
+  const userCompanyId = state.agent?.entrepriseId || 
+    (typeof state.agent?.entreprise === 'object' ? state.agent?.entreprise?._id || state.agent?.entreprise?.id : '') || '';
+
   const [rdvList, setRdvList] = useState([]);
   const [departements, setDepartements] = useState([]);
+  const [entreprises, setEntreprises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -23,6 +33,7 @@ export default function RendezVousManagement({ isMobile }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [dateFilter, setDateFilter] = useState('');
+  const [entrepriseFilter, setEntrepriseFilter] = useState('ALL');
 
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,6 +55,8 @@ export default function RendezVousManagement({ isMobile }) {
     heureRdv: '10:00',
     motif: 'Rendez-vous professionnel',
     remarques: '',
+    entrepriseId: userCompanyId,
+    entrepriseNom: userCompanyNom,
   });
 
   const [formErrors, setFormErrors] = useState({});
@@ -74,13 +87,41 @@ export default function RendezVousManagement({ isMobile }) {
     }
   };
 
+  const fetchEntreprises = async () => {
+    if (!isSuperAdmin) return;
+    try {
+      const res = await entrepriseService.getAll();
+      const list = Array.isArray(res) ? res : (res?.entreprises || []);
+      setEntreprises(list);
+    } catch (e) {
+      console.warn('Could not load entreprises:', e);
+    }
+  };
+
   useEffect(() => {
     fetchRdv();
     fetchDepartements();
-  }, []);
+    fetchEntreprises();
+  }, [isSuperAdmin]);
+
+  const resolveEntrepriseNom = (rdv) => {
+    if (rdv.entrepriseNom) return rdv.entrepriseNom;
+    if (typeof rdv.entreprise === 'object' && rdv.entreprise?.nom) return rdv.entreprise.nom;
+    if (typeof rdv.entreprise === 'string' && rdv.entreprise) return rdv.entreprise;
+    if (rdv.entrepriseId) {
+      const found = entreprises.find(e => (e._id || e.id) === rdv.entrepriseId);
+      if (found) return found.nom;
+    }
+    if (rdv.creePar && typeof rdv.creePar === 'object') {
+      if (rdv.creePar.entrepriseNom) return rdv.creePar.entrepriseNom;
+      if (rdv.creePar.entreprise?.nom) return rdv.creePar.entreprise.nom;
+    }
+    return userCompanyNom || 'Entreprise non spécifiée';
+  };
 
   const openCreateModal = () => {
     setEditingRdv(null);
+    const defaultEnt = entreprises[0] || {};
     setFormData({
       prenom: '',
       nom: '',
@@ -94,6 +135,8 @@ export default function RendezVousManagement({ isMobile }) {
       heureRdv: '10:00',
       motif: 'Rendez-vous professionnel',
       remarques: '',
+      entrepriseId: isSuperAdmin ? (defaultEnt._id || defaultEnt.id || '') : userCompanyId,
+      entrepriseNom: isSuperAdmin ? (defaultEnt.nom || '') : userCompanyNom,
     });
     setFormErrors({});
     setIsModalOpen(true);
@@ -114,6 +157,8 @@ export default function RendezVousManagement({ isMobile }) {
       heureRdv: rdv.heureRdv || '10:00',
       motif: rdv.motif || '',
       remarques: rdv.remarques || '',
+      entrepriseId: rdv.entrepriseId || userCompanyId,
+      entrepriseNom: resolveEntrepriseNom(rdv),
     });
     setFormErrors({});
     setIsModalOpen(true);
@@ -156,7 +201,6 @@ export default function RendezVousManagement({ isMobile }) {
 
   const handleCheckIn = async (rdv) => {
     try {
-      // 1. Record entry in visitService
       await visitService.recordEntry({
         prenom: rdv.prenom,
         nom: rdv.nom,
@@ -168,9 +212,10 @@ export default function RendezVousManagement({ isMobile }) {
         serviceDepartement: rdv.serviceDepartement,
         motifVisite: `[RDV Programmé] ${rdv.motif || ''}`,
         statut: 'present',
+        entrepriseId: rdv.entrepriseId || userCompanyId,
+        entrepriseNom: resolveEntrepriseNom(rdv),
       });
 
-      // 2. Mark RDV status as ARRIVE
       await rdvService.checkIn(rdv);
       notify('success', `Entrée validée pour ${rdv.prenom} ${rdv.nom} !`);
       setCheckInConfirmRdv(null);
@@ -205,6 +250,8 @@ export default function RendezVousManagement({ isMobile }) {
   // Filtered List
   const filteredRdv = rdvList.filter(item => {
     const q = search.toLowerCase().trim();
+    const entNom = resolveEntrepriseNom(item).toLowerCase();
+    
     const matchesSearch = !q || (
       (item.prenom || '').toLowerCase().includes(q) ||
       (item.nom || '').toLowerCase().includes(q) ||
@@ -212,13 +259,17 @@ export default function RendezVousManagement({ isMobile }) {
       (item.email || '').toLowerCase().includes(q) ||
       (item.personneVisitee || '').toLowerCase().includes(q) ||
       (item.serviceDepartement || '').toLowerCase().includes(q) ||
-      (item.numeroPiece || '').toLowerCase().includes(q)
+      (item.numeroPiece || '').toLowerCase().includes(q) ||
+      entNom.includes(q)
     );
 
     const matchesStatus = statusFilter === 'ALL' || item.statut === statusFilter;
     const matchesDate = !dateFilter || (item.dateRdv && item.dateRdv.startsWith(dateFilter));
+    const matchesEntreprise = entrepriseFilter === 'ALL' || 
+      item.entrepriseId === entrepriseFilter || 
+      entNom.includes(entrepriseFilter.toLowerCase());
 
-    return matchesSearch && matchesStatus && matchesDate;
+    return matchesSearch && matchesStatus && matchesDate && matchesEntreprise;
   });
 
   // Stats
@@ -272,7 +323,9 @@ export default function RendezVousManagement({ isMobile }) {
                 Gestion des Rendez-vous
               </h1>
               <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                Planification des visites attendues et conversion en entrées réelles
+                {isSuperAdmin 
+                  ? 'Supervision multi-entreprises des rendez-vous et accès invités'
+                  : 'Planification des visites attendues et conversion en entrées réelles'}
               </p>
             </div>
           </div>
@@ -347,7 +400,9 @@ export default function RendezVousManagement({ isMobile }) {
             <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Rechercher par prénom, nom, téléphone, hôte, service..."
+              placeholder={isSuperAdmin 
+                ? "Rechercher par visiteur, hôte, service, entreprise..."
+                : "Rechercher par prénom, nom, téléphone, hôte, service..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright transition-all"
@@ -355,6 +410,22 @@ export default function RendezVousManagement({ isMobile }) {
           </div>
 
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full md:w-auto">
+            {/* Entreprise Selector for SuperAdmin */}
+            {isSuperAdmin && (
+              <select
+                value={entrepriseFilter}
+                onChange={(e) => setEntrepriseFilter(e.target.value)}
+                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright max-w-[180px] truncate"
+              >
+                <option value="ALL">Toutes les entreprises</option>
+                {entreprises.map(e => (
+                  <option key={e._id || e.id} value={e._id || e.id || e.nom}>
+                    {e.nom}
+                  </option>
+                ))}
+              </select>
+            )}
+
             {/* Status Selector */}
             <select
               value={statusFilter}
@@ -376,7 +447,7 @@ export default function RendezVousManagement({ isMobile }) {
               className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100 outline-none focus:border-brand-blue-bright"
             />
 
-            {(search || statusFilter !== 'ALL' || dateFilter) && (
+            {(search || statusFilter !== 'ALL' || dateFilter || entrepriseFilter !== 'ALL') && (
               <Btn 
                 variant="ghost" 
                 size="sm" 
@@ -384,6 +455,7 @@ export default function RendezVousManagement({ isMobile }) {
                   setSearch('');
                   setStatusFilter('ALL');
                   setDateFilter('');
+                  setEntrepriseFilter('ALL');
                 }}
               >
                 Réinitialiser
@@ -409,7 +481,7 @@ export default function RendezVousManagement({ isMobile }) {
           <EmptyState 
             icon={Calendar}
             title="Aucun rendez-vous trouvé"
-            description={search || statusFilter !== 'ALL' || dateFilter 
+            description={search || statusFilter !== 'ALL' || dateFilter || entrepriseFilter !== 'ALL'
               ? "Aucun rendez-vous ne correspond à vos critères de recherche." 
               : "Aucun rendez-vous n'est encore programmé."}
             action={
@@ -424,6 +496,7 @@ export default function RendezVousManagement({ isMobile }) {
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-[10px] font-black uppercase tracking-wider text-slate-400">
                   <th className="p-4">Visiteur</th>
+                  {isSuperAdmin && <th className="p-4">Entreprise Créatrice</th>}
                   <th className="p-4">Date & Heure</th>
                   <th className="p-4">Personne Visitée / Service</th>
                   <th className="p-4">Motif</th>
@@ -436,6 +509,7 @@ export default function RendezVousManagement({ isMobile }) {
                   const id = rdv._id || rdv.id;
                   const isArrived = rdv.statut === 'ARRIVE';
                   const isCancelled = rdv.statut === 'ANNULE';
+                  const entrepriseNom = resolveEntrepriseNom(rdv);
 
                   return (
                     <tr 
@@ -452,7 +526,7 @@ export default function RendezVousManagement({ isMobile }) {
                             <p className="font-black text-slate-900 dark:text-white">
                               {rdv.prenom} {rdv.nom}
                             </p>
-                            <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                            <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 mt-0.5">
                               {rdv.telephone && (
                                 <span className="flex items-center gap-1">
                                   <Phone size={10} /> {rdv.telephone}
@@ -467,6 +541,15 @@ export default function RendezVousManagement({ isMobile }) {
                           </div>
                         </div>
                       </td>
+
+                      {/* Entreprise (SuperAdmin) */}
+                      {isSuperAdmin && (
+                        <td className="p-4">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                            <Building2 size={13} /> {entrepriseNom}
+                          </span>
+                        </td>
+                      )}
 
                       {/* Date & Heure */}
                       <td className="p-4">
@@ -570,6 +653,30 @@ export default function RendezVousManagement({ isMobile }) {
         size="md"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* SuperAdmin Enterprise Selector */}
+          {isSuperAdmin && (
+            <FormSelect
+              label="Entreprise / Boîte Créatrice"
+              required
+              value={formData.entrepriseId || formData.entrepriseNom}
+              onChange={(e) => {
+                const val = e.target.value;
+                const selectedEnt = entreprises.find(ent => (ent._id || ent.id) === val || ent.nom === val);
+                setFormData({
+                  ...formData,
+                  entrepriseId: selectedEnt?._id || selectedEnt?.id || val,
+                  entrepriseNom: selectedEnt?.nom || val,
+                });
+              }}
+              options={
+                entreprises.length > 0
+                  ? entreprises.map(e => ({ value: e._id || e.id || e.nom, label: e.nom }))
+                  : [{ value: userCompanyId, label: userCompanyNom || 'Entreprise Générale' }]
+              }
+              icon={Building2}
+            />
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormInput
               label="Prénom"
@@ -739,6 +846,11 @@ export default function RendezVousManagement({ isMobile }) {
               <p className="text-xs text-slate-500 mt-1">
                 Le visiteur est arrivé pour son RDV avec <strong className="text-slate-800 dark:text-slate-200">{checkInConfirmRdv.personneVisitee}</strong> ({checkInConfirmRdv.serviceDepartement}).
               </p>
+              {isSuperAdmin && (
+                <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mt-1">
+                  Entreprise : {resolveEntrepriseNom(checkInConfirmRdv)}
+                </p>
+              )}
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-400 text-center">

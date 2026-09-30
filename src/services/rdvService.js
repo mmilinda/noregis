@@ -49,6 +49,8 @@ export const rdvService = {
       motif: rdvData.motif || 'Rendez-vous',
       statut: rdvData.statut || 'PROGRAMME',
       remarques: rdvData.remarques || '',
+      entrepriseId: rdvData.entrepriseId || undefined,
+      entrepriseNom: rdvData.entrepriseNom || undefined,
     };
 
     let createdItem = null;
