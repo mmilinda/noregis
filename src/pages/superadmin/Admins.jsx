@@ -99,6 +99,18 @@ export default function AdminsManagement({ isMobile }) {
       return;
     }
 
+    const targetEnt = entreprises.find(ent => (ent.id === createForm.entrepriseId || ent._id === createForm.entrepriseId));
+    if (targetEnt && targetEnt.maxAdmins !== undefined) {
+      const currentAdminsCount = admins.filter(u => {
+        const entId = u.entrepriseId?._id || u.entrepriseId;
+        return String(entId) === String(createForm.entrepriseId);
+      }).length;
+      if (currentAdminsCount >= Number(targetEnt.maxAdmins)) {
+        setCreateError(`Limite d'administrateurs atteinte pour ${targetEnt.nom} (${currentAdminsCount}/${targetEnt.maxAdmins} admins max).`);
+        return;
+      }
+    }
+
     setCreating(true);
     setCreateError('');
 
@@ -110,6 +122,7 @@ export default function AdminsManagement({ isMobile }) {
       fetchAdminsAndEntreprises(true);
     } catch (err) {
       setCreateError(err.message || 'Erreur lors de la création de l\'administrateur.');
+      notify('error', err.message || 'Erreur lors de la création.');
     } finally {
       setCreating(false);
     }

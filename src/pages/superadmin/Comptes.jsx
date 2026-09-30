@@ -98,6 +98,37 @@ export default function ComptesManagement({ isMobile }) {
       return;
     }
 
+    if (createForm.entrepriseId) {
+      const targetEnt = entreprises.find(ent => (ent.id === createForm.entrepriseId || ent._id === createForm.entrepriseId));
+      if (targetEnt) {
+        const requestedRole = (createForm.role || 'AGENT').toUpperCase();
+        if (requestedRole === 'AGENT' && targetEnt.maxAgents !== undefined) {
+          const count = users.filter(u => {
+            const entId = u.entrepriseId?._id || u.entrepriseId;
+            return String(entId) === String(createForm.entrepriseId) && String(u.role).toUpperCase() === 'AGENT';
+          }).length;
+          if (count >= Number(targetEnt.maxAgents)) {
+            const msg = `Quota d'agents atteint pour ${targetEnt.nom} (${count}/${targetEnt.maxAgents} max).`;
+            setCreateError(msg);
+            notify('error', msg);
+            return;
+          }
+        }
+        if (requestedRole === 'ADMIN' && targetEnt.maxAdmins !== undefined) {
+          const count = users.filter(u => {
+            const entId = u.entrepriseId?._id || u.entrepriseId;
+            return String(entId) === String(createForm.entrepriseId) && String(u.role).toUpperCase() === 'ADMIN';
+          }).length;
+          if (count >= Number(targetEnt.maxAdmins)) {
+            const msg = `Quota d'administrateurs atteint pour ${targetEnt.nom} (${count}/${targetEnt.maxAdmins} max).`;
+            setCreateError(msg);
+            notify('error', msg);
+            return;
+          }
+        }
+      }
+    }
+
     setCreating(true);
     setCreateError('');
 
@@ -109,6 +140,7 @@ export default function ComptesManagement({ isMobile }) {
       fetchUsersAndEntreprises(true);
     } catch (err) {
       setCreateError(err.message || 'Erreur lors de la création du compte.');
+      notify('error', err.message || 'Erreur lors de la création du compte.');
     } finally {
       setCreating(false);
     }

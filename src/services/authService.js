@@ -209,17 +209,9 @@ export const authService = {
         return res;
       }
     } catch (err) {
-      console.warn('Création utilisateur API échouée, création locale:', err.message);
+      console.warn('Erreur création utilisateur via API:', err.message);
+      throw err;
     }
-
-    const newUsr = {
-      id: `usr_${Date.now()}`,
-      _id: `usr_${Date.now()}`,
-      ...payload,
-    };
-    const current = getStoredUsers();
-    saveStoredUsers([newUsr, ...current]);
-    return { success: true, utilisateur: newUsr, message: 'Utilisateur créé avec succès (Mode local).' };
   },
 
   getAgentQr: async (id) => {

@@ -176,6 +176,37 @@ export function SuperAdminDashboard({ t }) {
       return;
     }
 
+    if (userForm.entrepriseId) {
+      const targetEnt = entreprises.find(ent => (ent._id === userForm.entrepriseId || ent.id === userForm.entrepriseId));
+      if (targetEnt) {
+        const requestedRole = (userForm.role || 'AGENT').toUpperCase();
+        if (requestedRole === 'AGENT' && targetEnt.maxAgents !== undefined) {
+          const count = utilisateurs.filter(u => {
+            const entId = u.entrepriseId?._id || u.entrepriseId;
+            return String(entId) === String(userForm.entrepriseId) && String(u.role).toUpperCase() === 'AGENT';
+          }).length;
+          if (count >= Number(targetEnt.maxAgents)) {
+            const msg = `Quota d'agents atteint pour ${targetEnt.nom} (${count}/${targetEnt.maxAgents} max).`;
+            setUserErrors({ global: msg });
+            if (notify) notify('error', msg);
+            return;
+          }
+        }
+        if (requestedRole === 'ADMIN' && targetEnt.maxAdmins !== undefined) {
+          const count = utilisateurs.filter(u => {
+            const entId = u.entrepriseId?._id || u.entrepriseId;
+            return String(entId) === String(userForm.entrepriseId) && String(u.role).toUpperCase() === 'ADMIN';
+          }).length;
+          if (count >= Number(targetEnt.maxAdmins)) {
+            const msg = `Quota d'administrateurs atteint pour ${targetEnt.nom} (${count}/${targetEnt.maxAdmins} max).`;
+            setUserErrors({ global: msg });
+            if (notify) notify('error', msg);
+            return;
+          }
+        }
+      }
+    }
+
     setCreatingUser(true);
     setUserErrors({});
 

@@ -156,7 +156,6 @@ export default function AgentsManagement({ isMobile }) {
     }
   };
 
-  // ── Create agent ──────────────────────────────────────────
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!createForm.email || !createForm.password || !createForm.nom) {
@@ -169,16 +168,34 @@ export default function AgentsManagement({ isMobile }) {
       return;
     }
 
+    const targetEnt = entreprises.find(e => (e.id === entId || e._id === entId)) || state.agent?.entrepriseId;
+    const requestedRole = (createForm.role || 'AGENT').toUpperCase();
+    if (targetEnt && typeof targetEnt === 'object') {
+      if (requestedRole === 'AGENT' && targetEnt.maxAgents !== undefined) {
+        const currentAgentsCount = agents.filter(u => (u.role || '').toUpperCase() === 'AGENT').length;
+        if (currentAgentsCount >= Number(targetEnt.maxAgents)) {
+          setCreateError(`Limite d'agents atteinte pour cette entreprise (${currentAgentsCount}/${targetEnt.maxAgents} agents max). Contactez le SuperAdmin pour augmenter le quota.`);
+          return;
+        }
+      }
+      if (requestedRole === 'ADMIN' && targetEnt.maxAdmins !== undefined) {
+        const currentAdminsCount = agents.filter(u => (u.role || '').toUpperCase() === 'ADMIN').length;
+        if (currentAdminsCount >= Number(targetEnt.maxAdmins)) {
+          setCreateError(`Limite d'administrateurs atteinte pour cette entreprise (${currentAdminsCount}/${targetEnt.maxAdmins} admins max). Contactez le SuperAdmin pour augmenter le quota.`);
+          return;
+        }
+      }
+    }
+
     setCreateError('');
     setCreating(true);
     try {
-      const targetEnt = entreprises.find(e => (e.id === entId || e._id === entId));
       await authService.createUser({
         ...createForm,
         password: createForm.password,
         role: createForm.role || 'AGENT',
         entrepriseId: entId,
-        entrepriseNom: targetEnt ? targetEnt.nom : (state.agent?.entrepriseNom || ''),
+        entrepriseNom: targetEnt?.nom || state.agent?.entrepriseNom || '',
       });
       notify('success', `Nouveau membre (${createForm.role || 'AGENT'}) créé avec succès !`);
       setCreateOpen(false);
@@ -186,6 +203,7 @@ export default function AgentsManagement({ isMobile }) {
       fetchAgentsAndEntreprises(true);
     } catch (err) {
       setCreateError(err.message || 'Erreur lors de la création.');
+      notify('error', err.message || 'Erreur lors de la création.');
     } finally {
       setCreating(false);
     }
