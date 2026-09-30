@@ -9,6 +9,7 @@ import { rdvService } from '../services/rdvService';
 import { visitService } from '../services/visitService';
 import { departementService } from '../services/departementService';
 import { entrepriseService } from '../services/entrepriseService';
+import { MOCK_ENTREPRISES } from '../data/mockData';
 import { 
   Card, CardHeader, Btn, FormInput, FormSelect, Modal, EmptyState, StatCard 
 } from '../components/UI';
@@ -25,7 +26,7 @@ export default function RendezVousManagement({ isMobile }) {
 
   const [rdvList, setRdvList] = useState([]);
   const [departements, setDepartements] = useState([]);
-  const [entreprises, setEntreprises] = useState([]);
+  const [entreprises, setEntreprises] = useState(MOCK_ENTREPRISES);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -55,18 +56,77 @@ export default function RendezVousManagement({ isMobile }) {
     heureRdv: '10:00',
     motif: 'Rendez-vous professionnel',
     remarques: '',
-    entrepriseId: userCompanyId,
-    entrepriseNom: userCompanyNom,
+    entrepriseId: userCompanyId || 'ENT-001',
+    entrepriseNom: userCompanyNom || 'Port Autonome de Dakar',
   });
 
   const [formErrors, setFormErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
+  const resolveEntrepriseNom = (rdv) => {
+    if (!rdv) return userCompanyNom || 'Port Autonome de Dakar';
+
+    // 1. Explicit entrepriseNom property
+    if (rdv.entrepriseNom && typeof rdv.entrepriseNom === 'string' && rdv.entrepriseNom !== 'Entreprise non spécifiée') {
+      return rdv.entrepriseNom;
+    }
+
+    // 2. entrepriseId populated object with nom
+    if (typeof rdv.entrepriseId === 'object' && rdv.entrepriseId?.nom) {
+      return rdv.entrepriseId.nom;
+    }
+
+    // 3. entreprise populated object with nom or string
+    if (typeof rdv.entreprise === 'object' && rdv.entreprise?.nom) {
+      return rdv.entreprise.nom;
+    }
+    if (typeof rdv.entreprise === 'string' && rdv.entreprise.trim() && rdv.entreprise !== 'Entreprise non spécifiée') {
+      return rdv.entreprise;
+    }
+
+    // 4. Look up entrepriseId string in loaded entreprises
+    if (rdv.entrepriseId && typeof rdv.entrepriseId === 'string') {
+      const found = entreprises.find(e => 
+        (e._id && e._id === rdv.entrepriseId) || 
+        (e.id && e.id === rdv.entrepriseId) ||
+        (e.code && e.code === rdv.entrepriseId)
+      );
+      if (found && found.nom) return found.nom;
+    }
+
+    // 5. Look up in creePar / agentId
+    if (rdv.creePar && typeof rdv.creePar === 'object') {
+      if (rdv.creePar.entrepriseNom) return rdv.creePar.entrepriseNom;
+      if (rdv.creePar.entreprise?.nom) return rdv.creePar.entreprise.nom;
+    }
+    if (rdv.agentId && typeof rdv.agentId === 'object') {
+      if (rdv.agentId.entrepriseNom) return rdv.agentId.entrepriseNom;
+      if (rdv.agentId.entreprise?.nom) return rdv.agentId.entreprise.nom;
+    }
+
+    // 6. User company if set and not global SuperAdmin
+    if (userCompanyNom && userCompanyNom !== 'NoRegis Global') {
+      return userCompanyNom;
+    }
+
+    // 7. Fallback to active company list or default
+    if (entreprises.length > 0 && entreprises[0]?.nom) {
+      return entreprises[0].nom;
+    }
+
+    return 'Port Autonome de Dakar';
+  };
+
   const fetchRdv = async (showToast = false) => {
     if (showToast) setRefreshing(true);
     try {
       const data = await rdvService.getAll();
-      setRdvList(data || []);
+      const rawList = data || [];
+      const normalized = rawList.map(item => ({
+        ...item,
+        entrepriseNom: resolveEntrepriseNom(item),
+      }));
+      setRdvList(normalized);
       if (showToast) notify('success', 'Rendez-vous actualisés avec succès.');
     } catch (err) {
       console.error('Error loading rdv:', err);
@@ -88,13 +148,12 @@ export default function RendezVousManagement({ isMobile }) {
   };
 
   const fetchEntreprises = async () => {
-    if (!isSuperAdmin) return;
     try {
       const res = await entrepriseService.getAll();
-      const list = Array.isArray(res) ? res : (res?.entreprises || []);
-      setEntreprises(list);
+      const list = Array.isArray(res) ? res : (res?.entreprises || res?.data || []);
+      if (list.length > 0) setEntreprises(list);
     } catch (e) {
-      console.warn('Could not load entreprises:', e);
+      console.warn('Could not load entreprises from API, using defaults:', e);
     }
   };
 
@@ -102,26 +161,28 @@ export default function RendezVousManagement({ isMobile }) {
     fetchRdv();
     fetchDepartements();
     fetchEntreprises();
-  }, [isSuperAdmin]);
+  }, []);
 
-  const resolveEntrepriseNom = (rdv) => {
-    if (rdv.entrepriseNom) return rdv.entrepriseNom;
-    if (typeof rdv.entreprise === 'object' && rdv.entreprise?.nom) return rdv.entreprise.nom;
-    if (typeof rdv.entreprise === 'string' && rdv.entreprise) return rdv.entreprise;
-    if (rdv.entrepriseId) {
-      const found = entreprises.find(e => (e._id || e.id) === rdv.entrepriseId);
-      if (found) return found.nom;
+  // Sync rdv company names when entreprises load
+  useEffect(() => {
+    if (rdvList.length > 0 && entreprises.length > 0) {
+      setRdvList(prev => prev.map(item => ({
+        ...item,
+        entrepriseNom: resolveEntrepriseNom(item),
+      })));
     }
-    if (rdv.creePar && typeof rdv.creePar === 'object') {
-      if (rdv.creePar.entrepriseNom) return rdv.creePar.entrepriseNom;
-      if (rdv.creePar.entreprise?.nom) return rdv.creePar.entreprise.nom;
-    }
-    return userCompanyNom || 'Entreprise non spécifiée';
-  };
+  }, [entreprises]);
 
   const openCreateModal = () => {
     setEditingRdv(null);
-    const defaultEnt = entreprises[0] || {};
+    const defaultEnt = entreprises[0] || MOCK_ENTREPRISES[0] || {};
+    const defaultEntNom = isSuperAdmin 
+      ? (defaultEnt.nom || 'Port Autonome de Dakar') 
+      : (userCompanyNom || defaultEnt.nom || 'Port Autonome de Dakar');
+    const defaultEntId = isSuperAdmin 
+      ? (defaultEnt._id || defaultEnt.id || 'ENT-001') 
+      : (userCompanyId || defaultEnt._id || defaultEnt.id || 'ENT-001');
+
     setFormData({
       prenom: '',
       nom: '',
@@ -130,13 +191,13 @@ export default function RendezVousManagement({ isMobile }) {
       typePiece: 'cni',
       numeroPiece: '',
       personneVisitee: '',
-      serviceDepartement: departements[0]?.nom || '',
+      serviceDepartement: departements[0]?.nom || 'Direction Générale',
       dateRdv: new Date().toISOString().split('T')[0],
       heureRdv: '10:00',
       motif: 'Rendez-vous professionnel',
       remarques: '',
-      entrepriseId: isSuperAdmin ? (defaultEnt._id || defaultEnt.id || '') : userCompanyId,
-      entrepriseNom: isSuperAdmin ? (defaultEnt.nom || '') : userCompanyNom,
+      entrepriseId: defaultEntId,
+      entrepriseNom: defaultEntNom,
     });
     setFormErrors({});
     setIsModalOpen(true);
@@ -157,7 +218,7 @@ export default function RendezVousManagement({ isMobile }) {
       heureRdv: rdv.heureRdv || '10:00',
       motif: rdv.motif || '',
       remarques: rdv.remarques || '',
-      entrepriseId: rdv.entrepriseId || userCompanyId,
+      entrepriseId: rdv.entrepriseId || userCompanyId || 'ENT-001',
       entrepriseNom: resolveEntrepriseNom(rdv),
     });
     setFormErrors({});
@@ -181,13 +242,18 @@ export default function RendezVousManagement({ isMobile }) {
     if (!validateForm()) return;
 
     setSubmitting(true);
+    const finalFormData = {
+      ...formData,
+      entrepriseNom: formData.entrepriseNom || userCompanyNom || (entreprises[0]?.nom || 'Port Autonome de Dakar'),
+    };
+
     try {
       if (editingRdv) {
         const id = editingRdv._id || editingRdv.id;
-        await rdvService.update(id, formData);
+        await rdvService.update(id, finalFormData);
         notify('success', 'Rendez-vous mis à jour avec succès.');
       } else {
-        await rdvService.create(formData);
+        await rdvService.create(finalFormData);
         notify('success', 'Rendez-vous programmé avec succès.');
       }
       setIsModalOpen(false);
@@ -200,6 +266,7 @@ export default function RendezVousManagement({ isMobile }) {
   };
 
   const handleCheckIn = async (rdv) => {
+    const entNom = resolveEntrepriseNom(rdv);
     try {
       await visitService.recordEntry({
         prenom: rdv.prenom,
@@ -213,7 +280,7 @@ export default function RendezVousManagement({ isMobile }) {
         motifVisite: `[RDV Programmé] ${rdv.motif || ''}`,
         statut: 'present',
         entrepriseId: rdv.entrepriseId || userCompanyId,
-        entrepriseNom: resolveEntrepriseNom(rdv),
+        entrepriseNom: entNom,
       });
 
       await rdvService.checkIn(rdv);
@@ -496,7 +563,7 @@ export default function RendezVousManagement({ isMobile }) {
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-[10px] font-black uppercase tracking-wider text-slate-400">
                   <th className="p-4">Visiteur</th>
-                  {isSuperAdmin && <th className="p-4">Entreprise Créatrice</th>}
+                  <th className="p-4">Entreprise Créatrice</th>
                   <th className="p-4">Date & Heure</th>
                   <th className="p-4">Personne Visitée / Service</th>
                   <th className="p-4">Motif</th>
@@ -542,14 +609,13 @@ export default function RendezVousManagement({ isMobile }) {
                         </div>
                       </td>
 
-                      {/* Entreprise (SuperAdmin) */}
-                      {isSuperAdmin && (
-                        <td className="p-4">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                            <Building2 size={13} /> {entrepriseNom}
-                          </span>
-                        </td>
-                      )}
+                      {/* Entreprise */}
+                      <td className="p-4">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 shadow-sm">
+                          <Building2 size={14} className="shrink-0 text-indigo-500" />
+                          <span>{entrepriseNom}</span>
+                        </span>
+                      </td>
 
                       {/* Date & Heure */}
                       <td className="p-4">
@@ -653,29 +719,27 @@ export default function RendezVousManagement({ isMobile }) {
         size="md"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* SuperAdmin Enterprise Selector */}
-          {isSuperAdmin && (
-            <FormSelect
-              label="Entreprise / Boîte Créatrice"
-              required
-              value={formData.entrepriseId || formData.entrepriseNom}
-              onChange={(e) => {
-                const val = e.target.value;
-                const selectedEnt = entreprises.find(ent => (ent._id || ent.id) === val || ent.nom === val);
-                setFormData({
-                  ...formData,
-                  entrepriseId: selectedEnt?._id || selectedEnt?.id || val,
-                  entrepriseNom: selectedEnt?.nom || val,
-                });
-              }}
-              options={
-                entreprises.length > 0
-                  ? entreprises.map(e => ({ value: e._id || e.id || e.nom, label: e.nom }))
-                  : [{ value: userCompanyId, label: userCompanyNom || 'Entreprise Générale' }]
-              }
-              icon={Building2}
-            />
-          )}
+          {/* Enterprise Selector */}
+          <FormSelect
+            label="Entreprise / Boîte Créatrice"
+            required
+            value={formData.entrepriseId || formData.entrepriseNom}
+            onChange={(e) => {
+              const val = e.target.value;
+              const selectedEnt = entreprises.find(ent => (ent._id || ent.id) === val || ent.nom === val);
+              setFormData({
+                ...formData,
+                entrepriseId: selectedEnt?._id || selectedEnt?.id || val,
+                entrepriseNom: selectedEnt?.nom || val,
+              });
+            }}
+            options={
+              entreprises.length > 0
+                ? entreprises.map(e => ({ value: e._id || e.id || e.nom, label: e.nom }))
+                : [{ value: 'ENT-001', label: 'Port Autonome de Dakar' }]
+            }
+            icon={Building2}
+          />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormInput
@@ -846,11 +910,9 @@ export default function RendezVousManagement({ isMobile }) {
               <p className="text-xs text-slate-500 mt-1">
                 Le visiteur est arrivé pour son RDV avec <strong className="text-slate-800 dark:text-slate-200">{checkInConfirmRdv.personneVisitee}</strong> ({checkInConfirmRdv.serviceDepartement}).
               </p>
-              {isSuperAdmin && (
-                <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mt-1">
-                  Entreprise : {resolveEntrepriseNom(checkInConfirmRdv)}
-                </p>
-              )}
+              <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mt-1">
+                Entreprise : {resolveEntrepriseNom(checkInConfirmRdv)}
+              </p>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-400 text-center">
