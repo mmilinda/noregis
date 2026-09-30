@@ -9,7 +9,6 @@ import { rdvService } from '../services/rdvService';
 import { visitService } from '../services/visitService';
 import { departementService } from '../services/departementService';
 import { entrepriseService } from '../services/entrepriseService';
-import { MOCK_ENTREPRISES } from '../data/mockData';
 import { 
   Card, CardHeader, Btn, FormInput, FormSelect, Modal, EmptyState, StatCard 
 } from '../components/UI';
@@ -26,7 +25,7 @@ export default function RendezVousManagement({ isMobile }) {
 
   const [rdvList, setRdvList] = useState([]);
   const [departements, setDepartements] = useState([]);
-  const [entreprises, setEntreprises] = useState(MOCK_ENTREPRISES);
+  const [entreprises, setEntreprises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -56,65 +55,72 @@ export default function RendezVousManagement({ isMobile }) {
     heureRdv: '10:00',
     motif: 'Rendez-vous professionnel',
     remarques: '',
-    entrepriseId: userCompanyId || 'ENT-001',
-    entrepriseNom: userCompanyNom || 'Port Autonome de Dakar',
+    entrepriseId: userCompanyId,
+    entrepriseNom: userCompanyNom,
   });
 
   const [formErrors, setFormErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
+  // Resolve Company Name accurately from backend data structures
   const resolveEntrepriseNom = (rdv) => {
-    if (!rdv) return userCompanyNom || 'Port Autonome de Dakar';
+    if (!rdv) return userCompanyNom || '';
 
-    // 1. Explicit entrepriseNom property
-    if (rdv.entrepriseNom && typeof rdv.entrepriseNom === 'string' && rdv.entrepriseNom !== 'Entreprise non spécifiée') {
-      return rdv.entrepriseNom;
-    }
-
-    // 2. entrepriseId populated object with nom
+    // 1. Check if rdv.entrepriseId is a populated object with .nom (Backend format!)
     if (typeof rdv.entrepriseId === 'object' && rdv.entrepriseId?.nom) {
       return rdv.entrepriseId.nom;
     }
 
-    // 3. entreprise populated object with nom or string
+    // 2. Check if rdv.entreprise is a populated object with .nom or string
     if (typeof rdv.entreprise === 'object' && rdv.entreprise?.nom) {
       return rdv.entreprise.nom;
+    }
+
+    // 3. Check explicit rdv.entrepriseNom if string and valid
+    if (rdv.entrepriseNom && typeof rdv.entrepriseNom === 'string' && rdv.entrepriseNom !== 'Entreprise non spécifiée') {
+      return rdv.entrepriseNom;
     }
     if (typeof rdv.entreprise === 'string' && rdv.entreprise.trim() && rdv.entreprise !== 'Entreprise non spécifiée') {
       return rdv.entreprise;
     }
 
-    // 4. Look up entrepriseId string in loaded entreprises
-    if (rdv.entrepriseId && typeof rdv.entrepriseId === 'string') {
+    // 4. Look up rdv.entrepriseId string in backend loaded entreprises
+    if (rdv.entrepriseId && (typeof rdv.entrepriseId === 'string' || typeof rdv.entrepriseId === 'number')) {
+      const entIdStr = String(rdv.entrepriseId);
       const found = entreprises.find(e => 
-        (e._id && e._id === rdv.entrepriseId) || 
-        (e.id && e.id === rdv.entrepriseId) ||
-        (e.code && e.code === rdv.entrepriseId)
+        String(e._id || e.id || '') === entIdStr || 
+        String(e.code || '').toLowerCase() === entIdStr.toLowerCase()
       );
       if (found && found.nom) return found.nom;
     }
 
-    // 5. Look up in creePar / agentId
-    if (rdv.creePar && typeof rdv.creePar === 'object') {
-      if (rdv.creePar.entrepriseNom) return rdv.creePar.entrepriseNom;
-      if (rdv.creePar.entreprise?.nom) return rdv.creePar.entreprise.nom;
-    }
+    // 5. Look up in populated agentId or creePar
     if (rdv.agentId && typeof rdv.agentId === 'object') {
+      if (typeof rdv.agentId.entrepriseId === 'object' && rdv.agentId.entrepriseId?.nom) {
+        return rdv.agentId.entrepriseId.nom;
+      }
       if (rdv.agentId.entrepriseNom) return rdv.agentId.entrepriseNom;
       if (rdv.agentId.entreprise?.nom) return rdv.agentId.entreprise.nom;
     }
+    if (rdv.creePar && typeof rdv.creePar === 'object') {
+      if (typeof rdv.creePar.entrepriseId === 'object' && rdv.creePar.entrepriseId?.nom) {
+        return rdv.creePar.entrepriseId.nom;
+      }
+      if (rdv.creePar.entrepriseNom) return rdv.creePar.entrepriseNom;
+      if (rdv.creePar.entreprise?.nom) return rdv.creePar.entreprise.nom;
+    }
 
-    // 6. User company if set and not global SuperAdmin
+    // 6. User company if set and not generic global
     if (userCompanyNom && userCompanyNom !== 'NoRegis Global') {
       return userCompanyNom;
     }
 
-    // 7. Fallback to active company list or default
+    // 7. Fallback to active backend loaded enterprise name
     if (entreprises.length > 0 && entreprises[0]?.nom) {
       return entreprises[0].nom;
     }
 
-    return 'Port Autonome de Dakar';
+    return '';
   };
 
   const fetchRdv = async (showToast = false) => {
@@ -151,9 +157,11 @@ export default function RendezVousManagement({ isMobile }) {
     try {
       const res = await entrepriseService.getAll();
       const list = Array.isArray(res) ? res : (res?.entreprises || res?.data || []);
-      if (list.length > 0) setEntreprises(list);
+      if (Array.isArray(list) && list.length > 0) {
+        setEntreprises(list);
+      }
     } catch (e) {
-      console.warn('Could not load entreprises from API, using defaults:', e);
+      console.warn('Could not load entreprises from API:', e);
     }
   };
 
@@ -163,7 +171,7 @@ export default function RendezVousManagement({ isMobile }) {
     fetchEntreprises();
   }, []);
 
-  // Sync rdv company names when entreprises load
+  // Sync rdv company names when backend entreprises load
   useEffect(() => {
     if (rdvList.length > 0 && entreprises.length > 0) {
       setRdvList(prev => prev.map(item => ({
@@ -175,13 +183,13 @@ export default function RendezVousManagement({ isMobile }) {
 
   const openCreateModal = () => {
     setEditingRdv(null);
-    const defaultEnt = entreprises[0] || MOCK_ENTREPRISES[0] || {};
+    const defaultEnt = entreprises[0] || {};
     const defaultEntNom = isSuperAdmin 
-      ? (defaultEnt.nom || 'Port Autonome de Dakar') 
-      : (userCompanyNom || defaultEnt.nom || 'Port Autonome de Dakar');
+      ? (defaultEnt.nom || userCompanyNom || '') 
+      : (userCompanyNom || defaultEnt.nom || '');
     const defaultEntId = isSuperAdmin 
-      ? (defaultEnt._id || defaultEnt.id || 'ENT-001') 
-      : (userCompanyId || defaultEnt._id || defaultEnt.id || 'ENT-001');
+      ? (defaultEnt._id || defaultEnt.id || '') 
+      : (userCompanyId || defaultEnt._id || defaultEnt.id || '');
 
     setFormData({
       prenom: '',
@@ -205,6 +213,7 @@ export default function RendezVousManagement({ isMobile }) {
 
   const openEditModal = (rdv) => {
     setEditingRdv(rdv);
+    const resolvedName = resolveEntrepriseNom(rdv);
     setFormData({
       prenom: rdv.prenom || '',
       nom: rdv.nom || '',
@@ -218,8 +227,8 @@ export default function RendezVousManagement({ isMobile }) {
       heureRdv: rdv.heureRdv || '10:00',
       motif: rdv.motif || '',
       remarques: rdv.remarques || '',
-      entrepriseId: rdv.entrepriseId || userCompanyId || 'ENT-001',
-      entrepriseNom: resolveEntrepriseNom(rdv),
+      entrepriseId: (typeof rdv.entrepriseId === 'object' ? rdv.entrepriseId?._id : rdv.entrepriseId) || userCompanyId,
+      entrepriseNom: resolvedName,
     });
     setFormErrors({});
     setIsModalOpen(true);
@@ -244,7 +253,7 @@ export default function RendezVousManagement({ isMobile }) {
     setSubmitting(true);
     const finalFormData = {
       ...formData,
-      entrepriseNom: formData.entrepriseNom || userCompanyNom || (entreprises[0]?.nom || 'Port Autonome de Dakar'),
+      entrepriseNom: formData.entrepriseNom || userCompanyNom || (entreprises[0]?.nom || ''),
     };
 
     try {
@@ -279,7 +288,7 @@ export default function RendezVousManagement({ isMobile }) {
         serviceDepartement: rdv.serviceDepartement,
         motifVisite: `[RDV Programmé] ${rdv.motif || ''}`,
         statut: 'present',
-        entrepriseId: rdv.entrepriseId || userCompanyId,
+        entrepriseId: (typeof rdv.entrepriseId === 'object' ? rdv.entrepriseId?._id : rdv.entrepriseId) || userCompanyId,
         entrepriseNom: entNom,
       });
 
@@ -332,8 +341,10 @@ export default function RendezVousManagement({ isMobile }) {
 
     const matchesStatus = statusFilter === 'ALL' || item.statut === statusFilter;
     const matchesDate = !dateFilter || (item.dateRdv && item.dateRdv.startsWith(dateFilter));
+    
+    const targetEntId = typeof item.entrepriseId === 'object' ? item.entrepriseId?._id : item.entrepriseId;
     const matchesEntreprise = entrepriseFilter === 'ALL' || 
-      item.entrepriseId === entrepriseFilter || 
+      String(targetEntId) === String(entrepriseFilter) || 
       entNom.includes(entrepriseFilter.toLowerCase());
 
     return matchesSearch && matchesStatus && matchesDate && matchesEntreprise;
@@ -611,10 +622,14 @@ export default function RendezVousManagement({ isMobile }) {
 
                       {/* Entreprise */}
                       <td className="p-4">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 shadow-sm">
-                          <Building2 size={14} className="shrink-0 text-indigo-500" />
-                          <span>{entrepriseNom}</span>
-                        </span>
+                        {entrepriseNom ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 shadow-sm">
+                            <Building2 size={14} className="shrink-0 text-indigo-500" />
+                            <span>{entrepriseNom}</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 italic text-[11px]">Non renseigné</span>
+                        )}
                       </td>
 
                       {/* Date & Heure */}
@@ -726,7 +741,7 @@ export default function RendezVousManagement({ isMobile }) {
             value={formData.entrepriseId || formData.entrepriseNom}
             onChange={(e) => {
               const val = e.target.value;
-              const selectedEnt = entreprises.find(ent => (ent._id || ent.id) === val || ent.nom === val);
+              const selectedEnt = entreprises.find(ent => String(ent._id || ent.id) === String(val) || ent.nom === val);
               setFormData({
                 ...formData,
                 entrepriseId: selectedEnt?._id || selectedEnt?.id || val,
@@ -735,8 +750,8 @@ export default function RendezVousManagement({ isMobile }) {
             }}
             options={
               entreprises.length > 0
-                ? entreprises.map(e => ({ value: e._id || e.id || e.nom, label: e.nom }))
-                : [{ value: 'ENT-001', label: 'Port Autonome de Dakar' }]
+                ? entreprises.map(e => ({ value: e._id || e.id || e.nom, label: `${e.nom}${e.code ? ` (${e.code})` : ''}` }))
+                : [{ value: '', label: 'Sélectionner une entreprise...' }]
             }
             icon={Building2}
           />
@@ -910,9 +925,11 @@ export default function RendezVousManagement({ isMobile }) {
               <p className="text-xs text-slate-500 mt-1">
                 Le visiteur est arrivé pour son RDV avec <strong className="text-slate-800 dark:text-slate-200">{checkInConfirmRdv.personneVisitee}</strong> ({checkInConfirmRdv.serviceDepartement}).
               </p>
-              <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mt-1">
-                Entreprise : {resolveEntrepriseNom(checkInConfirmRdv)}
-              </p>
+              {resolveEntrepriseNom(checkInConfirmRdv) && (
+                <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mt-1">
+                  Entreprise : {resolveEntrepriseNom(checkInConfirmRdv)}
+                </p>
+              )}
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-400 text-center">
