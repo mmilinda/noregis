@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, History, Settings, User as UserIcon,
+  LayoutDashboard, History, Settings, User as UserIcon, Calendar,
   Shield, Clock, Plus, Bell, Search, LogOut, Camera, Building2, Users, Briefcase, FolderTree, AlertTriangle, Menu, X, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/useAppState';
 import { RegistrationModal } from './RegistrationModal';
@@ -365,6 +365,8 @@ function getSearchPlaceholder(activeTab, t, isSuperAdmin) {
       return t.search_compte || "Rechercher un compte (Nom, rôle, email...)";
     case 'history':
       return t.search_history || "Rechercher dans l'historique (Visiteur, hôte, date...) font-bold";
+    case 'rdv':
+      return "Rechercher un rendez-vous (Visiteur, hôte, service...)";
     case 'bugs':
       return "Rechercher un signalement, bug, statut...";
     case 'settings':
@@ -598,6 +600,7 @@ export function Layout({ children, activeTab, onTabChange }) {
 
   const navItems = [
     { id: 'dashboard', label: isSuperAdmin ? 'Supervision Global' : t.dashboard, icon: LayoutDashboard },
+    { id: 'rdv', label: 'Rendez-vous', icon: Calendar },
     ...(isSuperAdmin ? [
       { id: 'entreprises', label: 'Entreprises & Boîtes', icon: Building2 },
       { id: 'secteurs', label: "Secteurs d'Activité", icon: Briefcase },

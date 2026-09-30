@@ -1,6 +1,7 @@
 export const TRANSLATIONS = {
   fr: {
     dashboard: "Tableau de bord",
+    rdv: "Rendez-vous",
     history: "Historique",
     agents: "Agents",
     agent_management: "Gestion des Agents",
@@ -242,6 +243,7 @@ export const TRANSLATIONS = {
   },
   en: {
     dashboard: "Dashboard",
+    rdv: "Appointments",
     history: "History",
     agents: "Agents",
     agent_management: "Agent Management",
@@ -468,6 +470,7 @@ export const TRANSLATIONS = {
   },
   ar: {
     dashboard: "لوحة التحكم",
+    rdv: "المواعيد",
     history: "السجل",
     agents: "العملاء",
     agent_management: "إدارة العملاء",

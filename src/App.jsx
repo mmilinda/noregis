@@ -25,6 +25,7 @@ import DepartementsManagement from './pages/admin/Departements';
 import AgentDashboard from './pages/agent/Dashboard';
 import AgentHistorique from './pages/agent/Historique';
 import BugsManagement from './pages/Bugs';
+import RendezVousManagement from './pages/RendezVous';
 
 /* ============================================
    INNER APP (has access to context and router)
@@ -41,6 +42,7 @@ function AppInner() {
     'parametres': 'settings',
     'historique': 'history',
     'signalements': 'bugs',
+    'rendez-vous': 'rdv',
   };
   const activeTab = pathAliasMap[rawPath] || rawPath;
 
@@ -145,6 +147,8 @@ function AppInner() {
           {isSuperAdmin && <Route path="/admins" element={<AdminsManagement />} />}
           {(isSuperAdmin || isAdmin) && <Route path="/agents" element={<AgentsManagement />} />}
           {isSuperAdmin && <Route path="/comptes" element={<ComptesManagement />} />}
+          <Route path="/rdv" element={<RendezVousManagement />} />
+          <Route path="/rendez-vous" element={<RendezVousManagement />} />
           <Route path="/history" element={<AgentHistorique />} />
           <Route path="/historique" element={<AgentHistorique />} />
           <Route path="/bugs" element={<BugsManagement />} />
