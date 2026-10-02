@@ -81,15 +81,15 @@ function Sidebar({ activeTab, onTabChange, onNewEntry, t, navItems }) {
               key={id}
               onClick={() => onTabChange(id)}
               className={`
-                flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group
+                flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group whitespace-nowrap
                 ${active 
                   ? 'bg-brand-blue-bright/10 text-brand-blue-bright border border-brand-blue-bright/20 shadow-inner' 
                   : 'text-white/40 hover:text-white hover:bg-white/5 border border-transparent'
                 }
               `}
             >
-              <Icon size={20} className={active ? 'text-brand-blue-bright' : 'text-white/20 group-hover:text-white/60'} />
-              <span className="text-sm font-bold">{label}</span>
+              <Icon size={20} className={`shrink-0 ${active ? 'text-brand-blue-bright' : 'text-white/20 group-hover:text-white/60'}`} />
+              <span className="text-sm font-bold whitespace-nowrap">{label}</span>
             </button>
           );
         })}
@@ -215,7 +215,7 @@ function MobileDrawer({ isOpen, onClose, activeTab, onTabChange, onNewEntry, t, 
                   onClose();
                 }}
                 className={`
-                  w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group
+                  w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group whitespace-nowrap
                   ${active 
                     ? 'bg-brand-blue-bright/15 text-brand-blue-bright border border-brand-blue-bright/30 font-black' 
                     : 'text-white/70 hover:text-white hover:bg-white/5 border border-transparent font-bold'
@@ -223,8 +223,8 @@ function MobileDrawer({ isOpen, onClose, activeTab, onTabChange, onNewEntry, t, 
                 `}
               >
                 <div className="flex items-center gap-3">
-                  <Icon size={19} className={active ? 'text-brand-blue-bright' : 'text-white/40 group-hover:text-white'} />
-                  <span className="text-xs">{label}</span>
+                  <Icon size={19} className={`shrink-0 ${active ? 'text-brand-blue-bright' : 'text-white/40 group-hover:text-white'}`} />
+                  <span className="text-xs whitespace-nowrap">{label}</span>
                 </div>
                 <ChevronRight size={14} className={active ? 'text-brand-blue-bright' : 'text-white/20'} />
               </button>
