@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useApp } from '../context/useAppState';
 import { bugService } from '../services/bugService';
 import {
-  AlertTriangle, Bug, Plus, Search, CheckCircle2, Clock, Filter, MessageSquare, Send, ShieldAlert, Check, ShieldCheck, ArrowRight, RefreshCw, Building2, User
+  AlertTriangle, Bug, Plus, Search, CheckCircle2, Clock, Filter, MessageSquare, Send, ShieldAlert, Check, ShieldCheck, ArrowRight, RefreshCw, Building2, User, Crown, Briefcase, Shield
 } from 'lucide-react';
 import { Btn, Card, FormInput, FormSelect, StatCard, Modal, EmptyState } from '../components/UI';
 
@@ -654,7 +654,10 @@ export default function BugsManagement() {
                       <span className="text-xs font-black text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                         <ShieldCheck size={16} /> Réponse Officielle du SuperAdmin
                       </span>
-                      <span className="text-[10px] font-bold text-amber-600/70">👑 SuperAdmin</span>
+                      <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                        <Crown size={12} className="text-amber-500 shrink-0" />
+                        <span>SuperAdmin</span>
+                      </span>
                     </div>
                     <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 whitespace-pre-wrap leading-relaxed">
                       {safeStr(selectedBug.reponseSuperAdmin || lastModalRep?.message)}
@@ -670,7 +673,10 @@ export default function BugsManagement() {
                       <span className="text-xs font-black text-purple-700 dark:text-purple-400 flex items-center gap-1.5">
                         <ShieldCheck size={16} /> Réponse Officielle de l'Admin
                       </span>
-                      <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400">💼 Admin</span>
+                      <span className="text-[10px] font-black text-purple-600 dark:text-purple-400 flex items-center gap-1 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
+                        <ShieldCheck size={12} className="text-purple-500 shrink-0" />
+                        <span>Admin</span>
+                      </span>
                     </div>
                     <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 whitespace-pre-wrap leading-relaxed">
                       {safeStr(selectedBug.reponseAdmin || lastModalRep?.message || `Signalement ${safeStr(selectedBug.statut).toLowerCase()}`)}
@@ -714,14 +720,29 @@ export default function BugsManagement() {
                             <span className="text-xs font-black text-slate-900 dark:text-white">
                               {safeStr(rep.nomAuteur, 'Utilisateur')}
                             </span>
-                            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${
+                            <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase inline-flex items-center gap-1 ${
                               isRepSuperAdmin
                                 ? 'bg-amber-500 text-white'
                                 : isRepAdmin
                                 ? 'bg-purple-600 text-white'
                                 : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                             }`}>
-                              {isRepSuperAdmin ? '👑 SuperAdmin' : isRepAdmin ? '💼 Admin' : safeStr(rep.roleAuteur, 'AGENT')}
+                              {isRepSuperAdmin ? (
+                                <>
+                                  <Crown size={11} className="shrink-0" />
+                                  <span>SuperAdmin</span>
+                                </>
+                              ) : isRepAdmin ? (
+                                <>
+                                  <ShieldCheck size={11} className="shrink-0" />
+                                  <span>Admin</span>
+                                </>
+                              ) : (
+                                <>
+                                  <User size={11} className="shrink-0" />
+                                  <span>{safeStr(rep.roleAuteur, 'AGENT')}</span>
+                                </>
+                              )}
                             </span>
                           </div>
 

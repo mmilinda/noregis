@@ -429,35 +429,35 @@ function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
     const bSignaleur = safeStr(b.nomSignaleur, 'Agent');
     const bEnt = safeStr(b.entrepriseNom);
 
-    let text = `🐛 Bug : ${bTitre}`;
+    let text = `Bug : ${bTitre}`;
     let subtext = `De: ${bSignaleur}${bEnt ? ` (${bEnt})` : ''}`;
 
     if (isSuperAdmin) {
       if (hasResponses && lastResponse?.roleAuteur !== 'SUPER_ADMIN' && lastResponse?.roleAuteur !== 'SUPERADMIN') {
-        text = `💬 Réponse de ${safeStr(lastResponse?.nomAuteur, 'Utilisateur')} (${safeStr(lastResponse?.roleAuteur)}) : ${bTitre}`;
+        text = `Réponse de ${safeStr(lastResponse?.nomAuteur, 'Utilisateur')} (${safeStr(lastResponse?.roleAuteur)}) : ${bTitre}`;
         subtext = `« ${safeStr(lastResponse?.message)} »`;
       } else {
-        text = `🐛 Nouveau Bug : ${bTitre}`;
+        text = `Nouveau Bug : ${bTitre}`;
         subtext = `Par ${bSignaleur}${bEnt ? ` • ${bEnt}` : ''}`;
       }
     } else if (isAdmin) {
       if (hasResponses && (lastResponse?.roleAuteur === 'SUPER_ADMIN' || lastResponse?.roleAuteur === 'SUPERADMIN')) {
-        text = `👑 Réponse du SuperAdmin : ${bTitre}`;
+        text = `Réponse du SuperAdmin : ${bTitre}`;
         subtext = `« ${safeStr(lastResponse?.message)} »`;
       } else if (hasResponses && lastResponse?.roleAuteur === 'AGENT') {
-        text = `💬 Réponse de l'Agent ${safeStr(lastResponse?.nomAuteur, 'Agent')} : ${bTitre}`;
+        text = `Réponse de l'Agent ${safeStr(lastResponse?.nomAuteur, 'Agent')} : ${bTitre}`;
         subtext = `« ${safeStr(lastResponse?.message)} »`;
       } else {
-        text = `🐛 Bug Équipe : ${bTitre}`;
+        text = `Bug Équipe : ${bTitre}`;
         subtext = `Signalé par ${bSignaleur}`;
       }
     } else {
       if (hasResponses && lastResponse?.roleAuteur !== 'AGENT') {
         const authorRole = (lastResponse?.roleAuteur === 'SUPER_ADMIN' || lastResponse?.roleAuteur === 'SUPERADMIN') ? 'SuperAdmin' : 'Admin';
-        text = `💬 Réponse de ${authorRole} (${safeStr(lastResponse?.nomAuteur, 'Utilisateur')}) : ${bTitre}`;
+        text = `Réponse de ${authorRole} (${safeStr(lastResponse?.nomAuteur, 'Utilisateur')}) : ${bTitre}`;
         subtext = `« ${safeStr(lastResponse?.message)} »`;
       } else {
-        text = `🐛 Mon signalement : ${bTitre}`;
+        text = `Mon signalement : ${bTitre}`;
         subtext = `Statut : ${safeStr(b.statut)}`;
       }
     }
