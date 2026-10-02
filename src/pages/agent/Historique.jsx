@@ -52,8 +52,10 @@ export default function AgentHistorique({ isMobile }) {
     const loadVisits = async () => {
       try {
         const data = await visitService.getAll();
-        if (!ignore && data?.visites) {
-          const rawVisits = data.visites || [];
+        if (!ignore && data) {
+          const rawVisits = Array.isArray(data) 
+            ? data 
+            : (data.visites || data.visits || data.data?.visites || data.data || []);
           const uniqueVisits = Array.from(new Map(rawVisits.map(v => [v._id || v.id, v])).values());
           dispatch({ type: 'SET_VISITORS', payload: uniqueVisits });
         }
@@ -72,35 +74,29 @@ export default function AgentHistorique({ isMobile }) {
     // 1. Contextual filtering based on role & query selection
     if (role === 'SUPER_ADMIN' || role === 'SUPERADMIN') {
       if (entrepriseFilter !== 'ALL') {
-        const vEntId = v.entrepriseId?._id || v.entrepriseId;
-        if (String(vEntId) !== String(entrepriseFilter)) return false;
+        const vEntId = String(v.entrepriseId?._id || v.entrepriseId || v.entreprise || '');
+        if (vEntId !== String(entrepriseFilter)) return false;
       }
       if (agentFilter !== 'ALL') {
-        const vAgentId = v.agentId?._id || v.agentId || v.createdBy || v.agent?.id;
-        if (String(vAgentId) !== String(agentFilter)) return false;
+        const vAgentId = String(v.agentId?._id || v.agentId || v.createdBy || v.agent?.id || '');
+        if (vAgentId !== String(agentFilter)) return false;
       }
-    } else if (role === 'ADMIN') {
-      const entId = userObj.entrepriseId?._id || userObj.entrepriseId;
-      const vEntId = v.entrepriseId?._id || v.entrepriseId;
-      if (entId && vEntId && String(vEntId) !== String(entId)) return false;
     } else {
-      // AGENT: voit uniquement son propre historique de visites enregistrées
-      if (!state.isAuthenticated) {
-        const currentId = userObj._id || userObj.id;
-        const currentEmail = userObj.email;
-        const currentNom = `${userObj.prenom || ''} ${userObj.nom || ''}`.trim().toLowerCase();
+      // ADMIN et AGENT : Voient l'historique complet des visites de leur entreprise
+      const adminEntId = String(userObj.entrepriseId?._id || userObj.entrepriseId || userObj.entreprise?._id || userObj.entreprise || '');
+      const adminEntNom = String(userObj.entrepriseNom || userObj.entrepriseId?.nom || userObj.entreprise?.nom || '').toLowerCase().trim();
 
-        const vAgentId = v.agentId?._id || v.agentId || v.createdBy || v.agent?._id || v.agent?.id;
-        const vEmail = v.agentEmail || v.agent?.email;
-        const vAuthorName = String(v.enregistrePar || v.agentNom || '').toLowerCase();
+      const vEntId = String(v.entrepriseId?._id || v.entrepriseId || v.entreprise?._id || v.entreprise || v.agentId?.entrepriseId?._id || v.agentId?.entrepriseId || '');
+      const vEntNom = String(v.entrepriseNom || v.entrepriseId?.nom || v.entreprise?.nom || v.agentId?.entrepriseNom || v.agentId?.entrepriseId?.nom || '').toLowerCase().trim();
 
-        const isOwn = (
-          (vAgentId && currentId && String(vAgentId) === String(currentId)) ||
-          (vEmail && currentEmail && String(vEmail).toLowerCase() === String(currentEmail).toLowerCase()) ||
-          (vAuthorName && currentNom && currentNom.length > 2 && vAuthorName.includes(currentNom)) ||
-          (!vAgentId && !vEmail && !vAuthorName)
-        );
-        if (!isOwn) return false;
+      if (adminEntId && vEntId && adminEntId === vEntId) {
+        // Match par ID entreprise
+      } else if (adminEntNom && vEntNom && (vEntNom.includes(adminEntNom) || adminEntNom.includes(vEntNom))) {
+        // Match par Nom entreprise
+      } else if (!vEntId && !vEntNom) {
+        // Inclure les visites sans entreprise renseignée pour ne pas les masquer
+      } else if (adminEntId || adminEntNom) {
+        return false;
       }
     }
 
