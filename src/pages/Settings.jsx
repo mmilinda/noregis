@@ -739,37 +739,37 @@ export function ProfilAgent() {
   };
 
   return (
-    <div className="p-4 lg:p-8 w-full max-w-7xl mx-auto space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="p-4 lg:p-6 w-full max-w-7xl mx-auto space-y-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Mon Profil Utilisateur</h1>
 
       {/* Demande en attente (Agent) */}
       {!loadingDemande && demandePendante && (
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 shadow-sm">
-          <Clock size={18} className="text-amber-500 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 shadow-sm">
+          <Clock size={16} className="text-amber-500 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Demande de modification en attente</p>
-            <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+            <p className="text-xs font-bold text-amber-800 dark:text-amber-300">Demande de modification en attente</p>
+            <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">
               Champ(s) : <span className="font-bold">{Object.keys(demandePendante?.modifications || {}).join(', ')}</span>
             </p>
             {demandePendante?.motif && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5 italic">«{demandePendante.motif}»</p>
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5 italic">«{demandePendante.motif}»</p>
             )}
           </div>
         </div>
       )}
 
       {/* Hero Banner */}
-      <div className="relative bg-gradient-to-br from-brand-navy via-slate-900 to-black rounded-2xl p-8 lg:p-12 flex flex-col lg:flex-row items-center gap-8 overflow-hidden shadow-lg">
+      <div className="relative bg-gradient-to-br from-brand-navy via-slate-900 to-black rounded-2xl p-5 lg:p-8 flex flex-col lg:flex-row items-center gap-6 overflow-hidden shadow-lg">
         <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
         <div className="absolute -bottom-10 right-20 w-32 h-32 rounded-full bg-white/5 pointer-events-none" />
 
         {/* Avatar Photo */}
         <div className="relative shrink-0">
-          <div className="w-32 h-32 lg:w-40 lg:h-40 rounded-2xl overflow-hidden bg-white/10 border-4 border-white/20 flex items-center justify-center shadow-xl">
+          <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl overflow-hidden bg-white/10 border-4 border-white/20 flex items-center justify-center shadow-xl">
             {agent?.photo ? (
               <img src={agent.photo} alt="Utilisateur" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-5xl lg:text-6xl font-black text-white">{initials}</span>
+              <span className="text-3xl lg:text-4xl font-black text-white">{initials}</span>
             )}
           </div>
           <button
