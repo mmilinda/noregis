@@ -6,14 +6,12 @@
 
 @layer base {
   html {
-    font-size: 75%;
-    zoom: 0.75;
     @apply transition-[font-size] duration-300;
   }
   
-  html.font-small { font-size: 68%; zoom: 0.68; }
-  html.font-medium { font-size: 75%; zoom: 0.75; }
-  html.font-large { font-size: 85%; zoom: 0.85; }
+  html.font-small { font-size: 13px; }
+  html.font-medium { font-size: 14.5px; }
+  html.font-large { font-size: 16.5px; }
 
   body {
     @apply font-sans bg-slate-100 text-slate-900 antialiased;
