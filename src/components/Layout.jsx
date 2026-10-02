@@ -515,8 +515,8 @@ function DesktopTopBar({ activeTab, navItems, t, onTabChange }) {
   };
 
   return (
-    <header className="h-20 bg-slate-100/90 dark:bg-[#0D1117]/90 backdrop-blur-md border-b border-slate-200/60 dark:border-white/5 px-8 flex items-center justify-between sticky top-0 z-[90]">
-      <div className="flex items-center gap-8">
+    <header className="h-14 bg-slate-100/90 dark:bg-[#0D1117]/90 backdrop-blur-md border-b border-slate-200/60 dark:border-white/5 px-6 flex items-center justify-between sticky top-0 z-[90]">
+      <div className="flex items-center gap-6">
         <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">{tabLabel}</h2>
         
         {/* Search */}
