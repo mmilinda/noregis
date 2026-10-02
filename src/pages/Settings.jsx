@@ -482,13 +482,13 @@ export function Parametres() {
 function InfoRow({ icon: Icon, label, value }) {
   const IconComponent = Icon || User;
   return (
-    <div className="flex items-center gap-4 p-4 border-b border-slate-100 dark:border-slate-800 last:border-0">
-      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-brand-blue flex items-center justify-center shrink-0 border border-blue-500/10">
-        <IconComponent size={18} />
+    <div className="flex items-center gap-2.5 px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 last:border-0">
+      <div className="w-6 h-6 rounded-md bg-blue-50 dark:bg-blue-900/20 text-brand-blue flex items-center justify-center shrink-0 border border-blue-500/10">
+        <IconComponent size={13} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{label}</p>
-        <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-0.5">{value || '—'}</p>
+        <p className="text-[8px] font-extrabold text-slate-400 uppercase tracking-wider leading-none">{label}</p>
+        <p className="text-xs font-bold text-slate-900 dark:text-slate-100 mt-0.5 truncate leading-tight">{value || '—'}</p>
       </div>
     </div>
   );
@@ -719,33 +719,33 @@ export function ProfilAgent() {
   const getRoleBadge = (r) => {
     if (r === 'SUPER_ADMIN' || r === 'SUPERADMIN') {
       return (
-        <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 border border-amber-500/30 px-4 py-1.5 rounded-full text-xs font-black flex items-center gap-2">
+        <span className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full text-[11px] font-black flex items-center gap-1.5">
           👑 SUPER ADMIN
         </span>
       );
     }
     if (r === 'ADMIN') {
       return (
-        <span className="bg-blue-500/20 text-blue-300 border border-blue-500/30 px-4 py-1.5 rounded-full text-xs font-black flex items-center gap-2">
+        <span className="bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2.5 py-0.5 rounded-full text-[11px] font-black flex items-center gap-1.5">
           🛡️ ADMINISTRATEUR
         </span>
       );
     }
     return (
-      <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-4 py-1.5 rounded-full text-xs font-black flex items-center gap-2">
+      <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full text-[11px] font-black flex items-center gap-1.5">
         👮 AGENT DE SÉCURITÉ
       </span>
     );
   };
 
   return (
-    <div className="p-4 lg:p-6 w-full max-w-7xl mx-auto space-y-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Mon Profil Utilisateur</h1>
+    <div className="p-3 lg:p-4 w-full max-w-7xl mx-auto space-y-2.5" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Mon Profil Utilisateur</h1>
 
       {/* Demande en attente (Agent) */}
       {!loadingDemande && demandePendante && (
-        <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 shadow-sm">
-          <Clock size={16} className="text-amber-500 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2.5 p-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 shadow-sm">
+          <Clock size={15} className="text-amber-500 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-amber-800 dark:text-amber-300">Demande de modification en attente</p>
             <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">
@@ -759,72 +759,72 @@ export function ProfilAgent() {
       )}
 
       {/* Hero Banner */}
-      <div className="relative bg-gradient-to-br from-brand-navy via-slate-900 to-black rounded-2xl p-5 lg:p-8 flex flex-col lg:flex-row items-center gap-6 overflow-hidden shadow-lg">
+      <div className="relative bg-gradient-to-br from-brand-navy via-slate-900 to-black rounded-xl p-3 lg:p-4 flex flex-row items-center gap-3.5 overflow-hidden shadow-md">
         <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
         <div className="absolute -bottom-10 right-20 w-32 h-32 rounded-full bg-white/5 pointer-events-none" />
 
         {/* Avatar Photo */}
         <div className="relative shrink-0">
-          <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl overflow-hidden bg-white/10 border-4 border-white/20 flex items-center justify-center shadow-xl">
+          <div className="w-16 h-16 lg:w-18 lg:h-18 rounded-xl overflow-hidden bg-white/10 border-2 border-white/20 flex items-center justify-center shadow-md">
             {agent?.photo ? (
               <img src={agent.photo} alt="Utilisateur" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-3xl lg:text-4xl font-black text-white">{initials}</span>
+              <span className="text-lg lg:text-xl font-black text-white">{initials}</span>
             )}
           </div>
           <button
             onClick={() => fileRef.current?.click()}
-            className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-brand-blue-bright text-white border-4 border-slate-900 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-lg"
+            className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-blue-bright text-white border-2 border-slate-900 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow"
             title="Changer la photo de profil"
           >
-            <Camera size={18} />
+            <Camera size={12} />
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
         </div>
 
         {/* User identity & QR button */}
-        <div className="text-white text-center lg:text-left z-10 space-y-3">
+        <div className="text-white text-left z-10 space-y-1 flex-1 min-w-0">
           <div>
-            <p className="text-3xl lg:text-4xl font-black tracking-tight">{fullName}</p>
-            <p className="text-xs text-slate-400 font-mono font-bold mt-1">{agent?.email || '—'}</p>
+            <p className="text-lg lg:text-xl font-black tracking-tight truncate leading-tight">{fullName}</p>
+            <p className="text-[11px] text-slate-400 font-mono font-bold leading-tight">{agent?.email || '—'}</p>
           </div>
 
-          <div className="flex gap-2 flex-wrap justify-center lg:justify-start">
+          <div className="flex gap-1.5 flex-wrap items-center pt-0.5">
             {getRoleBadge(role)}
 
-            <span className="bg-white/10 px-4 py-1.5 rounded-full text-xs font-mono font-bold text-slate-300 border border-white/10">
+            <span className="bg-white/10 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold text-slate-300 border border-white/10">
               {displayMatricule}
             </span>
 
             <button
               onClick={handleDownloadQr}
               disabled={qrLoading}
-              className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 border border-white/10 transition-all disabled:opacity-50 cursor-pointer"
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 border border-white/10 transition-all disabled:opacity-50 cursor-pointer"
             >
-              <QrCode size={14} className="text-emerald-400" />
+              <QrCode size={13} className="text-emerald-400" />
               {qrLoading ? 'Génération...' : 'Mon QR Code'}
             </button>
           </div>
 
-          <p className="text-sm opacity-80 flex items-center gap-2 justify-center lg:justify-start pt-1">
-            <Building size={16} /> {entrepriseNom} — {displayPoste}
+          <p className="text-xs opacity-80 flex items-center gap-1.5 pt-0.5">
+            <Building size={14} /> {entrepriseNom} — {displayPoste}
           </p>
         </div>
       </div>
 
       {erreurEnvoi && isEditing && (
-        <div className="p-3 bg-red-50 dark:bg-red-950/30 text-brand-red border border-brand-red-bright/20 rounded-lg text-xs font-bold flex items-center gap-2">
-          <XCircle size={16} /><span>{erreurEnvoi}</span>
+        <div className="p-2.5 bg-red-50 dark:bg-red-950/30 text-brand-red border border-brand-red-bright/20 rounded-lg text-xs font-bold flex items-center gap-2">
+          <XCircle size={15} /><span>{erreurEnvoi}</span>
         </div>
       )}
 
       {/* Profil details grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
         <div>
-          <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 ml-1">Coordonnées & Identité</h3>
+          <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 ml-1">Coordonnées & Identité</h3>
           <Card>
             {isEditing ? (
-              <div className="p-4 space-y-4">
+              <div className="p-3 space-y-2">
                 <FormInput
                   label="Prénom"
                   id="editPrenom"
@@ -863,10 +863,10 @@ export function ProfilAgent() {
         </div>
 
         <div>
-          <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 ml-1">Infos Opérationnelles & Accès</h3>
+          <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 ml-1">Infos Opérationnelles & Accès</h3>
           <Card>
             {isEditing ? (
-              <div className="p-4 space-y-4">
+              <div className="p-3 space-y-2">
                 <FormInput
                   label="Département"
                   id="editDept"
@@ -899,7 +899,7 @@ export function ProfilAgent() {
       </div>
 
       {/* Action buttons */}
-      <div className="flex flex-wrap gap-3 justify-end pt-2">
+      <div className="flex flex-wrap gap-2 justify-end pt-1">
         {isEditing ? (
           <>
             <Btn variant="secondary" onClick={() => setIsEditing(false)}>
