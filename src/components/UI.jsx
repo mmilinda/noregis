@@ -87,14 +87,14 @@ export function Btn({
       onClick={onClick}
       disabled={disabled || loading}
       className={`
-        inline-flex items-center justify-center font-bold transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100 disabled:cursor-not-allowed
+        inline-flex items-center justify-center font-bold transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100 disabled:cursor-not-allowed whitespace-nowrap
         ${variants[variant]} 
         ${sizes[size]} 
         ${fullWidth ? 'w-full' : ''}
         ${className}
       `}
     >
-      {loading ? <Loader2 size={18} className="animate-spin" /> : Icon && <Icon size={size === 'sm' ? 14 : 18} />}
+      {loading ? <Loader2 size={18} className="animate-spin shrink-0" /> : Icon && <Icon size={size === 'sm' ? 14 : 18} className="shrink-0" />}
       {children}
     </button>
   );

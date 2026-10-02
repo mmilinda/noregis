@@ -304,13 +304,14 @@ export default function BugsManagement() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <Btn
             variant="secondary"
             size="md"
             icon={RefreshCw}
             loading={refreshing}
             onClick={() => loadBugs(true)}
+            className="whitespace-nowrap"
           >
             Actualiser
           </Btn>
@@ -319,6 +320,7 @@ export default function BugsManagement() {
             size="md"
             icon={Plus}
             onClick={() => setShowCreateModal(true)}
+            className="whitespace-nowrap"
           >
             Signaler un bug
           </Btn>
