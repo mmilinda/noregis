@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Building2, Users, ShieldAlert, Shield, CheckCircle2, XCircle, AlertTriangle,
-  Plus, Search, Filter, RefreshCw, KeyRound, Lock, Eye, Building, Phone, Mail, MapPin, UserPlus, UserCheck, UserX, AlertCircle
+  Plus, Search, Filter, RefreshCw, KeyRound, Lock, Eye, Building, Phone, Mail, MapPin,
+  UserPlus, UserCheck, UserX, AlertCircle, TrendingUp, BarChart2, PieChart, Activity, Calendar
 } from 'lucide-react';
 import { Btn, FormInput, FormSelect, Modal } from './UI';
 import { entrepriseService } from '../services/entrepriseService';
@@ -35,7 +36,8 @@ const DEFAULT_USER_FORM = {
 
 export function SuperAdminDashboard({ t }) {
   const { state, notify } = useApp();
-  const [activeTab, setActiveTab] = useState('entreprises'); // 'entreprises' | 'utilisateurs' | 'historique'
+  const [activeTab, setActiveTab] = useState('analytique'); // 'analytique' | 'entreprises' | 'utilisateurs' | 'historique'
+  const [hoveredPoint, setHoveredPoint] = useState(null);
   
   // Data States
   const [entreprises, setEntreprises] = useState([]);
@@ -126,17 +128,125 @@ export function SuperAdminDashboard({ t }) {
     return s === 'EN_COURS' || s === 'PRESENT' || (!v.heureSortie && s !== 'SORTI' && s !== 'TERMINÉ');
   }).length;
 
-  // Handler Création Entreprise
+  // 📈 DONNÉES RÉELLES 1 : Évolution des visites sur 7 jours
+  const last7DaysData = useMemo(() => {
+    const result = [];
+    const now = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateKey = d.toISOString().split('T')[0];
+      const dayLabel = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+
+      const count = visitesGlobales.filter(v => {
+        const rawDate = v.heureEntree || v.dateEntree || v.createdAt || v.date;
+        if (!rawDate) return false;
+        const parsed = new Date(rawDate);
+        if (isNaN(parsed.getTime())) return false;
+        return parsed.toISOString().split('T')[0] === dateKey;
+      }).length;
+
+      result.push({ dateKey, dayLabel, count });
+    }
+    return result;
+  }, [visitesGlobales]);
+
+  // SVG Line Chart points
+  const lineChartPoints = useMemo(() => {
+    const counts = last7DaysData.map(d => d.count);
+    const maxVal = Math.max(...counts, 4);
+    const width = 600;
+    const height = 180;
+    const padding = 30;
+
+    const points = last7DaysData.map((d, index) => {
+      const x = padding + (index / (last7DaysData.length - 1)) * (width - 2 * padding);
+      const y = height - padding - (d.count / maxVal) * (height - 2 * padding);
+      return { x, y, label: d.dayLabel, count: d.count, dateKey: d.dateKey };
+    });
+
+    const pathData = points.reduce((acc, p, idx) => {
+      return acc + `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y} `;
+    }, '');
+
+    const areaPathData = pathData + 
+      `L ${points[points.length - 1].x} ${height - padding} ` + 
+      `L ${points[0].x} ${height - padding} Z`;
+
+    return { points, pathData, areaPathData, width, height, padding, maxVal };
+  }, [last7DaysData]);
+
+  // 📊 DONNÉES RÉELLES 2 : Visites par Entreprise
+  const topEntreprisesData = useMemo(() => {
+    const map = {};
+    entreprises.forEach(e => {
+      map[e._id || e.id] = { id: e._id || e.id, nom: e.nom, code: e.code, count: 0 };
+    });
+
+    visitesGlobales.forEach(v => {
+      const ent = v.entrepriseId;
+      const entId = typeof ent === 'object' && ent ? (ent._id || ent.id) : ent;
+      if (entId && map[entId]) {
+        map[entId].count++;
+      }
+    });
+
+    const list = Object.values(map).sort((a, b) => b.count - a.count);
+    const maxCount = Math.max(...list.map(l => l.count), 1);
+    return { list: list.slice(0, 5), maxCount, total: visitesGlobales.length };
+  }, [entreprises, visitesGlobales]);
+
+  // ⏰ DONNÉES RÉELLES 3 : Distribution par Heures (8h - 20h)
+  const hourlyDistribution = useMemo(() => {
+    const hours = [8, 10, 12, 14, 16, 18, 20];
+    const counts = { 8: 0, 10: 0, 12: 0, 14: 0, 16: 0, 18: 0, 20: 0 };
+
+    visitesGlobales.forEach(v => {
+      const rawDate = v.heureEntree || v.dateEntree || v.createdAt || v.date;
+      if (rawDate) {
+        const d = new Date(rawDate);
+        if (!isNaN(d.getTime())) {
+          const h = d.getHours();
+          if (h >= 7 && h < 9) counts[8]++;
+          else if (h >= 9 && h < 11) counts[10]++;
+          else if (h >= 11 && h < 13) counts[12]++;
+          else if (h >= 13 && h < 15) counts[14]++;
+          else if (h >= 15 && h < 17) counts[16]++;
+          else if (h >= 17 && h < 19) counts[18]++;
+          else if (h >= 19) counts[20]++;
+        }
+      }
+    });
+
+    const maxVal = Math.max(...Object.values(counts), 1);
+    return hours.map(h => ({
+      label: `${h}h - ${h+2}h`,
+      count: counts[h] || 0,
+      percentage: Math.round(((counts[h] || 0) / maxVal) * 100),
+    }));
+  }, [visitesGlobales]);
+
+  // 🍩 DONNÉES RÉELLES 4 : Répartition des Comptes & Santé du Réseau
+  const userRoleStats = useMemo(() => {
+    const superAdmins = utilisateurs.filter(u => String(u.role).toUpperCase() === 'SUPERADMIN' || String(u.role).toUpperCase() === 'SUPER_ADMIN').length;
+    const admins = utilisateurs.filter(u => String(u.role).toUpperCase() === 'ADMIN').length;
+    const agents = utilisateurs.filter(u => String(u.role).toUpperCase() === 'AGENT').length;
+    const active = utilisateurs.filter(u => (u.statutCompte || u.statut || 'ACTIF') === 'ACTIF').length;
+    const suspended = utilisateurs.filter(u => (u.statutCompte || u.statut) === 'SUSPENDU' || (u.statutCompte || u.statut) === 'DESACTIVE').length;
+
+    return { superAdmins, admins, agents, active, suspended, total: utilisateurs.length };
+  }, [utilisateurs]);
+
+  // Handlers
   const handleCreateEntreprise = async (e) => {
     e.preventDefault();
     if (!entForm.nom.trim()) {
       setEntErrors({ nom: 'Nom requis' });
       return;
     }
-    
     setCreatingEnt(true);
     setEntErrors({});
-    
     try {
       const codeGenerated = entForm.code.trim() ? entForm.code.trim().toUpperCase() : `ENT-${Date.now().toString().slice(-4)}`;
       await entrepriseService.create({
@@ -164,7 +274,6 @@ export function SuperAdminDashboard({ t }) {
     }
   };
 
-  // Handler Création Utilisateur
   const handleCreateUser = async (e) => {
     e.preventDefault();
     if (!userForm.nom.trim() || !userForm.email.trim() || !userForm.password.trim()) {
@@ -176,106 +285,68 @@ export function SuperAdminDashboard({ t }) {
       return;
     }
 
-    if (userForm.entrepriseId) {
-      const targetEnt = entreprises.find(ent => (ent._id === userForm.entrepriseId || ent.id === userForm.entrepriseId));
-      if (targetEnt) {
-        const requestedRole = (userForm.role || 'AGENT').toUpperCase();
-        if (requestedRole === 'AGENT' && targetEnt.maxAgents !== undefined) {
-          const count = utilisateurs.filter(u => {
-            const entId = u.entrepriseId?._id || u.entrepriseId;
-            return String(entId) === String(userForm.entrepriseId) && String(u.role).toUpperCase() === 'AGENT';
-          }).length;
-          if (count >= Number(targetEnt.maxAgents)) {
-            const msg = `Quota d'agents atteint pour ${targetEnt.nom} (${count}/${targetEnt.maxAgents} max).`;
-            setUserErrors({ global: msg });
-            if (notify) notify('error', msg);
-            return;
-          }
-        }
-        if (requestedRole === 'ADMIN' && targetEnt.maxAdmins !== undefined) {
-          const count = utilisateurs.filter(u => {
-            const entId = u.entrepriseId?._id || u.entrepriseId;
-            return String(entId) === String(userForm.entrepriseId) && String(u.role).toUpperCase() === 'ADMIN';
-          }).length;
-          if (count >= Number(targetEnt.maxAdmins)) {
-            const msg = `Quota d'administrateurs atteint pour ${targetEnt.nom} (${count}/${targetEnt.maxAdmins} max).`;
-            setUserErrors({ global: msg });
-            if (notify) notify('error', msg);
-            return;
-          }
-        }
-      }
-    }
-
     setCreatingUser(true);
     setUserErrors({});
-
     try {
-      await authService.createUser({
+      await authService.register({
         nom: userForm.nom,
         prenom: userForm.prenom,
         email: userForm.email,
         password: userForm.password,
-        role: userForm.role,
+        role: userForm.role || 'ADMIN',
         entrepriseId: userForm.entrepriseId || null,
         telephone: userForm.telephone,
         poste: userForm.poste,
       });
 
-      if (notify) notify('success', `Compte pour "${userForm.prenom || ''} ${userForm.nom}" créé avec succès.`);
+      if (notify) notify('success', `Utilisateur "${userForm.prenom} ${userForm.nom}" créé avec succès.`);
       setShowCreateUserModal(false);
       setUserForm(DEFAULT_USER_FORM);
       loadData(true);
     } catch (err) {
-      setUserErrors({ global: err.message || 'Erreur lors de la création du compte.' });
-      if (notify) notify('error', err.message || 'Erreur lors de la création du compte.');
+      setUserErrors({ global: err.message || 'Erreur lors de la création de l\'utilisateur.' });
+      if (notify) notify('error', err.message || 'Erreur lors de la création de l\'utilisateur.');
     } finally {
       setCreatingUser(false);
     }
   };
 
-  // Handler Modification Statut Entreprise
-  const handleChangeEntStatus = async (id, newStatus) => {
+  const handleChangeEntStatus = async (id, newStatut) => {
     try {
-      await entrepriseService.changeStatus(id, newStatus);
-      if (notify) notify('success', `Statut entreprise mis à jour (${newStatus}).`);
+      await entrepriseService.updateStatus(id, newStatut);
+      if (notify) notify('success', `Statut entreprise mis à jour en ${newStatut}.`);
       loadData(true);
     } catch (err) {
-      if (notify) notify('error', err.message || 'Erreur changement statut entreprise.');
+      if (notify) notify('error', 'Erreur changement de statut entreprise.');
     }
   };
 
-  // Handler Modification Statut Utilisateur
-  const handleChangeUserStatus = async (id, newStatus) => {
+  const handleChangeUserStatus = async (id, newStatut) => {
     try {
-      await authService.toggleUserStatus(id, newStatus);
-      if (notify) notify('success', `Statut utilisateur mis à jour (${newStatus}).`);
+      await authService.updateUserStatus(id, newStatut);
+      if (notify) notify('success', `Statut compte utilisateur mis à jour en ${newStatut}.`);
       loadData(true);
     } catch (err) {
-      if (notify) notify('error', err.message || 'Erreur changement statut compte.');
+      if (notify) notify('error', 'Erreur changement de statut utilisateur.');
     }
   };
 
-  const globalQuery = (state?.searchQuery || '').trim().toLowerCase();
+  // Filtered lists for sub-tabs
+  const globalQuery = (state.searchQuery || '').trim().toLowerCase();
 
   const filteredEntreprises = entreprises.filter(e => {
     const q = searchEnt.trim().toLowerCase() || globalQuery;
     if (!q) return true;
-    return [e.nom, e.code, e.immatriculation, e.secteur, e.emailContact, e.telephone, e.adresse]
-      .filter(Boolean)
-      .some(f => String(f).toLowerCase().includes(q));
+    return (e.nom || '').toLowerCase().includes(q) || (e.code || '').toLowerCase().includes(q) || (e.secteur || '').toLowerCase().includes(q);
   });
 
   const filteredUsers = utilisateurs.filter(u => {
-    const entId = u.entrepriseId?._id || u.entrepriseId;
-    const entName = u.entrepriseId?.nom || u.entrepriseNom || '';
     const q = searchUser.trim().toLowerCase() || globalQuery;
-    const matchSearch = !q || [u.nom, u.prenom, u.email, u.telephone, u.poste, u.departement, u.role, entName]
-      .filter(Boolean)
-      .some(f => String(f).toLowerCase().includes(q));
+    const matchQuery = !q || (u.nom || '').toLowerCase().includes(q) || (u.prenom || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
+    const entId = u.entrepriseId?._id || u.entrepriseId;
     const matchEnt = !filterEntId || String(entId) === String(filterEntId);
-    const matchRole = !filterRole || u.role === filterRole;
-    return matchSearch && matchEnt && matchRole;
+    const matchRole = !filterRole || String(u.role).toUpperCase() === String(filterRole).toUpperCase();
+    return matchQuery && matchEnt && matchRole;
   });
 
   const filteredVisitesGlobales = visitesGlobales.filter(v => {
@@ -294,7 +365,7 @@ export function SuperAdminDashboard({ t }) {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 lg:p-8 w-full max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
       {/* Header / Bandeau SuperAdmin */}
       <div className="bg-gradient-to-r from-slate-900 via-brand-blue-dark to-slate-900 text-white rounded-2xl p-6 shadow-xl border border-white/10">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -310,7 +381,7 @@ export function SuperAdminDashboard({ t }) {
                 <span className="text-xs text-slate-400">| Administration Globale</span>
               </div>
               <h1 className="text-2xl font-black tracking-tight mt-1">Espace SuperAdministrateur</h1>
-              <p className="text-xs text-slate-300 mt-0.5">Gestion multi-entreprises, attribution des droits et supervision des accès.</p>
+              <p className="text-xs text-slate-300 mt-0.5">Gestion multi-entreprises, supervision analytique et attribution des droits.</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -339,9 +410,8 @@ export function SuperAdminDashboard({ t }) {
           </div>
         </div>
 
-        {/* Cartes Statistiques Globales (Colorées & Dynamiques) */}
+        {/* Cartes Statistiques Globales */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/10">
-          {/* Card 1 : Entreprises (Bleu) */}
           <div className="bg-gradient-to-br from-blue-600/30 via-sky-600/20 to-blue-950/50 backdrop-blur-md rounded-2xl p-4 border border-blue-400/30 shadow-lg shadow-blue-500/10 flex flex-col justify-between hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-center justify-between text-blue-200 mb-2">
               <span className="text-[11px] font-black uppercase tracking-wider text-blue-200/90">Entreprises</span>
@@ -356,7 +426,6 @@ export function SuperAdminDashboard({ t }) {
             </p>
           </div>
 
-          {/* Card 2 : Admins Boîtes (Violet) */}
           <div className="bg-gradient-to-br from-purple-600/30 via-indigo-600/20 to-purple-950/50 backdrop-blur-md rounded-2xl p-4 border border-purple-400/30 shadow-lg shadow-purple-500/10 flex flex-col justify-between hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-center justify-between text-purple-200 mb-2">
               <span className="text-[11px] font-black uppercase tracking-wider text-purple-200/90">Admins Boîtes</span>
@@ -370,7 +439,6 @@ export function SuperAdminDashboard({ t }) {
             </p>
           </div>
 
-          {/* Card 3 : Agents Sécurité (Émeraude / Vert) */}
           <div className="bg-gradient-to-br from-emerald-600/30 via-teal-600/20 to-emerald-950/50 backdrop-blur-md rounded-2xl p-4 border border-emerald-400/30 shadow-lg shadow-emerald-500/10 flex flex-col justify-between hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-center justify-between text-emerald-200 mb-2">
               <span className="text-[11px] font-black uppercase tracking-wider text-emerald-200/90">Agents Sécurité</span>
@@ -384,7 +452,6 @@ export function SuperAdminDashboard({ t }) {
             </p>
           </div>
 
-          {/* Card 4 : Visites Globales (Ambre / Orange) */}
           <div className="bg-gradient-to-br from-amber-600/30 via-orange-600/20 to-amber-950/50 backdrop-blur-md rounded-2xl p-4 border border-amber-400/30 shadow-lg shadow-amber-500/10 flex flex-col justify-between hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-center justify-between text-amber-200 mb-2">
               <span className="text-[11px] font-black uppercase tracking-wider text-amber-200/90">Visites Globales</span>
@@ -402,6 +469,16 @@ export function SuperAdminDashboard({ t }) {
 
       {/* Bar d'onglets */}
       <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto max-w-full whitespace-nowrap scrollbar-none">
+        <button
+          onClick={() => setActiveTab('analytique')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 ${
+            activeTab === 'analytique'
+              ? 'bg-brand-blue-bright text-white shadow-lg shadow-brand-blue-bright/20'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Activity size={16} /> 📊 Analytique & Graphiques
+        </button>
         <button
           onClick={() => setActiveTab('entreprises')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 ${
@@ -434,7 +511,254 @@ export function SuperAdminDashboard({ t }) {
         </button>
       </div>
 
-      {/* CONTENU ONGLET 1 : ENTREPRISES */}
+      {/* 📊 CONTENU ONGLET PRINCIPAL : GRAPHIQUES ET ANALYTIQUE EN TEMPS RÉEL */}
+      {activeTab === 'analytique' && (
+        <div className="space-y-6">
+          {/* Rangée 1 : Courbe 7 jours + Top Entreprises */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Graphique 1 : Courbe d'évolution SVG sur 7 jours */}
+            <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <TrendingUp className="text-brand-blue-bright" size={20} />
+                    Évolution Globale des Passages (7 Derniers Jours)
+                  </h3>
+                  <p className="text-xs text-slate-400 font-bold mt-0.5">Données réelles agrégées pour l'ensemble du réseau NoRegis</p>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-blue-500/10 text-brand-blue-bright text-xs font-black uppercase">
+                  Temps Réel
+                </span>
+              </div>
+
+              {loading ? (
+                <div className="h-48 flex items-center justify-center">
+                  <span className="w-8 h-8 border-3 border-brand-blue-bright border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="relative w-full">
+                    <svg 
+                      viewBox={`0 0 ${lineChartPoints.width} ${lineChartPoints.height}`}
+                      className="w-full h-48 overflow-visible"
+                    >
+                      <defs>
+                        <linearGradient id="superAdminGradComp" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.3" />
+                          <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.0" />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Lignes de grille */}
+                      {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
+                        const y = lineChartPoints.padding + ratio * (lineChartPoints.height - 2 * lineChartPoints.padding);
+                        return (
+                          <line 
+                            key={idx}
+                            x1={lineChartPoints.padding} 
+                            y1={y} 
+                            x2={lineChartPoints.width - lineChartPoints.padding} 
+                            y2={y} 
+                            stroke="#E2E8F0" 
+                            strokeDasharray="4 4"
+                            className="dark:stroke-slate-800"
+                          />
+                        );
+                      })}
+
+                      {/* Aire */}
+                      <path 
+                        d={lineChartPoints.areaPathData} 
+                        fill="url(#superAdminGradComp)" 
+                      />
+
+                      {/* Courbe */}
+                      <path 
+                        d={lineChartPoints.pathData} 
+                        fill="none" 
+                        stroke="#3B82F6" 
+                        strokeWidth="3.5" 
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+
+                      {/* Points */}
+                      {lineChartPoints.points.map((p, idx) => (
+                        <g key={idx} className="cursor-pointer group" onMouseEnter={() => setHoveredPoint(p)} onMouseLeave={() => setHoveredPoint(null)}>
+                          <circle 
+                            cx={p.x} 
+                            cy={p.y} 
+                            r="5" 
+                            fill="#3B82F6" 
+                            stroke="#FFFFFF"
+                            strokeWidth="2"
+                            className="transition-transform duration-200 group-hover:scale-150"
+                          />
+                          <text 
+                            x={p.x} 
+                            y={lineChartPoints.height - 5} 
+                            textAnchor="middle" 
+                            className="text-[10px] font-bold fill-slate-400 uppercase"
+                          >
+                            {p.label}
+                          </text>
+                        </g>
+                      ))}
+                    </svg>
+
+                    {/* Tooltip */}
+                    {hoveredPoint && (
+                      <div 
+                        className="absolute bg-slate-900 text-white text-xs rounded-lg px-3 py-1.5 shadow-xl font-bold border border-slate-700 pointer-events-none transform -translate-x-1/2 -translate-y-12 transition-all z-20"
+                        style={{
+                          left: `${(hoveredPoint.x / lineChartPoints.width) * 100}%`,
+                          top: `${(hoveredPoint.y / lineChartPoints.height) * 100}%`
+                        }}
+                      >
+                        <p className="text-[10px] text-slate-400 font-mono">{hoveredPoint.dateKey}</p>
+                        <p className="text-brand-blue-bright font-black">{hoveredPoint.count} passage(s)</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-500">
+                    <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                      <TrendingUp size={16} /> Flux réel en direct
+                    </span>
+                    <span>Total 7j : <strong className="text-slate-900 dark:text-white">{last7DaysData.reduce((acc, d) => acc + d.count, 0)}</strong> visites</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Graphique 2 : Volume par Entreprise */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2 mb-1">
+                  <Building2 className="text-purple-500" size={20} />
+                  Top Entreprises par Visites
+                </h3>
+                <p className="text-xs text-slate-400 font-bold mb-4">Volume des passages rattachés à chaque boîte</p>
+
+                <div className="space-y-3.5">
+                  {topEntreprisesData.list.length > 0 ? (
+                    topEntreprisesData.list.map((ent, idx) => {
+                      const percent = Math.round((ent.count / (topEntreprisesData.total || 1)) * 100);
+                      const barWidth = Math.round((ent.count / topEntreprisesData.maxCount) * 100);
+                      return (
+                        <div key={ent.id || idx} className="space-y-1">
+                          <div className="flex justify-between items-center text-xs font-bold">
+                            <span className="text-slate-800 dark:text-slate-200 truncate max-w-[170px]">{ent.nom}</span>
+                            <span className="text-brand-blue-bright font-black">{ent.count} <span className="text-[10px] text-slate-400 font-normal">({percent}%)</span></span>
+                          </div>
+                          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                            <div 
+                              className="bg-gradient-to-r from-brand-blue to-purple-500 h-full rounded-full transition-all duration-500"
+                              style={{ width: `${Math.max(barWidth, 5)}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-center text-slate-400 text-xs py-8">Aucune donnée de visite pour le moment.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Rangée 2 : Fréquentation par heure + Santé des Comptes */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Graphique 3 : Fréquentation Horaire */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2 mb-1">
+                <BarChart2 className="text-emerald-500" size={20} />
+                Fréquentation par Tranche Horaire
+              </h3>
+              <p className="text-xs text-slate-400 font-bold mb-4">Pic d'affluence des visites enregistrées (8h - 20h)</p>
+
+              <div className="grid grid-cols-7 gap-2 items-end h-40 pt-4">
+                {hourlyDistribution.map((slot, idx) => (
+                  <div key={idx} className="flex flex-col items-center h-full justify-end group">
+                    <span className="text-[10px] font-black text-brand-blue-bright mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {slot.count}
+                    </span>
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-t-lg flex items-end h-full overflow-hidden">
+                      <div 
+                        className="w-full bg-gradient-to-t from-emerald-500 to-teal-400 rounded-t-lg transition-all duration-500 group-hover:brightness-110"
+                        style={{ height: `${Math.max(slot.percentage, 8)}%` }}
+                      />
+                    </div>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase mt-2 truncate w-full text-center">
+                      {slot.label.split(' ')[0]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Graphique 4 : Santé & Rôles Comptes */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2 mb-1">
+                <PieChart className="text-amber-500" size={20} />
+                Répartition & Santé des Comptes
+              </h3>
+              <p className="text-xs text-slate-400 font-bold mb-4">Structure globale des utilisateurs du réseau</p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-around gap-6 pt-2">
+                <div className="relative w-32 h-32 flex items-center justify-center shrink-0">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      className="text-slate-100 dark:text-slate-800"
+                      strokeWidth="3.8"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path
+                      className="text-emerald-500"
+                      strokeDasharray={`${Math.round((userRoleStats.active / (userRoleStats.total || 1)) * 100)}, 100`}
+                      strokeWidth="3.8"
+                      strokeLinecap="round"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                  </svg>
+                  <div className="absolute flex flex-col items-center justify-center text-center">
+                    <span className="text-xl font-black text-slate-900 dark:text-white">{userRoleStats.total}</span>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase">Comptes</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2 w-full max-w-xs text-xs font-bold">
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-300">
+                    <span className="flex items-center gap-2">👑 SuperAdmins</span>
+                    <span className="font-black">{userRoleStats.superAdmins}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-300">
+                    <span className="flex items-center gap-2">🛡️ Admins d'Entreprises</span>
+                    <span className="font-black">{userRoleStats.admins}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-300">
+                    <span className="flex items-center gap-2">👮 Agents de Sécurité</span>
+                    <span className="font-black">{userRoleStats.agents}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-300">
+                    <span className="flex items-center gap-2">🚫 Comptes Suspendus</span>
+                    <span className="font-black">{userRoleStats.suspended}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONTENU ONGLET 2 : ENTREPRISES */}
       {activeTab === 'entreprises' && (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -544,7 +868,7 @@ export function SuperAdminDashboard({ t }) {
         </div>
       )}
 
-      {/* CONTENU ONGLET 2 : UTILISATEURS */}
+      {/* CONTENU ONGLET 3 : UTILISATEURS */}
       {activeTab === 'utilisateurs' && (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -685,7 +1009,7 @@ export function SuperAdminDashboard({ t }) {
         </div>
       )}
 
-      {/* CONTENU ONGLET 3 : HISTORIQUE GLOBAL */}
+      {/* CONTENU ONGLET 4 : HISTORIQUE GLOBAL */}
       {activeTab === 'historique' && (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
