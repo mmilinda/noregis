@@ -44,16 +44,55 @@ export default function AdminDashboard({ isMobile }) {
     if (!isRefresh) setLoading(true);
     try {
       const data = await visitService.getAll();
-      let rawVisits = data.visites || [];
-      const userEntId = state.agent?.entrepriseId;
-      if (userEntId && state.agent?.role !== 'SUPERADMIN') {
-        rawVisits = rawVisits.filter(v => !v.entrepriseId || v.entrepriseId === userEntId || v.entrepriseNom === state.agent?.entrepriseNom);
-      }
+      const rawVisits = Array.isArray(data) 
+        ? data 
+        : (data?.visites || data?.visits || data?.data?.visites || data?.data || []);
+
+      const userObj = state.agent || state.user || {};
+      const adminEntId = String(
+        userObj.entrepriseId?._id || 
+        userObj.entrepriseId || 
+        userObj.entreprise?._id || 
+        userObj.entreprise || ''
+      );
+      const adminEntNom = String(
+        userObj.entrepriseNom || 
+        userObj.entrepriseId?.nom || 
+        userObj.entreprise?.nom || ''
+      ).toLowerCase().trim();
+
+      const filteredVisits = rawVisits.filter(v => {
+        const role = (userObj.role || '').toUpperCase();
+        if (role === 'SUPER_ADMIN' || role === 'SUPERADMIN') return true;
+
+        const vEntId = String(
+          v.entrepriseId?._id || 
+          v.entrepriseId || 
+          v.entreprise?._id || 
+          v.entreprise || 
+          v.agentId?.entrepriseId?._id || 
+          v.agentId?.entrepriseId || ''
+        );
+        const vEntNom = String(
+          v.entrepriseNom || 
+          v.entrepriseId?.nom || 
+          v.entreprise?.nom || 
+          v.agentId?.entrepriseNom || 
+          v.agentId?.entrepriseId?.nom || ''
+        ).toLowerCase().trim();
+
+        if (adminEntId && vEntId && adminEntId === vEntId) return true;
+        if (adminEntNom && vEntNom && (vEntNom.includes(adminEntNom) || adminEntNom.includes(vEntNom))) return true;
+        if (!vEntId && !vEntNom) return true;
+        return !adminEntId && !adminEntNom;
+      });
+
       // Deduplicate
-      const uniqueVisits = Array.from(new Map(rawVisits.map(v => [v._id || v.id, v])).values());
+      const uniqueVisits = Array.from(new Map(filteredVisits.map(v => [v._id || v.id, v])).values());
       setVisits(uniqueVisits);
       if (isRefresh) notify('success', 'Statistiques actualisées.');
     } catch (err) {
+      console.error("Erreur fetchStats AdminDashboard:", err);
       notify('error', 'Erreur lors de la récupération des statistiques.');
     } finally {
       setLoading(false);
@@ -76,21 +115,30 @@ export default function AdminDashboard({ isMobile }) {
     return String(t || '').toLowerCase() === 'vehicule';
   };
 
+  const getVisitDate = (v) => {
+    const raw = v.createdAt || v.heureEntree || v.date;
+    if (!raw) return null;
+    const d = new Date(raw);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
   const stats = useMemo(() => {
     const today = new Date().toDateString();
 
     const visitsToday = visits.filter(v => {
-      if (!v.createdAt) return false;
-      return new Date(v.createdAt).toDateString() === today;
+      const d = getVisitDate(v);
+      return d && d.toDateString() === today;
     });
 
     const oneWeekAgo = new Date(); oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     const twoWeeksAgo = new Date(); twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-    const thisWeek = visits.filter(v => v.createdAt && new Date(v.createdAt) >= oneWeekAgo).length;
+    const thisWeek = visits.filter(v => {
+      const d = getVisitDate(v);
+      return d && d >= oneWeekAgo;
+    }).length;
     const lastWeek = visits.filter(v => {
-      if (!v.createdAt) return false;
-      const d = new Date(v.createdAt);
-      return d >= twoWeeksAgo && d < oneWeekAgo;
+      const d = getVisitDate(v);
+      return d && d >= twoWeeksAgo && d < oneWeekAgo;
     }).length;
     const weekEvolution = lastWeek === 0
       ? (thisWeek > 0 ? 100 : 0)
@@ -101,21 +149,24 @@ export default function AdminDashboard({ isMobile }) {
     const personVisits = visits.filter(v => !isVehicle(v));
 
     const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const recentVisits = visits.filter(v => v.createdAt && new Date(v.createdAt) >= thirtyDaysAgo);
+    const recentVisits = visits.filter(v => {
+      const d = getVisitDate(v);
+      return d && d >= thirtyDaysAgo;
+    });
 
     const hoursCount = Array(24).fill(0);
-    recentVisits.forEach(v => {
-      if (v.createdAt) {
-        const hour = new Date(v.createdAt).getHours();
-        hoursCount[hour]++;
+    visits.forEach(v => {
+      const d = getVisitDate(v);
+      if (d) {
+        hoursCount[d.getHours()]++;
       }
     });
 
     const todayHoursCount = Array(24).fill(0);
     visitsToday.forEach(v => {
-      if (v.createdAt) {
-        const hour = new Date(v.createdAt).getHours();
-        todayHoursCount[hour]++;
+      const d = getVisitDate(v);
+      if (d) {
+        todayHoursCount[d.getHours()]++;
       }
     });
 
@@ -130,13 +181,13 @@ export default function AdminDashboard({ isMobile }) {
       }
     });
 
-    if (peakSlot === null && recentVisits.length > 0) {
+    if (peakSlot === null && visits.length > 0) {
       let peakH = 0, maxH = 0;
       hoursCount.forEach((c, h) => { if (c > maxH) { maxH = c; peakH = h; } });
       peakSlot = peakH;
     }
 
-    const peakHourLabel = peakSlot !== null && maxSlotVisits > 0
+    const peakHourLabel = peakSlot !== null && (maxSlotVisits > 0 || visits.length > 0)
       ? `${String(peakSlot).padStart(2, '0')}:00 – ${String(peakSlot + 2).padStart(2, '0')}:00`
       : '—';
 
@@ -155,12 +206,13 @@ export default function AdminDashboard({ isMobile }) {
 
   const chartData = useMemo(() => {
     const hours = [8, 10, 12, 14, 16, 18, 20];
-    const dist = stats.todayHourlyDistribution;
+    const hasTodayVisits = stats.todayHourlyDistribution.some(c => c > 0);
+    const dist = hasTodayVisits ? stats.todayHourlyDistribution : stats.hourlyDistribution;
     return hours.map(h => ({
       label: `${h}h`,
       val: (dist[h] || 0) + (dist[h + 1] || 0),
     }));
-  }, [stats.todayHourlyDistribution]);
+  }, [stats.todayHourlyDistribution, stats.hourlyDistribution]);
 
   const lineChartPoints = useMemo(() => {
     const maxVal = Math.max(...chartData.map(d => d.val), 3);
@@ -188,7 +240,7 @@ export default function AdminDashboard({ isMobile }) {
   const departmentsList = useMemo(() => {
     const depts = {};
     visits.forEach(v => {
-      const d = v.departement || v.visiteur?.departement || 'Visiteur';
+      const d = v.service || v.serviceDepartement || v.departement || v.visiteur?.service || v.visiteur?.departement || 'Visite Générale';
       depts[d] = (depts[d] || 0) + 1;
     });
     return Object.entries(depts)

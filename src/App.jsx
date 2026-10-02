@@ -81,12 +81,18 @@ function AppInner() {
           bugService.getAll().catch(() => ({})),
         ]);
         if (!cancelled) {
-          if (visitData?.visites) {
-            const uniqueVis = Array.from(new Map(visitData.visites.map(v => [v._id || v.id, v])).values());
+          const rawVis = Array.isArray(visitData) 
+            ? visitData 
+            : (visitData?.visites || visitData?.visits || visitData?.data?.visites || visitData?.data || []);
+          if (rawVis && rawVis.length > 0) {
+            const uniqueVis = Array.from(new Map(rawVis.map(v => [v._id || v.id, v])).values());
             dispatch({ type: 'SET_VISITORS', payload: uniqueVis });
           }
-          if (bugData?.bugs) {
-            dispatch({ type: 'SET_BUGS', payload: bugData.bugs });
+          const rawBugs = Array.isArray(bugData)
+            ? bugData
+            : (bugData?.bugs || bugData?.data?.bugs || bugData?.data || []);
+          if (rawBugs && rawBugs.length > 0) {
+            dispatch({ type: 'SET_BUGS', payload: rawBugs });
           }
         }
       } catch {

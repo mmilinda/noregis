@@ -23,7 +23,11 @@ export default function AgentDashboard({ isMobile }) {
     if (isRefresh) setLoading(true);
     try {
       const data = await visitService.getAll();
-      dispatch({ type: 'SET_VISITORS', payload: data.visites || [] });
+      const rawVisits = Array.isArray(data) 
+        ? data 
+        : (data?.visites || data?.visits || data?.data?.visites || data?.data || []);
+      const uniqueVisits = Array.from(new Map(rawVisits.map(v => [v._id || v.id, v])).values());
+      dispatch({ type: 'SET_VISITORS', payload: uniqueVisits });
       if (isRefresh) notify('info', t.refresh_ok);
     } catch (err) {
       notify('error', err.message || t.api_error);
@@ -39,7 +43,9 @@ export default function AgentDashboard({ isMobile }) {
       try {
         const data = await visitService.getAll();
         if (!ignore) {
-          const rawVisits = data.visites || [];
+          const rawVisits = Array.isArray(data) 
+            ? data 
+            : (data?.visites || data?.visits || data?.data?.visites || data?.data || []);
           const uniqueVisits = Array.from(new Map(rawVisits.map(v => [v._id || v.id, v])).values());
           dispatch({ type: 'SET_VISITORS', payload: uniqueVisits });
         }
