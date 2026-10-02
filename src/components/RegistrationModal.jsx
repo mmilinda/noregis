@@ -1386,6 +1386,15 @@ export function RegistrationModal({ isOpen, onClose, initialMode = null }) {
     }
   };
 
+  const handleCancel = () => {
+    if (initialMode) {
+      setMode(null);
+      onClose();
+    } else {
+      setMode(null);
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -1462,11 +1471,11 @@ export function RegistrationModal({ isOpen, onClose, initialMode = null }) {
           </button>
         </div>
       ) : (mode === 'person' || mode === 'no_id_person') ? (
-        <PersonForm initial={mode === 'no_id_person' ? { typePiece: "Sans pièce d'identité" } : {}} onSubmit={handleSubmit} onCancel={() => setMode(null)} loading={loading} t={t} />
+        <PersonForm initial={mode === 'no_id_person' ? { typePiece: "Sans pièce d'identité" } : {}} onSubmit={handleSubmit} onCancel={handleCancel} loading={loading} t={t} />
       ) : (mode === 'nin_search' || mode === 'phone_search') ? (
-        <NINSearchForm onSelectVisitor={handleExistingVisitorSubmit} onCancel={() => setMode(null)} t={t} />
+        <NINSearchForm onSelectVisitor={handleExistingVisitorSubmit} onCancel={handleCancel} t={t} />
       ) : (
-        <VehiculeForm onSubmit={handleSubmit} onCancel={() => setMode(null)} loading={loading} t={t} />
+        <VehiculeForm onSubmit={handleSubmit} onCancel={handleCancel} loading={loading} t={t} />
       )}
     </Modal>
   );
