@@ -269,7 +269,8 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t: translations
       
       const extractedNumPiece = (data.numeroPiece || data.documentNumber || data.cardNumber) ? String(data.numeroPiece || data.documentNumber || data.cardNumber).trim() : prev.numeroPiece;
       const rawNin = (data.nin || data.idNumber || data.ninNumber) ? String(data.nin || data.idNumber || data.ninNumber).trim() : '';
-      const extractedNin = rawNin || (isPassport ? extractedNumPiece : (extractedNumPiece && /^\d{13,15}$/.test(extractedNumPiece) ? extractedNumPiece : prev.nin));
+      const cleanNumPieceDigits = extractedNumPiece ? extractedNumPiece.replace(/[\s-]/g, '') : '';
+      const extractedNin = rawNin || (isPassport ? extractedNumPiece : (cleanNumPieceDigits && /^\d{13,15}$/.test(cleanNumPieceDigits) ? extractedNumPiece : prev.nin));
 
       return {
         ...prev,

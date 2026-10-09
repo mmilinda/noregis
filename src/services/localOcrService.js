@@ -23,8 +23,19 @@ export function toISODate(dateStr) {
 
 export function nettoyerValeurChamp(val) {
   if (!val || typeof val !== 'string') return val || '';
-  return val
-    .replace(/^(?:1|2|3|4a|4b|4c|4d|5|6|7|8|9|10|11|12)[\.\s:\-]+/i, '')
+  const trimmed = val.trim();
+
+  // Si la valeur est un numéro de CNI / NIN ou suite de chiffres (ex: 1 757 1995 00123 ou 1-757-1995-00123)
+  // On ne doit JAMAIS supprimer le 1 (masculin) ou 2 (féminin) au début !
+  const digitsOnly = trimmed.replace(/[\s.-]/g, '');
+  if (/^\d{10,}$/.test(digitsOnly)) {
+    return trimmed;
+  }
+
+  // Ne supprimer l'index de champ (1., 2., 4a., etc.) QUE s'il est suivi par une lettre (ex: "1. NOM" -> "NOM")
+  // et NON lorsqu'il est suivi par un chiffre (ex: "1 757..." -> conserver le 1)
+  return trimmed
+    .replace(/^(?:1|2|3|4a|4b|4c|4d|5|6|7|8|9|10|11|12)[\.\s:\-]+(?=[a-zA-ZÀ-ÿ])/i, '')
     .replace(/^(?:SURNAME|GIVEN\s*NAMES?|NAMES?|NOM|PRENOM|PRÉNOM|NOMS?|PRÉNOMS?|LIEU\s*DE\s*NAISSANCE|PLACE\s*OF\s*BIRTH|A|À|VILLE\s*DE)\s*(\/|\\|\:|-|\s)*\s*/i, '')
     .trim();
 }
