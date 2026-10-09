@@ -662,7 +662,7 @@ function PersonForm({ initial = {}, onSubmit, onCancel, loading, t: translations
             <FormInput label={t.host_name} id="personneVisitee" required value={form.personneVisitee} onChange={set('personneVisitee')} error={errors.personneVisitee} icon={User} placeholder={t.host_placeholder} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <FormSelect label={t.service_dept} id="service" required value={form.service} onChange={set('service')} options={servicesList} placeholder={t.select} error={errors.service} icon={Building} />
-              <FormInput label={t.visit_reason} id="motif" required value={form.motif} onChange={set('motif')} placeholder={t.reason_placeholder} />
+              <FormInput label={t.visit_reason} id="motif" value={form.motif} onChange={set('motif')} placeholder={t.reason_placeholder} />
             </div>
           </div>
         </div>
@@ -1229,7 +1229,6 @@ function NINSearchForm({ onSelectVisitor, onCancel, t }) {
               <FormInput
                 label={t.visit_reason}
                 id="motif"
-                required
                 value={destinationForm.motif}
                 onChange={e => setDestinationForm(f => ({ ...f, motif: e.target.value }))}
                 placeholder={t.reason_placeholder}

@@ -369,7 +369,7 @@ export function Dt({ initial = {}, onSubmit, onCancel, loading, t: translations 
           <Input label={t.host_name} id="personneVisitee" required value={formData.personneVisitee} onChange={handleChange('personneVisitee')} error={errors.personneVisitee} icon={User} placeholder={t.host_placeholder} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <Select label={t.service_dept} id="service" required value={formData.service} onChange={handleChange('service')} options={servicesList} placeholder={t.select} error={errors.service} icon={Building2} />
-            <Input label={t.visit_reason} id="motif" required value={formData.motif} onChange={handleChange('motif')} placeholder={t.reason_placeholder} />
+            <Input label={t.visit_reason} id="motif" value={formData.motif} onChange={handleChange('motif')} placeholder={t.reason_placeholder} />
           </div>
         </div>
 
