@@ -267,7 +267,7 @@ function MobileDrawer({ isOpen, onClose, activeTab, onTabChange, onNewEntry, t, 
 /* ============================================
    MOBILE HEADER
 ============================================ */
-function MobileHeader({ activeTab, navItems, onOpenMenu, onNewEntry }) {
+function MobileHeader({ activeTab, navItems, onOpenMenu }) {
   const tabLabel = navItems.find(n => n.id === activeTab)?.label || 'NoRegis';
 
   return (
@@ -288,16 +288,7 @@ function MobileHeader({ activeTab, navItems, onOpenMenu, onNewEntry }) {
           <span className="text-xs font-black text-white/90 truncate max-w-[140px]">{tabLabel}</span>
         </div>
       </div>
-      <div className="flex items-center gap-2.5">
-        <button
-          onClick={onNewEntry}
-          className="p-2 bg-gradient-to-r from-brand-blue-bright via-blue-600 to-indigo-600 text-white rounded-lg shadow-md flex items-center justify-center hover:scale-105 active:scale-95 transition-all border border-white/20"
-          title="Scanner une pièce d'identité (Recto / Verso)"
-        >
-          <Camera size={18} />
-        </button>
-        <LiveClock light />
-      </div>
+      <LiveClock light />
     </header>
   );
 }
@@ -305,49 +296,84 @@ function MobileHeader({ activeTab, navItems, onOpenMenu, onNewEntry }) {
 /* ============================================
    MOBILE BOTTOM NAV
 ============================================ */
-function BottomNav({ activeTab, onTabChange, onOpenMenu, navItems, role }) {
+function BottomNav({ activeTab, onTabChange, onOpenMenu, onNewEntry, navItems, role }) {
   const { state } = useApp();
   const present = (state.visitors || []).filter(v => v.statut === 'present').length;
   const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'SUPERADMIN';
   const isAdmin = role === 'ADMIN';
 
-  // Déterminer les 3 pages les plus pertinentes selon le rôle
-  let mainTabIds = ['dashboard', 'history', 'bugs'];
+  let mainTabIds = ['dashboard', 'history'];
   if (isSuperAdmin) {
-    mainTabIds = ['dashboard', 'entreprises', 'bugs'];
+    mainTabIds = ['dashboard', 'entreprises'];
   } else if (isAdmin) {
-    mainTabIds = ['dashboard', 'agents', 'bugs'];
+    mainTabIds = ['dashboard', 'agents'];
   }
 
-  const urgentNavItems = mainTabIds
-    .map(id => navItems.find(n => n.id === id))
-    .filter(Boolean);
+  const navItem1 = navItems.find(n => n.id === mainTabIds[0]);
+  const navItem2 = navItems.find(n => n.id === mainTabIds[1]);
+  const navItem3 = navItems.find(n => n.id === 'bugs');
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-brand-navy border-t border-white/10 flex items-center justify-around px-2 pb-safe-area z-[100] h-16 shadow-2xl">
-      {urgentNavItems.map(({ id, label, icon: Icon }) => {
-        if (!Icon) return null;
-        const active = activeTab === id;
-        return (
-          <button 
-            key={id} 
-            onClick={() => onTabChange(id)} 
-            className="flex-1 flex flex-col items-center justify-center gap-1 transition-all py-1"
-          >
-            <div className="relative">
-              <Icon size={20} className={active ? 'text-brand-blue-bright' : 'text-white/40'} />
-              {id === 'dashboard' && present > 0 && (
-                <span className="absolute -top-1.5 -right-2.5 bg-brand-green-bright text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg">
-                  {present}
-                </span>
-              )}
-            </div>
-            <span className={`text-[9px] font-black tracking-tight truncate max-w-[75px] ${active ? 'text-brand-blue-bright' : 'text-white/40'}`}>
-              {label}
-            </span>
-          </button>
-        );
-      })}
+      {/* Item 1: Dashboard */}
+      {navItem1 && (
+        <button 
+          onClick={() => onTabChange(navItem1.id)} 
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1"
+        >
+          <div className="relative">
+            <navItem1.icon size={20} className={activeTab === navItem1.id ? 'text-brand-blue-bright' : 'text-white/40'} />
+            {present > 0 && (
+              <span className="absolute -top-1.5 -right-2.5 bg-brand-green-bright text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg">
+                {present}
+              </span>
+            )}
+          </div>
+          <span className={`text-[9px] font-black tracking-tight truncate max-w-[75px] ${activeTab === navItem1.id ? 'text-brand-blue-bright' : 'text-white/40'}`}>
+            {navItem1.label}
+          </span>
+        </button>
+      )}
+
+      {/* Item 2: Central SCAN Action Button */}
+      <button
+        onClick={onNewEntry}
+        className="flex flex-col items-center justify-center gap-0.5 -mt-4 group cursor-pointer"
+        title="Scanner une pièce d'identité (CNI / Pass)"
+      >
+        <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-brand-blue-bright via-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-xl border-2 border-white/20 group-active:scale-95 transition-transform">
+          <Camera size={22} className="group-hover:rotate-12 transition-transform" />
+        </div>
+        <span className="text-[9px] font-black text-brand-blue-bright tracking-tight">
+          Scanner
+        </span>
+      </button>
+
+      {/* Item 3: Second main page */}
+      {navItem2 && (
+        <button 
+          onClick={() => onTabChange(navItem2.id)} 
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1"
+        >
+          <navItem2.icon size={20} className={activeTab === navItem2.id ? 'text-brand-blue-bright' : 'text-white/40'} />
+          <span className={`text-[9px] font-black tracking-tight truncate max-w-[75px] ${activeTab === navItem2.id ? 'text-brand-blue-bright' : 'text-white/40'}`}>
+            {navItem2.label}
+          </span>
+        </button>
+      )}
+
+      {/* Item 4: Bugs / Signalements */}
+      {navItem3 && (
+        <button 
+          onClick={() => onTabChange(navItem3.id)} 
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1"
+        >
+          <navItem3.icon size={20} className={activeTab === navItem3.id ? 'text-brand-blue-bright' : 'text-white/40'} />
+          <span className={`text-[9px] font-black tracking-tight truncate max-w-[75px] ${activeTab === navItem3.id ? 'text-brand-blue-bright' : 'text-white/40'}`}>
+            {navItem3.label}
+          </span>
+        </button>
+      )}
     </nav>
   );
 }
@@ -663,6 +689,7 @@ export function Layout({ children, activeTab, onTabChange }) {
             activeTab={activeTab} 
             onTabChange={onTabChange} 
             onOpenMenu={() => setMobileMenuOpen(true)} 
+            onNewEntry={() => setRegOpen(true)}
             navItems={navItems} 
             role={role} 
           />
