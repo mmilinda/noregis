@@ -232,21 +232,19 @@ function MobileDrawer({ isOpen, onClose, activeTab, onTabChange, onNewEntry, t, 
           })}
         </div>
 
-        {/* New entry button for Agents */}
-        {agent?.role !== 'ADMIN' && agent?.role !== 'SUPER_ADMIN' && agent?.role !== 'SUPERADMIN' && (
-          <div className="px-4 py-2">
-            <button
-              onClick={() => {
-                onNewEntry();
-                onClose();
-              }}
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-blue-bright to-brand-blue text-white p-3 rounded-xl font-black text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg"
-            >
-              <Plus size={18} strokeWidth={3} />
-              {t.new_entry || 'Nouveau Visiteur'}
-            </button>
-          </div>
-        )}
+        {/* Bouton de Scan pour le Sidebar Mobile */}
+        <div className="px-4 py-3 border-t border-white/10">
+          <button
+            onClick={() => {
+              onNewEntry();
+              onClose();
+            }}
+            className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-tr from-brand-blue-bright via-blue-600 to-indigo-600 text-white p-3.5 rounded-xl font-black text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-white/20 group"
+          >
+            <Camera size={19} className="group-hover:rotate-12 transition-transform text-white" />
+            <span>Scanner une pièce (CNI / Pass)</span>
+          </button>
+        </div>
 
         {/* Footer Logout */}
         <div className="p-3 border-t border-white/10">
@@ -269,7 +267,7 @@ function MobileDrawer({ isOpen, onClose, activeTab, onTabChange, onNewEntry, t, 
 /* ============================================
    MOBILE HEADER
 ============================================ */
-function MobileHeader({ activeTab, navItems, onOpenMenu }) {
+function MobileHeader({ activeTab, navItems, onOpenMenu, onNewEntry }) {
   const tabLabel = navItems.find(n => n.id === activeTab)?.label || 'NoRegis';
 
   return (
@@ -290,7 +288,16 @@ function MobileHeader({ activeTab, navItems, onOpenMenu }) {
           <span className="text-xs font-black text-white/90 truncate max-w-[140px]">{tabLabel}</span>
         </div>
       </div>
-      <LiveClock light />
+      <div className="flex items-center gap-2.5">
+        <button
+          onClick={onNewEntry}
+          className="p-2 bg-gradient-to-r from-brand-blue-bright via-blue-600 to-indigo-600 text-white rounded-lg shadow-md flex items-center justify-center hover:scale-105 active:scale-95 transition-all border border-white/20"
+          title="Scanner une pièce d'identité (Recto / Verso)"
+        >
+          <Camera size={18} />
+        </button>
+        <LiveClock light />
+      </div>
     </header>
   );
 }
@@ -637,7 +644,7 @@ export function Layout({ children, activeTab, onTabChange }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-slate-100 dark:bg-[#0D1117]">
         {isMobile ? (
-          <MobileHeader activeTab={activeTab} navItems={navItems} onOpenMenu={() => setMobileMenuOpen(true)} />
+          <MobileHeader activeTab={activeTab} navItems={navItems} onOpenMenu={() => setMobileMenuOpen(true)} onNewEntry={() => setRegOpen(true)} />
         ) : (
           <DesktopTopBar activeTab={activeTab} navItems={navItems} t={t} onTabChange={onTabChange} />
         )}
