@@ -70,7 +70,7 @@ export function SuperAdminDashboard({ t }) {
   const [creatingUser, setCreatingUser] = useState(false);
 
   const loadData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) {
+    if (isRefresh || entreprises.length > 0 || visitesGlobales.length > 0) {
       setIsRefreshing(true);
     } else {
       setLoading(true);
@@ -655,7 +655,7 @@ export function SuperAdminDashboard({ t }) {
                     {/* Tooltip */}
                     {hoveredPoint && (
                       <div 
-                        className="absolute bg-slate-900 text-white text-xs rounded-lg px-3 py-1.5 shadow-xl font-bold border border-slate-700 pointer-events-none transform -translate-x-1/2 -translate-y-12 transition-all z-20"
+                        className="absolute bg-slate-900 text-white text-xs rounded-lg px-3 py-1.5 shadow-xl font-bold border border-slate-700 pointer-events-none select-none transform -translate-x-1/2 -translate-y-[135%] transition-opacity duration-150 z-20"
                         style={{
                           left: `${(hoveredPoint.x / lineChartPoints.width) * 100}%`,
                           top: `${(hoveredPoint.y / lineChartPoints.height) * 100}%`
@@ -1279,7 +1279,7 @@ export function SuperAdminDashboard({ t }) {
 
                   {hoveredPointHist && (
                     <div 
-                      className="absolute bg-slate-900 text-white text-xs rounded-lg px-2.5 py-1 shadow-xl font-bold border border-slate-700 pointer-events-none transform -translate-x-1/2 -translate-y-10 z-20"
+                      className="absolute bg-slate-900 text-white text-xs rounded-lg px-2.5 py-1 shadow-xl font-bold border border-slate-700 pointer-events-none select-none transform -translate-x-1/2 -translate-y-[135%] transition-opacity duration-150 z-20"
                       style={{
                         left: `${(hoveredPointHist.x / lineChartPoints.width) * 100}%`,
                         top: `${(hoveredPointHist.y / lineChartPoints.height) * 100}%`
